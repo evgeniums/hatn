@@ -22,6 +22,7 @@
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
+//! Address item
 HDU_UNIT(address_item,
     HDU_FIELD(id,db::TYPE_OBJECT_ID,1)
     HDU_FIELD(value,TYPE_STRING,2)
@@ -29,6 +30,7 @@ HDU_UNIT(address_item,
     HDU_FIELD(title,TYPE_STRING,4)
 )
 
+//! Object with addresses
 HDU_UNIT(with_addresses,
     HDU_REPEATED_FIELD(items,address_item::TYPE,44)
 )

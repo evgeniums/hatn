@@ -89,20 +89,24 @@ struct UserCharacterPrivSectionTraits
 using UserCharacterPrivSectionFeature=common::FeatureSet<UserCharacterPrivSectionTraits>;
 using UserCharacterPruvSections=UserCharacterPrivSectionFeature::Features;
 
+//! Object with avatar
 HDU_UNIT(with_avatar,
     HDU_FIELD(avatar,avatar_object::TYPE,55)
 )
 
-HDU_UNIT_WITH(user_character_public,(HDU_BASE(with_name),
-                                     HDU_BASE(with_username),
-                                     HDU_BASE(with_revision),
-                                     HDU_BASE(with_avatar)
-                                    ),
-    HDU_FIELD(notes,with_string::TYPE,1)
-    HDU_FIELD(addresses,with_addresses::TYPE,2)
-    HDU_FIELD(employment,employment::TYPE,3)
+//! Public character's data
+HDU_UNIT_WITH(user_character_public,(
+        HDU_BASE(with_name), //!< Inhetits name
+        HDU_BASE(with_username), //!< Inherits username
+        HDU_BASE(with_revision), //!< Inherits revision
+        HDU_BASE(with_avatar) //!< Inherits avatar
+    ),
+    HDU_FIELD(notes,with_string::TYPE,1) //!< Public notes or details
+    HDU_FIELD(addresses,with_addresses::TYPE,2) //!< Addresses
+    HDU_FIELD(employment,employment::TYPE,3) //!< Employment or job
 )
 
+//! Private character's data
 HDU_UNIT_WITH(user_character_private,(HDU_BASE(with_revision)),
     HDU_FIELD(private_notes,encryptable_string::TYPE,1)
     HDU_FIELD(shared_from,with_user_character::TYPE,2)
@@ -126,8 +130,11 @@ HDU_UNIT_WITH(user_character_public_sync,(HDU_BASE(with_user_character)),
     HDU_FIELD(public_data,user_character_public::TYPE,1)
 )
 
-HDU_UNIT_WITH(global_character,(HDU_BASE(global_object)),
-    HDU_FIELD(public_data,user_character_public::TYPE,1)
+//! Globally accessible character
+HDU_UNIT_WITH(global_character,(
+        HDU_BASE(global_object) //!< Inherits from global_object
+    ),
+    HDU_FIELD(public_data,user_character_public::TYPE,1) //!< Public data
 )
 
 HDU_UNIT_WITH(user_character_private_sync,(HDU_BASE(user_character_full),HDU_BASE(unread_count))

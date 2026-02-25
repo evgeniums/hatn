@@ -27,12 +27,14 @@ HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
 constexpr const char* USERNAME_SCHEMA_HOST="host";
 
+//! Universal resource identificator
 HDU_UNIT(uri,
-    HDU_FIELD(user,TYPE_STRING,1)
-    HDU_FIELD(schema,TYPE_STRING,2)
-    HDU_FIELD(domain,TYPE_STRING,3)
+    HDU_FIELD(user,TYPE_STRING,1) //!< User
+    HDU_FIELD(schema,TYPE_STRING,2) //!< Schema
+    HDU_FIELD(domain,TYPE_STRING,3) //!< Domain
 )
 
+//! Object with URI
 HDU_UNIT(with_uri,
     HDU_FIELD(uname,uri::TYPE,70)
 )

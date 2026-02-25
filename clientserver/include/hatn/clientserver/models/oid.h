@@ -45,15 +45,19 @@ HDU_UNIT(oid_key,
     HDU_FIELD(oid,TYPE_OBJECT_ID,99)
 )
 
+//! Identificator of parent object
 HDU_UNIT(with_parent,
-    HDU_FIELD(parent_oid,TYPE_OBJECT_ID,90)
-    HDU_FIELD(parent_type,TYPE_STRING,91)
-    HDU_FIELD(parent_topic,TYPE_STRING,92)
+    HDU_FIELD(parent_oid,TYPE_OBJECT_ID,90) //!< Parent object's ID
+    HDU_FIELD(parent_type,TYPE_STRING,91) //!< Parent object's type
+    HDU_FIELD(parent_topic,TYPE_STRING,92) //!< Topic the parent resides in
 )
 
-HDU_UNIT_WITH(topic_object,(HDU_BASE(with_parent)),
-    HDU_FIELD(oid,TYPE_OBJECT_ID,1)
-    HDU_FIELD(topic,TYPE_STRING,2)
+//! Identificator of object in topic
+HDU_UNIT_WITH(topic_object,
+              (HDU_BASE(with_parent) //!< Inherits from with_parent
+            ),
+    HDU_FIELD(oid,TYPE_OBJECT_ID,1) //!< Object ID
+    HDU_FIELD(topic,TYPE_STRING,2) //!< Topic the object resides in
 )
 
 constexpr const char* GUID_ISSUER_DNS="dns";
@@ -68,12 +72,13 @@ constexpr const char* GUID_ID_TYPE_ALIAS="alias";
 constexpr const char* GUID_ID_TYPE_X509="x509";
 constexpr const char* GUID_ID_TYPE_PUBKEY="pubkey";
 
+//! Global universal identificator
 HDU_UNIT(guid,
-    HDU_FIELD(issuer_schema,TYPE_STRING,1,false,GUID_ISSUER_DNS)
-    HDU_FIELD(issuer_id,TYPE_STRING,2)
-    HDU_FIELD(id_type,TYPE_STRING,3,false,GUID_ID_TYPE_OID)
-    HDU_FIELD(id,TYPE_STRING,4)
-    HDU_FIELD(id_topic,TYPE_STRING,5)
+    HDU_FIELD(issuer_schema,TYPE_STRING,1,false,GUID_ISSUER_DNS) //!< Schema or type of the issuer of the odentificator
+    HDU_FIELD(issuer_id,TYPE_STRING,2) //!< Identificator of the issuer
+    HDU_FIELD(id_type,TYPE_STRING,3,false,GUID_ID_TYPE_OID) //!< Type of object ID
+    HDU_FIELD(id,TYPE_STRING,4) //!< Object ID
+    HDU_FIELD(id_topic,TYPE_STRING,5) //!< Topic the object resides in
 )
 
 HDU_UNIT(dns_issuer,
@@ -95,21 +100,26 @@ HDU_UNIT(x509_issuer,
     HDU_REPEATED_FIELD(certificate_chain,TYPE_STRING,1)
 )
 
-HDU_UNIT_WITH(server_object,(HDU_BASE(topic_object)),
-    HDU_FIELD(server_id,guid::TYPE,10)
+//! Identificator of server object
+HDU_UNIT_WITH(server_object,
+              (HDU_BASE(topic_object) //!< Inherits from topic_object
+            ),
+    HDU_FIELD(server_id,guid::TYPE,10) //!< Server ID
 )
 
+//! Universal object identificator
 HDU_UNIT(uid,
-    HDU_FIELD(local,topic_object::TYPE,1)
-    HDU_FIELD(server,server_object::TYPE,2)
-    HDU_FIELD(global,guid::TYPE,3)
-    HDU_FIELD(version,TYPE_STRING,4)
-    HDU_FIELD(index,TYPE_UINT64,5)
-    HDU_FIELD(date,TYPE_DATE,6)
+    HDU_FIELD(local,topic_object::TYPE,1) //!< ID at local database
+    HDU_FIELD(server,server_object::TYPE,2) //!< ID at server database
+    HDU_FIELD(global,guid::TYPE,3) //!< Global guid
+    HDU_FIELD(version,TYPE_STRING,4) //!< Optional object version
+    HDU_FIELD(index,TYPE_UINT64,5) //!< Optional object index
+    HDU_FIELD(date,TYPE_DATE,6) //!< Optional date of ID used for date partitioning
 )
 
+//! Object with universal identificator
 HDU_UNIT(with_uid,
-    HDU_FIELD(uid,uid::TYPE,750)
+    HDU_FIELD(uid,uid::TYPE,750) //!< Universal identificator
 )
 
 HDU_UNIT(with_guid,
@@ -137,7 +147,12 @@ HDU_UNIT(with_parent_idx,
     HDU_REPEATED_FIELD(parent_ids,TYPE_STRING,96)
 )
 
-HDU_UNIT_WITH(global_object,(HDU_BASE(with_revision),HDU_BASE(with_uid)))
+//! Globally accessible object
+HDU_UNIT_WITH(global_object,
+(
+  HDU_BASE(with_revision), //!< Inherits from object revision
+  HDU_BASE(with_uid)) //!< Inherits from object uid
+)
 
 template <typename T>
 inline auto getUidLocal(const T& uid)

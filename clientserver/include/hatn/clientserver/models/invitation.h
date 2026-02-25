@@ -106,12 +106,15 @@ inline common::DateTime invitationExpiration(InvitationExpiration expiration)
     return dt;
 }
 
-HDU_UNIT_WITH(invitation,(HDU_BASE(HATN_DB_NAMESPACE::object)),
-    HDU_FIELD(guid,guid::TYPE,1)
-    HDU_REPEATED_FIELD(hosts,server_host::TYPE,2)
-    HDU_REPEATED_FIELD(pubkeys,public_key::TYPE,3)
-    HDU_FIELD(expiration,TYPE_DATETIME,10)
-    HDU_FIELD(reuse,HDU_TYPE_ENUM(InvitationReuseMode),11)
+//! Invitation object
+HDU_UNIT_WITH(invitation,(
+        HDU_BASE(HATN_DB_NAMESPACE::object) //!< Inherits from base object
+    ),
+    HDU_FIELD(guid,guid::TYPE,1) //!< Character's guid
+    HDU_REPEATED_FIELD(hosts,server_host::TYPE,2) //!< Immediate routing information to find the character bypassing guid lookups
+    HDU_REPEATED_FIELD(pubkeys,public_key::TYPE,3) //!< Public keys of the user, can be multiple, e.g. one for communication and another for notifications
+    HDU_FIELD(expiration,TYPE_DATETIME,10) //!< Expiration of this invitation
+    HDU_FIELD(reuse,HDU_TYPE_ENUM(InvitationReuseMode),11) //!< Mode of invitation reusing
 )
 
 HDU_UNIT(shared_invitation,
@@ -173,9 +176,10 @@ HDU_UNIT(ivitation_info,
     HDU_FIELD(user_info,user_character_public_sync::TYPE,2)
 )
 
+//! Parsed invitation and character info for parsed invitation
 HDU_UNIT(character_for_invitation,
-    HDU_FIELD(invitation,invitation::TYPE,1)
-    HDU_FIELD(character,global_character::TYPE,2)
+    HDU_FIELD(invitation,invitation::TYPE,1) //!< Invitation
+    HDU_FIELD(character,global_character::TYPE,2) //!< Character info
 )
 
 HATN_CLIENT_SERVER_NAMESPACE_END

@@ -24,8 +24,9 @@ HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
 constexpr const int RevisionFieldId=120;
 
+//! Object revision
 HDU_UNIT(with_revision,
-    HDU_FIELD(revision,TYPE_OBJECT_ID,RevisionFieldId)
+    HDU_FIELD(revision,TYPE_OBJECT_ID,RevisionFieldId) //!< Object revision
 )
 
 HATN_CLIENT_SERVER_NAMESPACE_END

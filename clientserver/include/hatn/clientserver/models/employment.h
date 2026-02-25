@@ -22,6 +22,7 @@
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
+//! Employment or job
 HDU_UNIT(employment,
     HDU_FIELD(organization,TYPE_STRING,1)
     HDU_FIELD(department,TYPE_STRING,2)
