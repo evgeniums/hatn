@@ -22,16 +22,19 @@
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
+//! Container of string field
 HDU_UNIT(with_string,
-    HDU_FIELD(string_value,TYPE_STRING,1)
+    HDU_FIELD(string_value,TYPE_STRING,1) //!< String field
 )
 
+//! Name type
 HDU_UNIT(name,
     HDU_FIELD(first,TYPE_STRING,1)
     HDU_FIELD(middle,TYPE_STRING,2)
     HDU_FIELD(last,TYPE_STRING,3)
 )
 
+//! Object with name
 HDU_UNIT(with_name,
     HDU_FIELD(name,name::TYPE,71)
 )
@@ -86,29 +89,29 @@ struct NameFormatter
                 {
                     switch (nameFormat)
                     {
-                    case (NameFormat::FirstLast):
-                    {
-                        return fmt::format("{} {}",first,last);
-                    }
-                    break;
+                        case (NameFormat::FirstLast):
+                        {
+                            return fmt::format("{} {}",first,last);
+                        }
+                        break;
 
-                    case (NameFormat::LastFirst):
-                    {
-                        return fmt::format("{} {}",last,first);
-                    }
-                    break;
+                        case (NameFormat::LastFirst):
+                        {
+                            return fmt::format("{} {}",last,first);
+                        }
+                        break;
 
-                    case (NameFormat::Full):
-                    {
-                        return fmt::format("{} {} {}",last,first,middle);
-                    }
-                    break;
+                        case (NameFormat::Full):
+                        {
+                            return fmt::format("{} {} {}",last,first,middle);
+                        }
+                        break;
 
-                    case (NameFormat::LastwithInitials):
-                    {
-                        return fmt::format("{} {}.{}.",last,locale.firstLetter(first),locale.firstLetter(middle));
-                    }
-                    break;
+                        case (NameFormat::LastwithInitials):
+                        {
+                            return fmt::format("{} {}.{}.",last,locale.firstLetter(first),locale.firstLetter(middle));
+                        }
+                        break;
                     }
                 }
                 else // non-empty last, non-empty first, empty middle
@@ -129,7 +132,7 @@ struct NameFormatter
 
                         case (NameFormat::Full):
                         {
-                            return fmt::format("{} {}",last,middle);
+                            return fmt::format("{} {}",first,last);
                         }
                         break;
 
@@ -141,7 +144,7 @@ struct NameFormatter
                     }
                 }
             }
-            else // non-empty last, empty first
+            else // non-empty last, empty first, non-empty middle
             {
                 return std::string{last};
             }
