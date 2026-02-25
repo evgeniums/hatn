@@ -36,6 +36,15 @@ constexpr bool isEnumInt(int val, T t) noexcept
     return static_cast<int>(t)==val;
 }
 
+//! Check if enum bit is set
+template <typename MaskT, typename T>
+constexpr bool isEnumBitSet(MaskT enumMask, T enumField) noexcept
+{
+    auto bit=1 << EnumInt(enumField);
+
+    return enumMask & bit;
+}
+
 HATN_COMMON_NAMESPACE_END
 
 #endif // HATNENUMINT_H
