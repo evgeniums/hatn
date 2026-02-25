@@ -43,10 +43,14 @@ struct Request
 {
     std::string envId;
     std::string topic;
+    std::string subject;
     std::string messageTypeName;
     std::string messageJson;
     std::vector<std::vector<const char>> buffers;
     ConfirmationDescriptor confirmation;
+
+    uint32_t cacheOptions=0;
+    uint32_t cacheDbTtl=0;
 
     Request()
     {}
@@ -54,9 +58,11 @@ struct Request
     Request(
         std::string envId,
         std::string topic,
+        std::string subject,
         std::string messageTypeName
         ) : envId(std::move(envId)),
             topic(std::move(topic)),
+            subject(std::move(subject)),
             messageTypeName(std::move(messageTypeName))
     {}
 };
@@ -90,6 +96,7 @@ struct EventKey
     std::string envId;
     std::string topic;
     std::string oid;
+    std::string subject;
 };
 
 struct Event : public EventKey

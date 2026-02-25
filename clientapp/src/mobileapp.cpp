@@ -16,6 +16,7 @@
 
 #include <hatn/common/thread.h>
 #include <hatn/common/datetime.h>
+#include <hatn/common/meta/enumint.h>
 
 #include <hatn/dataunit/wirebufsolid.h>
 #include <hatn/dataunit/syntax.h>
@@ -29,6 +30,8 @@
 
 #include <hatn/app/appenv.h>
 #include <hatn/app/app.h>
+
+#include <hatn/clientserver/cacheoptions.h>
 
 #include <hatn/clientapp/clientbridge.h>
 #include <hatn/clientapp/clientapp.h>
@@ -47,6 +50,8 @@ HATN_LOG_MODULE_DECLARE_EXP(mobileapp,HATN_CLIENTAPP_EXPORT)
 HATN_LOG_MODULE_INIT(mobileapp,HATN_CLIENTAPP_EXPORT)
 
 HATN_CLIENTAPP_MOBILE_NAMESPACE_BEGIN
+
+HATN_CLIENT_SERVER_USING
 
 //-----------------------------------------------------------------------------
 
@@ -195,6 +200,33 @@ void MobileApp::exec(
         std::move(request.messageTypeName)
     };
     req.confirmation=std::move(request.confirmation);
+    req.subject=std::move(request.subject);
+
+    req.cacheOptions->cache_in_db_ttl(request.cacheDbTtl);
+    if (common::isEnumBitSet(request.cacheOptions,CacheOptionFlag::SetCacheInDb))
+    {
+        req.cacheOptions->setCacheInDb(common::isEnumBitSet(request.cacheOptions,CacheOptionFlag::CacheInDbOn));
+    }
+    if (common::isEnumBitSet(request.cacheOptions,CacheOptionFlag::SetCacheInMem))
+    {
+        req.cacheOptions->setCacheInMem(common::isEnumBitSet(request.cacheOptions,CacheOptionFlag::CacheInMemOn));
+    }
+    if (common::isEnumBitSet(request.cacheOptions,CacheOptionFlag::SetCacheDataInDb))
+    {
+        req.cacheOptions->setCacheDataInDb(common::isEnumBitSet(request.cacheOptions,CacheOptionFlag::CacheDataInDbOn));
+    }
+    if (common::isEnumBitSet(request.cacheOptions,CacheOptionFlag::SetTouchDb))
+    {
+        req.cacheOptions->setTouchDb(common::isEnumBitSet(request.cacheOptions,CacheOptionFlag::TouchDbOn));
+    }
+    if (common::isEnumBitSet(request.cacheOptions,CacheOptionFlag::SetSkip))
+    {
+        req.cacheOptions->setSkip(common::isEnumBitSet(request.cacheOptions,CacheOptionFlag::SkipOn));
+    }
+    if (common::isEnumBitSet(request.cacheOptions,CacheOptionFlag::SetSaveLocalData))
+    {
+        req.cacheOptions->setSaveLocal(common::isEnumBitSet(request.cacheOptions,CacheOptionFlag::SaveLocalDataOn));
+    }
 
     HATN_CTX_DEBUG_RECORDS(100,"JSON content",{"msg_type",req.messageTypeName},{"msg_json",request.messageJson})
 
@@ -274,13 +306,15 @@ size_t MobileApp::subscribeEvent(
     HATN_CTX_SCOPE_PUSH("event_env",key_.envId)
     HATN_CTX_SCOPE_PUSH("event_topic",key_.topic)
     HATN_CTX_SCOPE_PUSH("event_oid",key_.oid)
+    HATN_CTX_SCOPE_PUSH("event_subkect",key_.subject)
 
     HATN_CLIENTAPP_NAMESPACE::EventKey key{
         std::move(key_.category),
         std::move(key_.event),
         std::move(key_.envId),
         std::move(key_.topic),
-        std::move(key_.oid)
+        std::move(key_.oid),
+        std::move(key_.subject)
     };
 
     HATN_CTX_DEBUG_RECORDS(1,"selectors",{"selector0",*key.selectors().at(0)})
@@ -297,6 +331,7 @@ size_t MobileApp::subscribeEvent(
         ntfcn.event=event->event;
         ntfcn.topic=event->topic;
         ntfcn.oid=event->oid;
+        ntfcn.subject=event->subject;
         ntfcn.genericParameter=event->genericParameter;
         if (env)
         {
