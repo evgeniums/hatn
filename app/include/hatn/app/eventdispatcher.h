@@ -47,7 +47,7 @@ struct EventKeyFields
     std::string m_envId;
     std::string m_topic;
     std::string m_oid;
-    std::string m_character;
+    std::string m_subject;
 
     EventKeyFields(
         std::string category={},
@@ -55,13 +55,13 @@ struct EventKeyFields
         std::string envId={},
         std::string topic={},
         std::string oid={},
-        std::string character={}
+        std::string subject={}
         ) : m_category(std::move(category)),
             m_event(std::move(event)),
             m_envId(std::move(envId)),
             m_topic(std::move(topic)),
             m_oid(std::move(oid)),
-            m_character(std::move(character))
+            m_subject(std::move(subject))
     {}
 };
 
@@ -78,13 +78,13 @@ class EventKey : public EventKeyFields
                 std::string envId={},
                 std::string topic={},
                 std::string oid={},
-                std::string character={}
+                std::string subject={}
             ) : EventKeyFields(std::move(category),
                 std::move(event),
                 std::move(envId),
                 std::move(topic),
                 std::move(oid),
-                std::move(character)
+                std::move(subject)
                 )
         {
             initSelectors();
@@ -175,9 +175,9 @@ class EventKey : public EventKeyFields
             return m_oid;
         }
 
-        const std::string& character() const noexcept
+        const std::string& subject() const noexcept
         {
-            return m_character;
+            return m_subject;
         }
 
         void setCategory(std::string category)
@@ -205,9 +205,9 @@ class EventKey : public EventKeyFields
             m_oid=std::move(oid);
         }
 
-        void setCharacter(std::string character)
+        void setSubject(std::string subject)
         {
-            m_character=std::move(character);
+            m_subject=std::move(subject);
         }
 
         const Selectors& selectors() const
@@ -224,7 +224,7 @@ class EventKey : public EventKeyFields
             m_selectors[2]=&m_envId;
             m_selectors[3]=&m_topic;
             m_selectors[4]=&m_oid;
-            m_selectors[5]=&m_character;
+            m_selectors[5]=&m_subject;
         }
 
         Selectors m_selectors;
@@ -237,7 +237,7 @@ struct Event
 
     std::string topic;
     std::string oid;
-    std::string character;
+    std::string subject;
 
     std::string messageTypeName;
     std::string genericParameter;
