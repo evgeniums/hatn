@@ -17,9 +17,27 @@
 #define HATNCACHEOPTIONS_H
 
 #include <cstddef>
+#include <cstdint>
+
 #include <hatn/clientserver/clientserver.h>
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
+
+enum class CacheOptionFlag : uint32_t
+{
+    SetCacheInDb,
+    CacheInDbOn,
+    SetCacheInMem,
+    CacheInMemOn,
+    SetCacheDataInDb,
+    CacheDataInDbOn,
+    SetTouchDb,
+    TouchDbOn,
+    SetSkip,
+    SkipOn,
+    SetSaveLocalData,
+    SaveLocalDataOn
+};
 
 class CacheOptions
 {
@@ -35,6 +53,11 @@ class CacheOptions
         {
             m_cacheInDb=false;
             return *this;
+        }
+
+        void setCacheInDb(bool enable) noexcept
+        {
+            m_cacheInDb=enable;
         }
 
         bool cacheInDb() const noexcept
@@ -54,6 +77,11 @@ class CacheOptions
             return *this;
         }
 
+        void setCacheInMem(bool enable) noexcept
+        {
+            m_cacheInMem=enable;
+        }
+
         bool cacheInMem() const noexcept
         {
             return m_cacheInMem;
@@ -71,6 +99,11 @@ class CacheOptions
             return *this;
         }
 
+        void setCacheDataInDb(bool enable) noexcept
+        {
+            m_cacheDataInDb=enable;
+        }
+
         bool cacheDataInDb() const noexcept
         {
             return m_cacheDataInDb;
@@ -86,6 +119,11 @@ class CacheOptions
         {
             m_touchDb=false;
             return *this;
+        }
+
+        void setTouchDb(bool enable) noexcept
+        {
+            m_touchDb=enable;
         }
 
         bool touchDb() const noexcept
@@ -116,6 +154,11 @@ class CacheOptions
             return *this;
         }
 
+        void setSkip(bool enable) noexcept
+        {
+            m_skipCache=enable;
+        }
+
         bool skip() const noexcept
         {
             return m_skipCache;
@@ -131,6 +174,11 @@ class CacheOptions
         {
             m_saveInLocalDb=false;
             return *this;
+        }
+
+        void setSaveLocal(bool enable) noexcept
+        {
+            m_saveInLocalDb=enable;
         }
 
         bool saveLocal() const noexcept
