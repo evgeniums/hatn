@@ -163,27 +163,13 @@ class ObjectsCache_p
             }
             else
             {
-                if constexpr (Traits::IndexIndexField.value)
-                {
-                    auto query=HATN_DB_NAMESPACE::makeQuery(
-                        uidIdx(),
-                        db::where(with_uid_idx::ids,HATN_DB_NAMESPACE::query::in,ids).
-                        and_(db::field(with_uid::uid,uid::index),db::query::eq,uid.index())
-                        ,
-                        topic
-                        );
-                    return query;
-                }
-                else
-                {
-                    auto query=HATN_DB_NAMESPACE::makeQuery(
-                        uidIdx(),
-                        db::where(with_uid_idx::ids,HATN_DB_NAMESPACE::query::in,ids)
-                        ,
-                        topic
-                        );
-                    return query;
-                }
+                auto query=HATN_DB_NAMESPACE::makeQuery(
+                    uidIdx(),
+                    db::where(with_uid_idx::ids,HATN_DB_NAMESPACE::query::in,ids)
+                    ,
+                    topic
+                    );
+                return query;
             }
         }
 
@@ -209,7 +195,7 @@ class ObjectsCache_p
         return q;
     }
 };
-
+#if 1
 //--------------------------------------------------------------------------
 
 template <typename Traits, typename Derived>
@@ -1268,7 +1254,7 @@ void ObjectsCache<Traits,Derived>::setDbModelProvider(CacheDbModelsProvider* pro
 }
 
 //--------------------------------------------------------------------------
-
+#endif
 HATN_CLIENT_SERVER_NAMESPACE_END
 
 #endif // HATNOBJECTSCACHE_IPP
