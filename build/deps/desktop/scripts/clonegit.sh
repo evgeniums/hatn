@@ -5,7 +5,7 @@ if [ -d "$folder" ]; then
     cd -
 else
     cd $src_dir
-    git clone --recurse-submodules $repo_path
+    git clone --recurse-submodules $git_extra_args $repo_path
     cd -
 fi
 

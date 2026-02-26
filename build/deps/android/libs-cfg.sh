@@ -13,6 +13,10 @@ if [ -z "$boost_version" ]; then
 export boost_version=1.84.0
 fi
 
+if [ -z "$grpc_version" ]; then
+export grpc_version=1.78.1
+fi
+
 if [ -z "$iconv_version" ]; then
 export iconv_version=1.16
 fi
