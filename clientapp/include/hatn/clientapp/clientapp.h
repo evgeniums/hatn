@@ -41,6 +41,7 @@ HATN_DB_NAMESPACE_END
 HATN_APP_NAMESPACE_BEGIN
 class App;
 class EventDispatcher;
+struct Event;
 HATN_APP_NAMESPACE_END
 
 HATN_CLIENTAPP_NAMESPACE_BEGIN
@@ -142,6 +143,11 @@ class HATN_CLIENTAPP_EXPORT ClientApp
         virtual hatn::Error initTests();
 
         std::shared_ptr<db::Schema> dbSchema(const std::string& name) const;
+
+        void publishEvent(
+            std::shared_ptr<HATN_APP_NAMESPACE::Event> event,
+            const std::string& envId={}
+        );
 
     protected:
 

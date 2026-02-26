@@ -471,4 +471,27 @@ std::shared_ptr<db::Schema> ClientApp::dbSchema(const std::string& name) const
 
 //--------------------------------------------------------------------------
 
+void ClientApp::publishEvent(
+        std::shared_ptr<HATN_APP_NAMESPACE::Event> event,
+        const std::string& envId
+    )
+{
+    HATN_CLIENTAPP_NAMESPACE::DefaultContextBuilder ctxBuilder{};
+    auto env=bridge().env(envId);
+    auto ctx=ctxBuilder.makeContext(app().env());
+    ctx->beforeThreadProcessing();
+
+    {
+        eventDispatcher().publish(
+            env,
+            ctx,
+            std::move(event)
+        );
+    }
+
+    ctx->afterThreadProcessing();
+}
+
+//--------------------------------------------------------------------------
+
 HATN_CLIENTAPP_NAMESPACE_END
