@@ -14,6 +14,10 @@ if [ -z "$grpc_version" ]; then
 export grpc_version=1.78.1
 fi
 
+if [ -z "$cares_version" ]; then
+export cares_version=1.27
+fi
+
 if [ -z "$build_workers" ]; then
 export build_workers=6
 fi
