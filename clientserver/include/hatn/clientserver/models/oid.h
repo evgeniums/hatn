@@ -447,6 +447,24 @@ class Uid : public common::WithSharedValue<uid::managed>
             return HATN_DATAUNIT_NAMESPACE::unitsEqual(get(),other);
         }
 
+        bool operator ==(const Uid& other) const
+        {
+            if (!local().isNull() && !other.local().isNull())
+            {
+                return HATN_DATAUNIT_NAMESPACE::unitsEqual(local().get(),other.local().get());
+            }
+            if (!server().isNull() && !other.server().isNull())
+            {
+                return HATN_DATAUNIT_NAMESPACE::unitsEqual(server().get(),other.server().get());
+            }
+            if (!global().isNull() && !other.global().isNull())
+            {
+                return HATN_DATAUNIT_NAMESPACE::unitsEqual(global().get(),other.global().get());
+            }
+
+            return HATN_DATAUNIT_NAMESPACE::unitsEqual(get(),other);
+        }
+
         LocalUid local() const noexcept
         {
             if (isNull())
