@@ -195,7 +195,7 @@ class Server : public std::enable_shared_from_this<Server<ConnectionsStoreT,Disp
 
                                 auto& req=reqCtx->template get<Request>();
                                 HATN_CTX_PUSH_FIXED_VAR("mthd",req.unit.fieldValue(protocol::request::method))
-                                HATN_CTX_PUSH_FIXED_VAR("req",lib::string_view{req.unit.fieldValue(protocol::request::id).string()})
+                                HATN_CTX_PUSH_FIXED_VAR("req",lib::string_view{req.unit.fieldValue(protocol::request::id).toString()})
                                 HATN_CTX_PUSH_FIXED_VAR("srv",req.unit.fieldValue(protocol::request::service))
                                 if (req.unit.field(protocol::request::service_version).isSet())
                                 {

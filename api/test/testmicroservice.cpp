@@ -34,7 +34,7 @@
 
 #include <hatn/api/client/plaintcpconnection.h>
 #include <hatn/api/client/plaintcprouter.h>
-#include <hatn/api/client/client.h>
+#include <hatn/api/client/rawtransportclient.h>
 #include <hatn/api/client/session.h>
 #include <hatn/api/client/serviceclient.h>
 
@@ -49,6 +49,7 @@
 #include <hatn/api/server/microservicefactory.h>
 
 #include <hatn/api/ipp/client.ipp>
+#include <hatn/api/ipp/rawtransport.ipp>
 #include <hatn/api/ipp/clientrequest.ipp>
 #include <hatn/api/ipp/auth.ipp>
 #include <hatn/api/ipp/message.ipp>
@@ -108,7 +109,12 @@ HDU_UNIT(service2_msg2,
 
 /********************** Client **************************/
 
-using ClientType=client::Client<client::PlainTcpRouter,client::SessionWrapper<client::SessionNoAuth,client::SessionNoAuthContext>,LogCtxType>;
+struct LogCtxTraits : public client::DefaultClientTraits
+{
+    using Context=LogCtxType;
+};
+
+using ClientType=client::RawTransportClient<client::PlainTcpRouter,client::SessionWrapper<client::SessionNoAuth,client::SessionNoAuthContext>,LogCtxTraits>;
 using ClientCtxType=client::ClientContext<ClientType>;
 HATN_TASK_CONTEXT_DECLARE(ClientType)
 HATN_TASK_CONTEXT_DEFINE(ClientType,ClientType)
