@@ -12,4 +12,5 @@ SET (HATN_MODULES
 	app
 	clientserver
 	clientapp
+	grpcclient
 )
