@@ -18,13 +18,14 @@ fi
 cmake -G "Unix Makefiles" \
 	-DCMAKE_BUILD_TYPE=$build_type \
 	-DCMAKE_INSTALL_PREFIX=$install_path \
+	-DCMAKE_PREFIX_PATH=$deps_root \
 	-DINSTALL_DEV=$install_dev \
 	-DBUILD_STATIC=$build_static \
 	-DENABLE_TRANSLATIONS=$enable_translations \
 	-DDEV_MODULE=$module \
 	-DBUILD_PLUGINS="$hatn_plugins" \
 	$with_boost_dir \
-    $hatn_cmake_extra_options \
+	$hatn_cmake_extra_options \
 	$project_path
 
 if [ -z "$codechecker" ];
