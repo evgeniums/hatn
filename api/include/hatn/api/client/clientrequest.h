@@ -120,8 +120,6 @@ struct Request
             return m_method;
         }
 
-    protected:
-
         lib::string_view id() const noexcept;
 
         const SessionWrapper& session() const
@@ -170,9 +168,6 @@ struct Request
 
         const Service* m_service;
         const Method* m_method;
-
-        template <typename RouterT1, typename SessionWrapper1, typename TaskContextT1, typename MessageBufT1, typename RequestUnitT1>
-        friend class Client;
 };
 
 template <typename RequestT, typename TaskContextT>
@@ -191,8 +186,6 @@ class RequestContext : public RequestT,
         {
             timer.setAutoAsyncGuardEnabled(false);
         }
-
-    private:
 
         void setTaskContext(
                 common::SharedPtr<TaskContextT> ctx
@@ -298,9 +291,6 @@ class RequestContext : public RequestT,
         common::SharedPtr<TaskContextT> taskCtx;
         RequestCbInternal<TaskContextT> callback;
         common::AsioDeadlineTimer timer;
-
-        template <typename RouterT1, typename SessionWrapper1, typename TaskContextT1, typename MessageBufT1, typename RequestUnitT1>
-        friend class Client;
 };
 
 } // namespace client

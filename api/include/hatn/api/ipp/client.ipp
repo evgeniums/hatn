@@ -32,11 +32,11 @@ namespace client {
 
 //---------------------------------------------------------------
 
-template <typename RouterT, typename SessionWrapperT, typename ContextT, typename MessageBufT, typename RequestUnitT>
-common::Result<
-        common::SharedPtr<typename Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::ReqCtx>
-    >
-    Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::prepare(
+template <typename RouterT,
+         template <typename Router, typename Traits> class Transport,
+         typename SessionWrapperT,
+         typename Traits>
+auto Client<RouterT,Transport,SessionWrapperT,Traits>::prepare(
         const common::SharedPtr<Context>& ctx,
         SessionWrapperT session,
         const Service& service,
@@ -56,15 +56,21 @@ common::Result<
     std::ignore=ctx;
     const auto& tenancy=Tenancy::notTenancy();
 #endif
-    auto ec=req->serialize(topic,tenancy);
-    HATN_CTX_CHECK_EC(ec)
-    return req;
+    auto ec=m_transport.serializeRequest(req,topic,tenancy);
+    if (ec)
+    {
+        return common::Result<common::SharedPtr<ReqCtx>>{std::move(ec)};
+    }
+    return common::Result<common::SharedPtr<ReqCtx>>{std::move(req)};
 }
 
 //---------------------------------------------------------------
 
-template <typename RouterT, typename SessionWrapperT, typename ContextT, typename MessageBufT, typename RequestUnitT>
-Error Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::exec(
+template <typename RouterT,
+         template <typename Router, typename Traits> class Transport,
+         typename SessionWrapperT,
+         typename Traits>
+Error Client<RouterT,Transport,SessionWrapperT,Traits>::exec(
     common::SharedPtr<Context> ctx,
     RequestCb<Context> callback,
     SessionWrapperT session,
@@ -86,7 +92,7 @@ Error Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::exec(
 #else
     const auto& tenancy=Tenancy::notTenancy();
 #endif
-    auto ec=req->serialize(topic,tenancy);
+    auto ec=m_transport.serializeRequest(req,topic,tenancy);
     HATN_CTX_CHECK_EC(ec)
     doExec(std::move(ctx),makeAsyncCallback(std::move(callback)),std::move(req));
     return OK;
@@ -94,8 +100,11 @@ Error Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::exec(
 
 //---------------------------------------------------------------
 
-template <typename RouterT, typename SessionWrapperT, typename ContextT, typename MessageBufT, typename RequestUnitT>
-void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::exec(
+template <typename RouterT,
+         template <typename Router, typename Traits> class Transport,
+         typename SessionWrapperT,
+         typename Traits>
+void Client<RouterT,Transport,SessionWrapperT,Traits>::exec(
     common::SharedPtr<Context> ctx,
     RequestCb<Context> callback,
     common::SharedPtr<ReqCtx> req
@@ -108,8 +117,11 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::exec(
 
 //---------------------------------------------------------------
 
-template <typename RouterT, typename SessionWrapperT, typename ContextT, typename MessageBufT, typename RequestUnitT>
-void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::doExec(
+template <typename RouterT,
+         template <typename Router, typename Traits> class Transport,
+         typename SessionWrapperT,
+         typename Traits>
+void Client<RouterT,Transport,SessionWrapperT,Traits>::doExec(
         common::SharedPtr<Context> ctx,
         RequestCbInternal<Context> callback,
         common::SharedPtr<ReqCtx> req,
@@ -169,8 +181,11 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::doExec(
 
 //---------------------------------------------------------------
 
-template <typename RouterT, typename SessionWrapperT, typename ContextT, typename MessageBufT, typename RequestUnitT>
-void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::postDequeue(Priority priority)
+template <typename RouterT,
+         template <typename Router, typename Traits> class Transport,
+         typename SessionWrapperT,
+         typename Traits>
+void Client<RouterT,Transport,SessionWrapperT,Traits>::postDequeue(Priority priority)
 {
     common::postAsyncTask(
         m_thread,
@@ -184,8 +199,11 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::postDequ
 
 //---------------------------------------------------------------
 
-template <typename RouterT, typename SessionWrapperT, typename ContextT, typename MessageBufT, typename RequestUnitT>
-void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::dequeue(Priority priority)
+template <typename RouterT,
+         template <typename Router, typename Traits> class Transport,
+         typename SessionWrapperT,
+         typename Traits>
+void Client<RouterT,Transport,SessionWrapperT,Traits>::dequeue(Priority priority)
 {
     if (m_closed)
     {
@@ -209,7 +227,7 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::dequeue(
                 continue;
             }
 
-            if (!m_connectionPool.canSend(p))
+            if (!m_transport.canSend(p))
             {
                 return false;
             }
@@ -228,8 +246,11 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::dequeue(
 
 //---------------------------------------------------------------
 
-template <typename RouterT, typename SessionWrapperT, typename ContextT, typename MessageBufT, typename RequestUnitT>
-void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::sendRequest(common::SharedPtr<ReqCtx> req)
+template <typename RouterT,
+         template <typename Router, typename Traits> class Transport,
+         typename SessionWrapperT,
+         typename Traits>
+void Client<RouterT,Transport,SessionWrapperT,Traits>::sendRequest(common::SharedPtr<ReqCtx> req)
 {
     HATN_CTX_SCOPE("apiclientsend")
 
@@ -255,129 +276,104 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::sendRequ
         return;
     }
 
-    // send request
-    auto reqPtr=req.get();
-    m_connectionPool.send(
-        reqPtr->taskCtx,
-        reqPtr->priority(),
-        reqPtr->spanBuffers(),
-        [req{std::move(req)},clientCtx{std::move(clientCtx)},this](const Error& ec, auto connection)
+    auto cb=[clientCtx=std::move(clientCtx),this,req](Error ec)
+    {
+        if (ec)
         {
-            HATN_CTX_SCOPE("apiclientsendcb")
-
-            if (ec)
-            {
-                // failed to send, maybe connection is broken
-                if (!req->cancelled())
-                {
-                    req->callback(req->taskCtx,ec,Response{});
-                }
-
-                // nothing to do if client is closed
-                if (m_closed)
-                {
-                    return;
-                }
-
-                // dequeue next request
-                postDequeue(req->priority());
-                return;
-            }
-
-            // receive response
-            recvResponse(std::move(req),connection);
-        }
-    );
-}
-
-//---------------------------------------------------------------
-
-template <typename RouterT, typename SessionWrapperT, typename ContextT, typename MessageBufT, typename RequestUnitT>
-template <typename Connection>
-void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::recvResponse(common::SharedPtr<ReqCtx> req, Connection connection)
-{
-    HATN_CTX_SCOPE("apiclientrecv")
-
-    auto clientCtx=this->sharedMainCtx();
-    auto reqPtr=req.get();
-
-    m_connectionPool.recv(
-        reqPtr->taskCtx,
-        std::move(connection),
-        reqPtr->responseData,
-        [req{std::move(req)},clientCtx{std::move(clientCtx)},this](Error ec)
-        {
-            HATN_CTX_SCOPE("apiclientrecvcb")
-
+            // failed to send, maybe connection is broken
             if (!req->cancelled())
             {
-                bool invokeCallback=true;
-                Response respWrapper{};
+                req->callback("apiclientresp",req->taskCtx,ec,Response{});
+            }
 
-                if (!ec)
-                {
-                    auto r=req->parseResponse();
-                    if (r)
-                    {
-                        // parsing error
-                        ec=r.takeError();
-                    }
-                    else
-                    {
-                        const auto& resp=r.value();
-                        const auto& respField=resp->field(protocol::response::message);
-                        auto respMessage=respField.skippedNotParsedContent();
-                        respWrapper=Response{r.takeValue(),req->responseData.sharedMainContainer(),std::move(respMessage)};
-                        auto status=respWrapper.status();
-                        if (!respWrapper.isSuccess())
-                        {
-                            if (status==protocol::ResponseStatus::AuthError && !req->session().isNull())
-                            {
-                                // process auth error in session
-                                if (!m_closed)
-                                {
-                                    invokeCallback=false;
-                                    // set session invalid
-                                    req->session().setValid(false);
-                                    // refresh session
-                                    refreshSession(std::move(req),std::move(respWrapper));
-                                }
-                            }
-
-                            if (invokeCallback)
-                            {
-                                // parse error response
-                                ec=respWrapper.parseError(m_allocatorFactory);
-                            }
-                        }
-                    }
-                }
-
-                if (invokeCallback)
-                {
-                    req->callback("apiclientresp",req->taskCtx,ec,std::move(respWrapper));
-                }
+            // nothing to do if client is closed
+            if (m_closed)
+            {
+                return;
             }
 
             // dequeue next request
             postDequeue(req->priority());
+            return;
         }
+
+        // parse response
+        if (!req->cancelled())
+        {
+            bool invokeCallback=true;
+            Response respWrapper{};
+
+            auto r=req->parseResponse();
+            if (r)
+            {
+                // parsing error
+                ec=r.takeError();
+            }
+            else
+            {
+                const auto& resp=r.value();
+                const auto& respField=resp->field(protocol::response::message);
+                auto respMessage=respField.skippedNotParsedContent();
+                respWrapper=Response{r.takeValue(),req->responseData.sharedMainContainer(),std::move(respMessage)};
+                auto status=respWrapper.status();
+                if (!respWrapper.isSuccess())
+                {
+                    if (status==protocol::ResponseStatus::AuthError && !req->session().isNull())
+                    {
+                        // process auth error in session
+                        if (!m_closed)
+                        {
+                            invokeCallback=false;
+                            // set session invalid
+                            req->session().setValid(false);
+                            // refresh session
+                            refreshSession(std::move(req),std::move(respWrapper));
+                        }
+                    }
+
+                    if (invokeCallback)
+                    {
+                        // parse error response
+                        ec=respWrapper.parseError(m_allocatorFactory);
+                    }
+                }
+            }
+
+            if (invokeCallback)
+            {
+                req->callback("apiclientresp",req->taskCtx,ec,std::move(respWrapper));
+            }
+        }
+
+        // dequeue next request
+        postDequeue(req->priority());
+    };
+
+    m_transport.sendRequest(
+        std::move(req),
+        std::move(cb)
     );
 }
 
 //---------------------------------------------------------------
 
-template <typename RouterT, typename SessionWrapperT, typename ContextT, typename MessageBufT, typename RequestUnitT>
-Error Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::cancel(common::SharedPtr<ReqCtx>& req)
+template <typename RouterT,
+         template <typename Router, typename Traits> class Transport,
+         typename SessionWrapperT,
+         typename Traits>
+Error Client<RouterT,Transport,SessionWrapperT,Traits>::cancel(common::SharedPtr<ReqCtx>& req)
 {
     return req->cancel();
 }
 
 //---------------------------------------------------------------
 
-template <typename RouterT, typename SessionWrapperT, typename ContextT, typename MessageBufT, typename RequestUnitT>
+template <typename RouterT,
+         template <typename Router, typename Traits> class Transport,
+         typename SessionWrapperT,
+         typename Traits>
 template <typename ContextT1, typename CallbackT>
-void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::close(
+void Client<RouterT,Transport,SessionWrapperT,Traits>::close(
         common::SharedPtr<ContextT1> ctx,
         CallbackT callback,
         bool callbackRequests
@@ -436,8 +432,8 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::close(
             }
             m_sessionWaitingQueues.clear();
 
-            // close connection pool
-            m_connectionPool.close(ctx,
+            // close transport
+            m_transport.close(ctx,
                                    [ctx,clientCtx{std::move(clientCtx)},cb{std::move(cb)}](const Error& ec) mutable
                                    {
                                        std::ignore=clientCtx;
@@ -451,8 +447,11 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::close(
 
 //---------------------------------------------------------------
 
-template <typename RouterT, typename SessionWrapperT, typename ContextT, typename MessageBufT, typename RequestUnitT>
-void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::refreshSession(common::SharedPtr<ReqCtx> req, Response resp)
+template <typename RouterT,
+         template <typename Router, typename Traits> class Transport,
+         typename SessionWrapperT,
+         typename Traits>
+void Client<RouterT,Transport,SessionWrapperT,Traits>::refreshSession(common::SharedPtr<ReqCtx> req, Response resp)
 {
     postAsync(
         "apiclientrefreshsession",
@@ -557,8 +556,11 @@ void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::refreshS
 
 //---------------------------------------------------------------
 
-template <typename RouterT, typename SessionWrapperT, typename ContextT, typename MessageBufT, typename RequestUnitT>
-void Client<RouterT,SessionWrapperT,ContextT,MessageBufT,RequestUnitT>::pushToSessionWaitingQueue(common::SharedPtr<ReqCtx> req)
+template <typename RouterT,
+         template <typename Router, typename Traits> class Transport,
+         typename SessionWrapperT,
+         typename Traits>
+void Client<RouterT,Transport,SessionWrapperT,Traits>::pushToSessionWaitingQueue(common::SharedPtr<ReqCtx> req)
 {
     postAsync(
         "apiclientpushreqwaitsession",

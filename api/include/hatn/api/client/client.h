@@ -39,7 +39,7 @@
 #include <hatn/api/priority.h>
 #include <hatn/api/client/session.h>
 #include <hatn/api/client/clientrequest.h>
-#include <hatn/api/client/session.h>
+#include <hatn/api/client/defaulttraits.h>
 
 HATN_API_NAMESPACE_BEGIN
 
@@ -49,21 +49,26 @@ constexpr const uint32_t DefaultMaxQueueDepth=256;
 
 HDU_UNIT(config,
     HDU_FIELD(max_queue_depth,TYPE_UINT32,1,false,DefaultMaxQueueDepth)
-    HDU_FIELD(max_pool_priority_connections,TYPE_UINT32,2,false,DefaultMaxPoolPriorityConnections)
 )
 
-using ClientTaskContext=common::TaskContext;
-
-template <typename RouterT, typename SessionWrapperT, typename TaskContextT=ClientTaskContext, typename MessageBufT=du::WireData, typename RequestUnitT=RequestManaged>
+template <typename RouterT,
+         template <typename Router, typename Traits> class Transport,
+         typename SessionWrapperT,
+         typename Traits=DefaultClientTraits>
 class Client : public common::TaskSubcontext,
                public base::ConfigObject<config::type>
 {
     public:
 
-        using Req=Request<SessionWrapperT,MessageBufT,RequestUnitT>;
+        using MessageBuf=typename Traits::MessageBuf;
+        using RequestUnit=typename Traits::RequestUnit;
+
+        using Req=Request<SessionWrapperT,MessageBuf,RequestUnit>;
         using MessageType=typename Req::MessageType;
-        using ReqCtx=RequestContext<Req,TaskContextT>;
-        using Context=TaskContextT;
+        using Context=typename Traits::Context;
+        using ReqCtx=RequestContext<Req,Context>;
+
+        using Router=RouterT;
 
     private:
 
@@ -76,7 +81,7 @@ class Client : public common::TaskSubcontext,
                 common::SharedPtr<RouterT> router,
                 common::ThreadQWithTaskContext* thread=common::ThreadQWithTaskContext::current(),
                 const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
-            ) : m_connectionPool(std::move(router),thread),
+            ) : m_transport(std::move(router),thread,factory),
                 m_allocatorFactory(factory),
                 m_thread(thread),
                 m_closed(false),
@@ -96,6 +101,13 @@ class Client : public common::TaskSubcontext,
         }
 
         Client(
+                common::ThreadQWithTaskContext* thread=common::ThreadQWithTaskContext::current(),
+                const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
+            ) : Client({},thread,factory)
+        {
+        }
+
+        Client(
             common::SharedPtr<RouterT> router,
             const common::pmr::AllocatorFactory* factory
             ) : Client(std::move(router),common::ThreadQWithTaskContext::current(),factory)
@@ -110,7 +122,8 @@ class Client : public common::TaskSubcontext,
         {
             auto ec=base::ConfigObject<config::type>::loadLogConfig(configTree,configPath,records,settings);
             HATN_CHECK_EC(ec)
-            m_connectionPool.setMaxConnectionsPerPriority(config().fieldValue(config::max_pool_priority_connections));
+            ec=m_transport.loadLogConfig(configTree,configPath,records,settings);
+            HATN_CHECK_EC(ec)
             return OK;
         }
 
@@ -127,7 +140,7 @@ class Client : public common::TaskSubcontext,
             MethodAuth methodAuth={}
         );
 
-        common::Result<common::SharedPtr<ReqCtx>> prepare(
+        auto prepare(
             const common::SharedPtr<Context>& ctx,
             SessionWrapperT session,
             const Service& service,
@@ -152,7 +165,7 @@ class Client : public common::TaskSubcontext,
             return exec(std::move(ctx),std::move(callback),SessionWrapperT{},service,method,std::move(message),topic,priority,timeoutMs,std::move(methodAuth));
         }
 
-        common::Result<common::SharedPtr<ReqCtx>> prepare(
+        auto prepare(
             const common::SharedPtr<Context>& ctx,
             const Service& service,
             const Method& method,
@@ -187,12 +200,18 @@ class Client : public common::TaskSubcontext,
             {
                 name=this->mainCtx().name();
             }
-            m_connectionPool.setName(name);
+            m_transport.setName(name);
         }
 
         auto router() const
         {
-            return m_connectionPool.router();
+            return m_transport.router();
+        }
+
+        template <typename T>
+        void setRouter(T router) const
+        {
+            return m_transport.setRouter(std::move(router));
         }
 
         void setNetworkDisconnected(bool enable)
@@ -227,7 +246,7 @@ class Client : public common::TaskSubcontext,
 
         void pushToSessionWaitingQueue(common::SharedPtr<ReqCtx> req);
 
-        ConnectionPool<RouterT> m_connectionPool;
+        Transport<Router,Traits> m_transport;
 
         const common::pmr::AllocatorFactory* m_allocatorFactory;
 

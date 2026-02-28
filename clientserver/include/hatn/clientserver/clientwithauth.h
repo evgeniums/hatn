@@ -16,31 +16,44 @@
 #ifndef HATNCLIENTWITHAUTH_H
 #define HATNCLIENTWITHAUTH_H
 
-#include <hatn/api/client/client.h>
+#include <hatn/api/client/clientrequest.h>
 
 #include <hatn/clientserver/clientserver.h>
 #include <hatn/clientserver/auth/clientsessionsharedsecret.h>
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
+namespace api=HATN_API_NAMESPACE;
+namespace clientapi=HATN_API_NAMESPACE::client;
+
 using DefaultRequestContext=common::TaskContext;
 
-template <typename RouterT, typename RequestContextT=DefaultRequestContext, typename MessageBufT=du::WireData, typename RequestUnitT=api::RequestManaged, typename ...AuthProtocols>
+struct DefaultClientTraits
+{
+    using Context=DefaultRequestContext;
+    using MessageBuf=HATN_DATAUNIT_NAMESPACE::WireData;
+    using RequestUnit=api::RequestManaged;
+};
+
+template <typename RouterT,
+         template <typename Router, typename SessionWrapper, typename Traits> class TransportT,
+         typename Traits=DefaultClientTraits,
+         typename ...AuthProtocols>
 class ClientWithAuthT : public common::TaskContext
 {
     public:
 
-        using Router=RouterT;
-        using RequestContext=RequestContextT;
-        using MessageBuf=MessageBufT;
-        using RequestUnit=RequestUnitT;
+        using RequestContext=typename Traits::Context;
+        using MessageBuf=typename Traits::MessageBuf;
+        using RequestUnit=typename Traits::RequestUnit;
         using Callback=clientapi::RequestCb<RequestContext>;
 
         using Session=ClientSession<AuthProtocols...>;
-        using SessionWrapper=clientapi::SessionWrapper<Session>;
-        using Client=clientapi::Client<RouterT,SessionWrapper,RequestContextT,MessageBufT,RequestUnitT>;
+        using SessionWrapper=clientapi::SessionWrapper<Session>;        
+        // using Client=clientapi::Client<RouterT,SessionWrapper,RequestContextT,MessageBufT,RequestUnitT>;
+        using Client=TransportT<RouterT,SessionWrapper,Traits>;
 
-        using Req=clientapi::Request<SessionWrapper,MessageBufT,RequestUnitT>;
+        using Req=clientapi::Request<SessionWrapper,MessageBuf,RequestUnit>;
         using MessageType=typename Req::MessageType;
         using ReqCtx=clientapi::RequestContext<Req,RequestContext>;
 
@@ -107,8 +120,11 @@ class ClientWithAuthT : public common::TaskContext
         SessionWrapper m_sessionWrapper;
 };
 
-template <typename RouterT, typename RequestContextT=DefaultRequestContext, typename MessageBufT=du::WireData, typename RequestUnitT=api::RequestManaged, typename ...ExtraAuthProtocols>
-class ClientWithSharedSecretAuthT : public ClientWithAuthT<RouterT,RequestContextT,MessageBufT,RequestUnitT,ClientAuthProtocolSharedSecret,ExtraAuthProtocols...>
+template <typename RouterT,
+         template <typename Router, typename SessionWrapper, typename Traits> class TransportT,
+         typename Traits=DefaultClientTraits,
+         typename ...ExtraAuthProtocols>
+class ClientWithSharedSecretAuthT : public ClientWithAuthT<RouterT,TransportT,Traits,ClientAuthProtocolSharedSecret,ExtraAuthProtocols...>
 {
     public:
 
@@ -123,18 +139,24 @@ class ClientWithSharedSecretAuthT : public ClientWithAuthT<RouterT,RequestContex
         }
 };
 
-template <typename RouterT, typename RequestContextT=DefaultRequestContext, typename MessageBufT=du::WireData, typename RequestUnitT=api::RequestManaged, typename ...ExtraAuthProtocols>
+template <typename RouterT,
+         template <typename Router, typename SessionWrapper, typename Traits> class TransportT,
+         typename Traits=DefaultClientTraits,
+         typename ...ExtraAuthProtocols>
 using ClientWithSharedSecretAuthContext=common::TaskContextType<
-        ClientWithSharedSecretAuthT<RouterT,RequestContextT,MessageBufT,RequestUnitT,ExtraAuthProtocols...>,
-        typename ClientWithSharedSecretAuthT<RouterT,RequestContextT,MessageBufT,RequestUnitT,ExtraAuthProtocols...>::Client,
-        typename ClientWithSharedSecretAuthT<RouterT,RequestContextT,MessageBufT,RequestUnitT,ExtraAuthProtocols...>::Session,
+        ClientWithSharedSecretAuthT<RouterT,TransportT,Traits,ExtraAuthProtocols...>,
+        typename ClientWithSharedSecretAuthT<RouterT,TransportT,Traits,ExtraAuthProtocols...>::Client,
+        typename ClientWithSharedSecretAuthT<RouterT,TransportT,Traits,ExtraAuthProtocols...>::Session,
         HATN_LOGCONTEXT_NAMESPACE::LogContext
     >;
 
-template <typename RouterT, typename RequestContextT=DefaultRequestContext, typename MessageBufT=du::WireData, typename RequestUnitT=api::RequestManaged, typename ...ExtraAuthProtocols>
+template <typename RouterT,
+         template <typename Router, typename SessionWrapper, typename Traits> class TransportT,
+         typename Traits=DefaultClientTraits,
+         typename ...ExtraAuthProtocols>
 struct makeClientWithSharedSecretAuthContextT
 {
-    using type=ClientWithSharedSecretAuthContext<RouterT,RequestContextT,MessageBufT,RequestUnitT,ExtraAuthProtocols...>;
+    using type=ClientWithSharedSecretAuthContext<RouterT,TransportT,Traits,ExtraAuthProtocols...>;
 
     template <typename SubcontextsArgs, typename ...BaseArgs>
     auto operator()(SubcontextsArgs&& subcontextsArgs, BaseArgs&&... baseArgs) const
@@ -186,10 +208,9 @@ struct makeClientWithSharedSecretAuthContextT
 
         void init(common::SharedPtr<type>& ctx) const
         {
-            auto& clientWithAuth=ctx->template get<ClientWithSharedSecretAuthT<RouterT,RequestContextT,MessageBufT,RequestUnitT,ExtraAuthProtocols...>>();
-            auto& client=ctx->template get<typename ClientWithSharedSecretAuthT<RouterT,RequestContextT,MessageBufT,RequestUnitT,ExtraAuthProtocols...>::Client>();
-            auto& session=ctx->template get<typename ClientWithSharedSecretAuthT<RouterT,RequestContextT,MessageBufT,RequestUnitT,ExtraAuthProtocols...>::Session>();
-            // auto& logContext=ctx->template get<HATN_LOGCONTEXT_NAMESPACE::LogContext>;
+            auto& clientWithAuth=ctx->template get<ClientWithSharedSecretAuthT<RouterT,TransportT,Traits,ExtraAuthProtocols...>>();
+            auto& client=ctx->template get<typename ClientWithSharedSecretAuthT<RouterT,TransportT,Traits,ExtraAuthProtocols...>::Client>();
+            auto& session=ctx->template get<typename ClientWithSharedSecretAuthT<RouterT,TransportT,Traits,ExtraAuthProtocols...>::Session>();
             clientWithAuth.setClient(&client);
             clientWithAuth.setSession(&session);
         }

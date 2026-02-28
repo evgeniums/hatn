@@ -25,8 +25,11 @@ HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
 //--------------------------------------------------------------------------
 
-template <typename RouterT, typename RequestContextT, typename MessageBufT, typename RequestUnitT, typename ...AuthProtocols>
-void ClientWithAuthT<RouterT,RequestContextT,MessageBufT,RequestUnitT,AuthProtocols...>::setName(lib::string_view name)
+template <typename RouterT,
+         template <typename Router, typename SessionWrapper, typename Traits> class TransportT,
+         typename Traits,
+         typename ...AuthProtocols>
+void ClientWithAuthT<RouterT,TransportT,Traits,AuthProtocols...>::setName(lib::string_view name)
 {
     m_client->setName(name);
     session()->setId(name);
@@ -34,16 +37,22 @@ void ClientWithAuthT<RouterT,RequestContextT,MessageBufT,RequestUnitT,AuthProtoc
 
 //--------------------------------------------------------------------------
 
-template <typename RouterT, typename RequestContextT, typename MessageBufT, typename RequestUnitT, typename ...AuthProtocols>
-lib::string_view ClientWithAuthT<RouterT,RequestContextT,MessageBufT,RequestUnitT,AuthProtocols...>::name() const
+template <typename RouterT,
+         template <typename Router, typename SessionWrapper, typename Traits> class TransportT,
+         typename Traits,
+         typename ...AuthProtocols>
+lib::string_view ClientWithAuthT<RouterT,TransportT,Traits,AuthProtocols...>::name() const
 {
     return session()->id();
 }
 
 //--------------------------------------------------------------------------
 
-template <typename RouterT, typename RequestContextT, typename MessageBufT, typename RequestUnitT, typename ...AuthProtocols>
-Error ClientWithAuthT<RouterT,RequestContextT,MessageBufT,RequestUnitT,AuthProtocols...>::exec(
+template <typename RouterT,
+         template <typename Router, typename SessionWrapper, typename Traits> class TransportT,
+         typename Traits,
+         typename ...AuthProtocols>
+Error ClientWithAuthT<RouterT,TransportT,Traits,AuthProtocols...>::exec(
         common::SharedPtr<RequestContext> ctx,
         Callback callback,
         const api::Service& service,
@@ -60,8 +69,11 @@ Error ClientWithAuthT<RouterT,RequestContextT,MessageBufT,RequestUnitT,AuthProto
 
 //--------------------------------------------------------------------------
 
-template <typename RouterT, typename RequestContextT, typename MessageBufT, typename RequestUnitT, typename ...AuthProtocols>
-Error ClientWithAuthT<RouterT,RequestContextT,MessageBufT,RequestUnitT,AuthProtocols...>::execNoAuth(
+template <typename RouterT,
+         template <typename Router, typename SessionWrapper, typename Traits> class TransportT,
+         typename Traits,
+         typename ...AuthProtocols>
+Error ClientWithAuthT<RouterT,TransportT,Traits,AuthProtocols...>::execNoAuth(
     common::SharedPtr<RequestContext> ctx,
     Callback callback,
     const api::Service& service,
@@ -78,8 +90,11 @@ Error ClientWithAuthT<RouterT,RequestContextT,MessageBufT,RequestUnitT,AuthProto
 
 //--------------------------------------------------------------------------
 
-template <typename RouterT, typename RequestContextT, typename MessageBufT, typename RequestUnitT, typename ...AuthProtocols>
-Error ClientWithAuthT<RouterT,RequestContextT,MessageBufT,RequestUnitT,AuthProtocols...>::loadLogConfig(
+template <typename RouterT,
+         template <typename Router, typename SessionWrapper, typename Traits> class TransportT,
+         typename Traits,
+         typename ...AuthProtocols>
+Error ClientWithAuthT<RouterT,TransportT,Traits,AuthProtocols...>::loadLogConfig(
         const HATN_BASE_NAMESPACE::ConfigTree& configTree,
         const std::string& configPath
     )

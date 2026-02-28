@@ -26,8 +26,8 @@
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
-namespace clientapi=HATN_API_NAMESPACE::client;
 namespace api=HATN_API_NAMESPACE;
+namespace clientapi=HATN_API_NAMESPACE::client;
 
 class ClientSessionBase;
 

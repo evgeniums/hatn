@@ -16,6 +16,7 @@
 #ifndef HATNPLAINTCPCLIENTWITHAUTH_H
 #define HATNPLAINTCPCLIENTWITHAUTH_H
 
+#include <hatn/api/client/rawtransportclient.h>
 #include <hatn/api/client/plaintcprouter.h>
 
 #include <hatn/clientserver/clientserver.h>
@@ -23,8 +24,8 @@
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
-using PlainTcpClientWithAuth=ClientWithSharedSecretAuthT<clientapi::PlainTcpRouter>;
-constexpr makeClientWithSharedSecretAuthContextT<clientapi::PlainTcpRouter> makePlainTcpClientWithAuthContext;
+using PlainTcpClientWithAuth=ClientWithSharedSecretAuthT<clientapi::PlainTcpRouter,clientapi::RawTransportClient>;
+constexpr makeClientWithSharedSecretAuthContextT<clientapi::PlainTcpRouter,clientapi::RawTransportClient> makePlainTcpClientWithAuthContext;
 
 HATN_CLIENT_SERVER_NAMESPACE_END
 

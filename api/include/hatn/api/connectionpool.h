@@ -104,9 +104,21 @@ class ConnectionPool
             );
         }
 
+        ConnectionPool(
+                common::Thread* thread,
+                const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
+            ) : ConnectionPool(common::SharedPtr<RouterT>{},thread,factory)
+        {
+        }
+
         common::SharedPtr<RouterT> router() const
         {
             return m_router;
+        }
+
+        void setRouter(common::SharedPtr<RouterT> router)
+        {
+            m_router=std::move(router);
         }
 
         void setMaxConnectionsPerPriority(size_t maxConnectionsPerPriority) noexcept

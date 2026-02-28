@@ -20,6 +20,7 @@
 
 #include <hatn/api/ipp/client.ipp>
 #include <hatn/api/ipp/clientrequest.ipp>
+#include <hatn/api/ipp/rawtransport.ipp>
 #include <hatn/api/ipp/auth.ipp>
 #include <hatn/api/ipp/message.ipp>
 #include <hatn/api/ipp/methodauth.ipp>
@@ -32,7 +33,7 @@
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
-template class HATN_CLIENT_SERVER_EXPORT ClientWithAuthT<clientapi::PlainTcpRouter,PlainTcpClientWithAuth::RequestContext,PlainTcpClientWithAuth::MessageBuf,PlainTcpClientWithAuth::RequestUnit,ClientAuthProtocolSharedSecret>;
+template class HATN_CLIENT_SERVER_EXPORT ClientWithAuthT<clientapi::PlainTcpRouter,clientapi::RawTransportClient,DefaultClientTraits,ClientAuthProtocolSharedSecret>;
 
 HATN_CLIENT_SERVER_NAMESPACE_END
 
@@ -40,7 +41,7 @@ HATN_API_NAMESPACE_BEGIN
 
 namespace client
 {
-template class HATN_CLIENT_SERVER_EXPORT Client<PlainTcpRouter,SessionWrapper<HATN_CLIENT_SERVER_NAMESPACE::ClientSessionSharedSecret>>;
+template class HATN_CLIENT_SERVER_EXPORT Client<PlainTcpRouter,RawTransport,SessionWrapper<HATN_CLIENT_SERVER_NAMESPACE::ClientSessionSharedSecret>>;
 }
 
 HATN_API_NAMESPACE_END
