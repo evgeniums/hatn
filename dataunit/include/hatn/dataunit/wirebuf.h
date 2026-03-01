@@ -280,7 +280,12 @@ class WireBuf : public common::WithTraits<TraitsT>,
          */
         void appendBuffer(common::DataBuf buf)
         {
-            this->traits().appendBuffer(std::move(buf));
+            this->traits().appendBuffer(buf);
+        }
+
+        void appendBuffer(common::ConstDataBuf buf)
+        {
+            this->traits().appendBuffer(buf);
         }
 
         common::DataBuf nextBuffer() const noexcept

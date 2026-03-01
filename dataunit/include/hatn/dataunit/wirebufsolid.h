@@ -99,6 +99,11 @@ struct WireBufSolidTraitsBase : public WireBufTraits,
         this->container().append(buf);
     }
 
+    void appendBuffer(common::ConstDataBuf buf)
+    {
+        this->container().append(buf);
+    }
+
     mutable bool beginMain;
 };
 
