@@ -207,6 +207,11 @@ class Topic
             m_topic=*m_holder;
         }
 
+        bool isWithHolder() const
+        {
+            return static_cast<bool>(m_holder);
+        }
+
     private:
 
         TopicHolder m_holder;
