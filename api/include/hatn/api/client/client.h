@@ -183,8 +183,8 @@ class Client : public common::TaskSubcontext,
             common::SharedPtr<ReqCtx> req
         );
 
-        Error cancel(
-            common::SharedPtr<ReqCtx>& req
+        void cancel(
+            common::SharedPtr<ReqCtx> req
         );
 
         template <typename ContextT1, typename CallbackT>

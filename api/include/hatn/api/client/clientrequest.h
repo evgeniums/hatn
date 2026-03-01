@@ -99,10 +99,9 @@ struct Request
             return m_timeoutMs;
         }
 
-        bool cancel() noexcept
+        void cancel() noexcept
         {
             m_cancelled.store(true);
-            return true;
         }
 
         bool cancelled() const noexcept
@@ -153,12 +152,37 @@ struct Request
             lib::string_view topic,
             const Tenancy& tenancy
         );
+
         Error serialize();
+
+        template <typename T>
+        void setTopicAndTenancy(
+            T topic,
+            const Tenancy& tenancy
+        )
+        {
+            m_topic=std::string{topic};
+            m_tenancy=&tenancy;
+        }
+
+        const std::string& topic() const noexcept
+        {
+            return m_topic;
+        }
+
+        const Tenancy* tenancy() const noexcept
+        {
+            return m_tenancy;
+        }
+
         void regenId();
         common::SharedPtr<RequestUnitT> m_unit;
 
         Priority m_priority;
         uint32_t m_timeoutMs;
+
+        std::string m_topic;
+        const Tenancy* m_tenancy=nullptr;
 
         std::atomic<bool> m_cancelled;
 

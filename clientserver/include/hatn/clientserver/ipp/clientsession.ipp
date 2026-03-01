@@ -69,13 +69,25 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
             // check if token expired
             if (!isAuthTokenExpired(m_sessionToken.get()))
             {
-                auto ec=m_session->serializeAuthHeader(api::AuthProtocol::name(),api::AuthProtocol::version(),m_sessionToken);
-                if (ec)
+                if (m_session->isSerializedHeaderNeeded())
                 {
-                    HATN_CTX_ERROR(ec,"failed to serialize session token")
+                    auto ec=m_session->serializeAuthHeader(api::AuthProtocol::name(),api::AuthProtocol::version(),m_sessionToken);
+                    if (ec)
+                    {
+                        HATN_CTX_ERROR(ec,"failed to serialize session token")
+                    }
+                    else
+                    {
+                        callback(std::move(ctx),{});
+                        return;
+                    }
                 }
                 else
                 {
+                    m_session->setSessionToken(
+                        m_sessionToken->field(auth_with_token::token).byteArrayShared(),
+                        std::string{m_sessionToken->field(auth_with_token::tag).value()}
+                    );
                     callback(std::move(ctx),{});
                     return;
                 }
@@ -83,6 +95,7 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
         }
     }
     m_sessionToken.reset();
+    m_session->resetAuthHeader();
 
     // try to refresh tokens
     if (m_refreshToken)
@@ -161,7 +174,7 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
             topic(),
             api::Priority::Highest,
             timeoutSecs()
-        );        
+        );
         if (ec)
         {
             HATN_CTX_ERROR(ec,"failed to invoke exec negotiation message")

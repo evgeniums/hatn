@@ -45,6 +45,7 @@ SET (HEADERS
     include/hatn/api/client/methodauth.h
     include/hatn/api/client/sessionclient.h
     include/hatn/api/client/serviceclient.h
+    include/hatn/api/client/tlsclientconfig.h
 )
 
 SET (HEADERS

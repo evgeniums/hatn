@@ -274,15 +274,6 @@ struct ServerApp
     std::map<std::string,std::shared_ptr<server::MicroService>> microservices;
 };
 
-struct ContextTraits;
-
-using EnvWithAuthT = Env<WithAuthProtocols,
-                        WithSharedSecretAuthProtocol,
-                        LoginController<ContextTraits>,
-                        LocalUserController<ContextTraits>,
-                        LocalSessionController<ContextTraits>,
-                        server::BasicEnv>;
-
 struct RequestWithAuth;
 
 struct ContextTraits
@@ -296,6 +287,13 @@ struct ContextTraits
 
     static auto& request(const SharedPtr<Context>& ctx);
 };
+
+using EnvWithAuthT = Env<WithAuthProtocols,
+                         WithSharedSecretAuthProtocol,
+                         LoginController<ContextTraits>,
+                         LocalUserController<ContextTraits>,
+                         LocalSessionController<ContextTraits>,
+                         server::BasicEnv>;
 
 class EnvWithAuth : public EnvWithAuthT
 {
@@ -380,8 +378,8 @@ struct EnvWithAuthConfigTraits
         env=allocateEnvType<Env>(
             allocator,
             contexts(
-                context(std::make_shared<AuthProtocols>()),
-                context(std::make_shared<SharedSecretAuthProtocol>()),
+                context(HATN_COMMON_NAMESPACE::makeShared<AuthProtocols>()),
+                context(HATN_COMMON_NAMESPACE::makeShared<SharedSecretAuthProtocol>()),
                 context(),
                 context(userDbModels),
                 context(sessionDbModels)

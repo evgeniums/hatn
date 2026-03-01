@@ -216,6 +216,13 @@ struct makeClientWithSharedSecretAuthContextT
         }
 };
 
+template <typename RouterT,
+         template <typename Router, typename SessionWrapper, typename Traits> class TransportT,
+         typename Traits=DefaultClientTraits,
+         typename ...ExtraAuthProtocols>
+constexpr makeClientWithSharedSecretAuthContextT<RouterT,TransportT,Traits,ExtraAuthProtocols...>
+        makeClientWithSharedSecretAuthContext{};
+
 HATN_CLIENT_SERVER_NAMESPACE_END
 
 #endif // HATNCLIENTWITHAUTH_H

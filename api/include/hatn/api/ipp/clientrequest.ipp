@@ -35,6 +35,8 @@ Error Request<SessionT,MessageT,RequestUnitT>::serialize(
         const Tenancy& tenancy
     )
 {
+    setTopicAndTenancy(topic,tenancy);
+
     m_unit=m_factory->template createObject<RequestUnitT>();
 
     auto& id=m_unit->field(protocol::request::id);

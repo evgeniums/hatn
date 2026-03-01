@@ -265,7 +265,7 @@ void Client<RouterT,Transport,SessionWrapperT,Traits>::sendRequest(common::Share
     else
     {
         // serialize request
-        ec=req->serialize();
+        ec=m_transport.serializeRequest(req);
     }
     if (ec)
     {
@@ -361,9 +361,10 @@ template <typename RouterT,
          template <typename Router, typename Traits> class Transport,
          typename SessionWrapperT,
          typename Traits>
-Error Client<RouterT,Transport,SessionWrapperT,Traits>::cancel(common::SharedPtr<ReqCtx>& req)
+void Client<RouterT,Transport,SessionWrapperT,Traits>::cancel(common::SharedPtr<ReqCtx> req)
 {
-    return req->cancel();
+    req->cancel();
+    m_transport.cancelRequest(req);
 }
 
 //---------------------------------------------------------------

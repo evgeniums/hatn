@@ -83,6 +83,11 @@ class RawTransport : public base::ConfigObject<raw_transport_config::type>
             const Tenancy& tenancy
         );
 
+        template <typename RequestT>
+        Error serializeRequest(
+            common::SharedPtr<RequestT> req
+        );
+
         template <typename RequestT, typename CallbackT>
         void sendRequest(
             common::SharedPtr<RequestT> req,
@@ -94,6 +99,12 @@ class RawTransport : public base::ConfigObject<raw_transport_config::type>
             common::SharedPtr<ContextT> ctx,
             CallbackT callback
         );
+
+        template <typename RequestT>
+        void cancelRequest(
+            common::SharedPtr<RequestT>
+        )
+        {}
 
         bool canSend(Priority p) const;
 

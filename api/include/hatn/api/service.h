@@ -30,6 +30,22 @@ class Service : public WithNameAndVersion<protocol::ServiceNameLengthMax>
     public:
 
         using WithNameAndVersion<protocol::ServiceNameLengthMax>::WithNameAndVersion;
+        using PackageType=common::StringOnStackT<protocol::PackageNameLengthMax>;
+
+        lib::string_view package() const
+        {
+            return m_package;
+        }
+
+        template <typename T>
+        void setPackage(T&& value)
+        {
+            m_package.load(value);
+        }
+
+    private:
+
+        PackageType m_package;
 };
 
 class ServiceNameAndVersion

@@ -34,6 +34,11 @@ struct IpHostName
     uint16_t port=0;
     bool service=false;
     HATN_NETWORK_NAMESPACE::IpVersion ipVersion=HATN_NETWORK_NAMESPACE::IpVersion::ALL;
+
+    std::string asString() const
+    {
+        return fmt::format("{}:{}",name,port);
+    }
 };
 
 class IpHostResolverTraits

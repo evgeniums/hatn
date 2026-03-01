@@ -48,12 +48,65 @@ namespace client {
 
 class SessionAuth : public Auth
 {
-public:
+    public:
 
-    template <typename UnitT>
-    Error serializeAuthHeader(lib::string_view protocol, uint32_t protocolVersion, common::SharedPtr<UnitT> content,
-                              const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
-                              );
+        template <typename UnitT>
+        Error serializeAuthHeader(
+            lib::string_view protocol,
+            uint32_t protocolVersion,
+            common::SharedPtr<UnitT> content,
+            const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
+        );
+
+        common::ByteArrayShared sessionToken() const
+        {
+            return m_sessionToken;
+        }
+
+        const std::string& tokenTag() const
+        {
+            return m_tokenTag;
+        }
+
+        void setSessionToken(common::ByteArrayShared token, std::string tag={})
+        {
+            m_sessionToken=std::move(token);
+            m_tokenTag=std::move(tag);
+        }
+
+        void resetSessionToken()
+        {
+            m_sessionToken.reset();
+            m_tokenTag.clear();
+        }
+
+        bool isSerializedHeaderNeeded() const
+        {
+            return m_serializedHeaderNeeded;
+        }
+
+        void setSerializedHeaderNeeded(bool enable)
+        {
+            m_serializedHeaderNeeded=enable;
+        }
+
+        bool isAuthHeaderValid() const noexcept
+        {
+            return Auth::isAuthHeaderValid() || !m_sessionToken.isNull();
+        }
+
+        void resetAuthHeader()
+        {
+            Auth::resetAuthHeader();
+            resetSessionToken();
+        }
+
+    private:
+
+        common::ByteArrayShared m_sessionToken;
+        std::string m_tokenTag;
+
+        bool m_serializedHeaderNeeded=true;
 };
 
 /********************** Session **************************/
@@ -211,6 +264,26 @@ class SessionWrapperImpl : public SessionWrapperT
         void resetAuthHeader()
         {
             this->session().resetAuthHeader();
+        }
+
+        common::ByteArrayShared sessionToken() const
+        {
+            return this->session().sessionToken();
+        }
+
+        const std::string& tokenTag() const
+        {
+            return this->session().tokenTag();
+        }
+
+        bool isSerializedHeaderNeeded() const
+        {
+            return this->session().isSerializedHeaderNeeded();
+        }
+
+        void setSerializedHeaderNeeded(bool enable)
+        {
+            this->session().setSerializedHeaderNeeded(enable);
         }
 };
 

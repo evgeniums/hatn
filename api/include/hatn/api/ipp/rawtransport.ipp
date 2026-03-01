@@ -98,6 +98,17 @@ Error RawTransport<RouterT,Traits>::serializeRequest(
 //---------------------------------------------------------------
 
 template <typename RouterT, typename Traits>
+template <typename RequestT>
+Error RawTransport<RouterT,Traits>::serializeRequest(
+        common::SharedPtr<RequestT> req
+    )
+{
+    return req->serialize();
+}
+
+//---------------------------------------------------------------
+
+template <typename RouterT, typename Traits>
 Error RawTransport<RouterT,Traits>::loadLogConfig(
     const HATN_BASE_NAMESPACE::ConfigTree& configTree,
     const std::string& configPath,
