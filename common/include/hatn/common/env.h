@@ -359,14 +359,14 @@ class EnvT : public BaseT
         }
 
         template <typename VisitorT, typename SelectorT>
-        void visitIf(VisitorT&& visitor, SelectorT&& selector)
+        auto visitIf(VisitorT&& visitor, SelectorT&& selector)
         {
             auto pred=[](bool found)
             {
                 return found;
             };
 
-            common::foreach_if(
+            return common::foreach_if(
                 m_contexts,
                 pred,
                 [&visitor,&selector](auto& v,auto)
@@ -382,14 +382,14 @@ class EnvT : public BaseT
         }
 
         template <typename VisitorT, typename SelectorT>
-        void visitIfConst(VisitorT&& visitor, SelectorT&& selector)
+        auto visitIfConst(VisitorT&& visitor, SelectorT&& selector) const
         {
             auto pred=[](bool found)
             {
                 return found;
             };
 
-            common::foreach_if(
+            return common::foreach_if(
                 m_contexts,
                 pred,
                 [&visitor,&selector,this](auto&& v,auto)
