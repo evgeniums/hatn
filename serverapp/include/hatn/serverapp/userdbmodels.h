@@ -48,7 +48,7 @@ HATN_DB_INDEX(withUserIdx,with_user::user,with_user::user_topic)
 HATN_DB_INDEX(withUserCharacterIdx,with_user_character::user_character,with_user_character::user_character_topic)
 HATN_DB_INDEX(withLoginProfileIdx,with_login_profile::login_profile,with_login_profile::login_profile_topic)
 
-HATN_DB_MODEL_PROTOTYPE(userCharacterModel,user_character_server,withUserIdx())
+HATN_DB_MODEL_PROTOTYPE(userCharacterModel,user_character_server_db,withUserIdx())
 
 HATN_DB_MODEL_PROTOTYPE(userCharacterShareModel,user_character_share,withUserIdx(),withUserCharacterIdx())
 
