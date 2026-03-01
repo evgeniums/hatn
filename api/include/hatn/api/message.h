@@ -28,7 +28,7 @@
 
 HATN_API_NAMESPACE_BEGIN
 
-template <typename BufT=du::WireData>
+template <typename Subunit=hana::true_,typename BufT=du::WireData>
 class Message
 {
     public:

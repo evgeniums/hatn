@@ -71,6 +71,17 @@ class TcpClientConfig
             m_hosts=std::move(hosts);
         }
 
+        void setHost(IpHostName host) noexcept
+        {
+            setHosts({std::move(host)});
+        }
+
+        void setHost(std::string name, uint16_t port) noexcept
+        {
+            auto host=IpHostName{std::move(name),port};
+            setHost(std::move(host));
+        }
+
         const std::vector<IpHostName>& hosts() const noexcept
         {
             return m_hosts;

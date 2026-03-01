@@ -153,7 +153,7 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
         };
 
         // prepare msg
-        auto msg=api::Message<>{auth_negotiate_request::conf().name};
+        auto msg=typename ClientT::MessageType{auth_negotiate_request::conf().name};
         auto ec=msg.setContent(*req,factory());
         if (ec)
         {

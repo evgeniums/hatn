@@ -33,7 +33,7 @@ class Method
         using NameType=common::StringOnStackT<protocol::MethodNameLengthMax>;
 
         template <typename T>
-        Method(T&& name) : m_name(std::forward<T>(name))
+        explicit Method(T&& name) : m_name(std::forward<T>(name))
         {}
 
         const NameType& name() const noexcept

@@ -30,14 +30,12 @@ namespace api=HATN_API_NAMESPACE;
 //--------------------------------------------------------------------------
 
 GrpcTransport::GrpcTransport(
-    common::SharedPtr<Router> router,
     common::ThreadQWithTaskContext* thread,
     const common::pmr::AllocatorFactory* factory
     ) : pimpl(std::make_unique<detail::GrpcTransport_p>())
 {
     pimpl->thread=thread;
     pimpl->factory=factory;
-    setRouter(router);
 }
 
 //--------------------------------------------------------------------------
@@ -108,10 +106,20 @@ Error GrpcTransport::loadLogConfig(
     const HATN_BASE_NAMESPACE::config_object::LogSettings& settings
     )
 {
+    if (pimpl->router)
+    {
+        HATN_CTX_WARN("GrpcTransport::loadLogConfig must be called before router is set")
+    }
+
     base::ConfigTreePath p{configPath};
     p.append(ConfigSection);
     auto ec=base::ConfigObject<grpc_transport_config::type>::loadLogConfig(configTree,p,records,settings);
     HATN_CHECK_EC(ec)
+
+    if (name().empty())
+    {
+        setName(std::string{config().fieldValue(grpc_transport_config::user_agent)});
+    }
 
     return OK;
 }
@@ -159,19 +167,23 @@ void GrpcTransport::initChannels()
             auto priority=static_cast<api::Priority>(p);
             auto it=pimpl->channels.emplace(std::piecewise_construct,std::forward_as_tuple(priority),
                                     std::forward_as_tuple());
-            it.first->second.init(address,creds);
+            it.first->second.init(address,creds,name());
         }
     }
 
     // init default priority channel
-    pimpl->defaultChannel.init(address,creds);
+    pimpl->defaultChannel.init(address,creds,name());
 }
 
 //--------------------------------------------------------------------------
 
-void detail::PriorityChannel::init(const std::string& address, std::shared_ptr<grpc::ChannelCredentials> creds)
+void detail::PriorityChannel::init(const std::string& address, std::shared_ptr<grpc::ChannelCredentials> creds, const std::string& userAgent)
 {
-    channel = grpc::CreateChannel(address,creds);
+    grpc::ChannelArguments args;
+    args.SetUserAgentPrefix(userAgent);
+    // args.SetString(GRPC_ARG_PRIMARY_USER_AGENT_STRING, userAgent);
+
+    channel = grpc::CreateCustomChannel(address,creds,args);
     stub= std::make_shared<grpc::GenericStub>(channel);
 }
 

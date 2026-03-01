@@ -49,12 +49,12 @@ using RequestCb=std::function<void (common::SharedPtr<ContextT> ctx, const Error
 template <typename ContextT>
 using RequestCbInternal=postAsyncCallbackT<RequestCb<ContextT>>;
 
-template <typename SessionWrapper, typename MessageBufT=du::WireData, typename RequestUnitT=RequestManaged>
+template <typename SessionWrapper, typename MessageTypeT, typename RequestUnitT=RequestManaged>
 struct Request
 {
     public:
 
-        using MessageType=Message<MessageBufT>;
+        using MessageType=MessageTypeT;
 
         Request(
                 const common::pmr::AllocatorFactory* factory,
@@ -302,13 +302,13 @@ class RequestContext : public RequestT,
             {
                 bufs.emplace_back(std::move(methodAuthHeader));
             }
-#if 0
-            bufs.emplace_back(this->requestData.sharedMainContainer());
+
             bufs.insert(bufs.end(), std::make_move_iterator(messageBufs.begin()), std::make_move_iterator(messageBufs.end()));
-#else
-            bufs.insert(bufs.end(), std::make_move_iterator(messageBufs.begin()), std::make_move_iterator(messageBufs.end()));
-            bufs.emplace_back(this->requestData.sharedMainContainer());
-#endif
+            if (this->requestData.sharedMainContainer() && !this->requestData.sharedMainContainer()->isEmpty())
+            {
+                bufs.emplace_back(this->requestData.sharedMainContainer());
+            }
+
             return bufs;
         }
 

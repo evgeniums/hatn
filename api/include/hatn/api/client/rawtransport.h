@@ -48,26 +48,16 @@ class RawTransport : public base::ConfigObject<raw_transport_config::type>
     public:
 
         RawTransport(
-                common::SharedPtr<RouterT> router,
                 common::ThreadQWithTaskContext* thread=common::ThreadQWithTaskContext::current(),
                 const common::pmr::AllocatorFactory* /*factory*/=common::pmr::AllocatorFactory::getDefault()
-            ) : m_connectionPool(std::move(router),thread)
+            ) : m_connectionPool(thread)
         {
         }
 
         RawTransport(
-                common::SharedPtr<RouterT> router,
                 const common::pmr::AllocatorFactory* factory
-            ) : RawTransport(std::move(router),common::ThreadQWithTaskContext::current(),factory)
+            ) : RawTransport(common::ThreadQWithTaskContext::current(),factory)
         {}
-
-
-        RawTransport(
-                common::ThreadQWithTaskContext* thread=common::ThreadQWithTaskContext::current(),
-                const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
-            ) : RawTransport({},common::ThreadQWithTaskContext::current(),thread,factory)
-        {
-        }
 
         Error loadLogConfig(
             const HATN_BASE_NAMESPACE::ConfigTree& configTree,

@@ -16,6 +16,7 @@
 #ifndef HATNCLIENTWITHAUTH_H
 #define HATNCLIENTWITHAUTH_H
 
+#include <hatn/api/client/defaulttraits.h>
 #include <hatn/api/client/clientrequest.h>
 
 #include <hatn/clientserver/clientserver.h>
@@ -26,14 +27,7 @@ HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 namespace api=HATN_API_NAMESPACE;
 namespace clientapi=HATN_API_NAMESPACE::client;
 
-using DefaultRequestContext=common::TaskContext;
-
-struct DefaultClientTraits
-{
-    using Context=DefaultRequestContext;
-    using MessageBuf=HATN_DATAUNIT_NAMESPACE::WireData;
-    using RequestUnit=api::RequestManaged;
-};
+using DefaultClientTraits=clientapi::DefaultClientTraits;
 
 template <typename RouterT,
          template <typename Router, typename SessionWrapper, typename Traits> class TransportT,
@@ -44,17 +38,15 @@ class ClientWithAuthT : public common::TaskContext
     public:
 
         using RequestContext=typename Traits::Context;
-        using MessageBuf=typename Traits::MessageBuf;
+        using MessageType=typename Traits::MessageType;
         using RequestUnit=typename Traits::RequestUnit;
         using Callback=clientapi::RequestCb<RequestContext>;
 
         using Session=ClientSession<AuthProtocols...>;
         using SessionWrapper=clientapi::SessionWrapper<Session>;        
-        // using Client=clientapi::Client<RouterT,SessionWrapper,RequestContextT,MessageBufT,RequestUnitT>;
         using Client=TransportT<RouterT,SessionWrapper,Traits>;
 
-        using Req=clientapi::Request<SessionWrapper,MessageBuf,RequestUnit>;
-        using MessageType=typename Req::MessageType;
+        using Req=clientapi::Request<SessionWrapper,MessageType,RequestUnit>;
         using ReqCtx=clientapi::RequestContext<Req,RequestContext>;
 
         void setName(lib::string_view name);

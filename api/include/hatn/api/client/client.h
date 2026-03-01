@@ -60,11 +60,10 @@ class Client : public common::TaskSubcontext,
 {
     public:
 
-        using MessageBuf=typename Traits::MessageBuf;
+        using MessageType=typename Traits::MessageType;
         using RequestUnit=typename Traits::RequestUnit;
 
-        using Req=Request<SessionWrapperT,MessageBuf,RequestUnit>;
-        using MessageType=typename Req::MessageType;
+        using Req=Request<SessionWrapperT,MessageType,RequestUnit>;
         using Context=typename Traits::Context;
         using ReqCtx=RequestContext<Req,Context>;
 
@@ -78,10 +77,9 @@ class Client : public common::TaskSubcontext,
     public:
 
         Client(
-                common::SharedPtr<RouterT> router,
                 common::ThreadQWithTaskContext* thread=common::ThreadQWithTaskContext::current(),
                 const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
-            ) : m_transport(std::move(router),thread,factory),
+            ) : m_transport(thread,factory),
                 m_allocatorFactory(factory),
                 m_thread(thread),
                 m_closed(false),
@@ -101,16 +99,8 @@ class Client : public common::TaskSubcontext,
         }
 
         Client(
-                common::ThreadQWithTaskContext* thread=common::ThreadQWithTaskContext::current(),
-                const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
-            ) : Client({},thread,factory)
-        {
-        }
-
-        Client(
-            common::SharedPtr<RouterT> router,
             const common::pmr::AllocatorFactory* factory
-            ) : Client(std::move(router),common::ThreadQWithTaskContext::current(),factory)
+            ) : Client(common::ThreadQWithTaskContext::current(),factory)
         {}
 
         Error loadLogConfig(
@@ -209,7 +199,7 @@ class Client : public common::TaskSubcontext,
         }
 
         template <typename T>
-        void setRouter(T router) const
+        void setRouter(T router)
         {
             return m_transport.setRouter(std::move(router));
         }

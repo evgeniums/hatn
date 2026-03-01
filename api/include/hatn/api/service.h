@@ -52,7 +52,7 @@ class ServiceNameAndVersion
 {
     public:
 
-        ServiceNameAndVersion(const protocol::request::type& req):req(req)
+        explicit ServiceNameAndVersion(const protocol::request::type& req):req(req)
         {}
 
         const lib::string_view name() const noexcept
@@ -75,7 +75,7 @@ class WithService
 {
     public:
 
-        WithService(std::shared_ptr<Service> service={})
+        explicit WithService(std::shared_ptr<Service> service={})
             : m_service(std::move(service))
         {}
 

@@ -75,7 +75,7 @@ class WithNameAndVersion : public WithVersion
         WithNameAndVersion()
         {}
 
-        WithNameAndVersion(lib::string_view name, VersionType version=1) : WithVersion(version), m_name(name)
+        explicit WithNameAndVersion(lib::string_view name, VersionType version=1) : WithVersion(version), m_name(name)
         {}
 
         void setName(lib::string_view name)

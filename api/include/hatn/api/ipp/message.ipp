@@ -27,9 +27,9 @@
 
 HATN_API_NAMESPACE_BEGIN
 
-template <typename BufT>
+template <typename Subunit,typename BufT>
 template <typename UnitT>
-Error Message<BufT>::setContent(const UnitT& message, const common::pmr::AllocatorFactory* factory, const char* name)
+Error Message<Subunit,BufT>::setContent(const UnitT& message, const common::pmr::AllocatorFactory* factory, const char* name)
 {
     Error ec;
     HATN_SCOPE_GUARD(
@@ -41,7 +41,18 @@ Error Message<BufT>::setContent(const UnitT& message, const common::pmr::Allocat
     du::RawError::setEnabledTL(true);
 
     m_content=factory->createObject<du::WireDataChained>(factory,true);
-    auto ok=du::io::serializeAsSubunit(message,*m_content,protocol::request::message.id());
+
+    auto ok=hana::eval_if(
+        Subunit{},
+        [&](auto)
+        {
+            return du::io::serializeAsSubunit(message,*m_content,protocol::request::message.id());
+        },
+        [&](auto)
+        {
+            return du::io::serialize(message,*m_content);
+        }
+    );
     if (!ok)
     {
         m_content.reset();

@@ -30,8 +30,6 @@
 #include <hatn/dataunit/ipp/wirebuf.ipp>
 #include <hatn/dataunit/ipp/objectid.ipp>
 
-#include <hatn/app/app.h>
-
 #include <hatn/api/api.h>
 
 #include <hatn/api/client/plaintcpconnection.h>

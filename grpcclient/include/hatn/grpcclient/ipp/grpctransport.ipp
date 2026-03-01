@@ -25,6 +25,7 @@
 #include <grpcpp/generic/generic_stub.h>
 
 #include <hatn/common/locker.h>
+#include <hatn/logcontext/contextlogger.h>
 #include <hatn/api/apiliberror.h>
 
 #include <hatn/grpcclient/grpctransport.h>
@@ -71,7 +72,7 @@ struct PriorityChannel
     PriorityChannel()
     {}
 
-    void init(const std::string& address, std::shared_ptr<grpc::ChannelCredentials> creds);
+    void init(const std::string& address, std::shared_ptr<grpc::ChannelCredentials> creds, const std::string& userAgent);
 
     void close()
     {
@@ -164,6 +165,8 @@ void GrpcTransport::sendRequest(
         CallbackT callback
     )
 {
+    HATN_CTX_SCOPE_WITH_BARRIER("grpctransport::sendrequest")
+
     // find channel for priority
     auto channel=pimpl->channel(req->priority());
 
@@ -202,6 +205,7 @@ void GrpcTransport::sendRequest(
     {
         method=fmt::format("/{}.{}/{}",req->service()->package(),req->service()->name(),req->method()->name());
     }
+    HATN_CTX_DEBUG_RECORDS(1,"call method",{"method",method})
 
     // prepare buffers
     auto bufs=req->spanBuffers();
@@ -220,13 +224,15 @@ void GrpcTransport::sendRequest(
         // check status
         if (!status.ok())
         {
+            //! @todo Map error codes to API lib codes
+
             auto nativeErr=std::make_shared<common::NativeError>(
                     status.error_message(),
                     status.error_code(),
                     &api::ApiLibErrorCategory::getCategory()
                 );
             Error ec{
-                    api::apiLibError(api::ApiLibError::TRANSPORT_REQUEST_FAILED),
+                    api::ApiLibError::TRANSPORT_REQUEST_FAILED,
                     std::move(nativeErr)
                 };
             channel->removeRequest(req);
@@ -245,6 +251,7 @@ void GrpcTransport::sendRequest(
         }
 
         // done
+        HATN_CTX_STACK_BARRIER_OFF("grpctransport::sendrequest")
         channel->removeRequest(req);
         callback({});
     };

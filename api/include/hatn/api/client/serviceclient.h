@@ -98,7 +98,7 @@ class ClientWithAuthT : public ServiceMethodsAuthT,
                 common::pmr::WithFactory(factory)
         {}
 
-        ClientWithAuthT(
+        explicit ClientWithAuthT(
                 const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
             ) : common::pmr::WithFactory(factory)
         {}

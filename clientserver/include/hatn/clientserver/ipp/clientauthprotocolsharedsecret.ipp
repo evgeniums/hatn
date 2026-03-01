@@ -95,7 +95,7 @@ void ClientAuthProtocolSharedSecret::invoke(
     };
 
     // prepare msg
-    auto msg=api::Message<>{auth_hss_check::conf().name};
+    auto msg=typename ClientT::MessageType{auth_hss_check::conf().name};
     ec=msg.setContent(*req,session()->factory());
     if (ec)
     {

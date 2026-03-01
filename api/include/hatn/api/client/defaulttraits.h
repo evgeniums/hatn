@@ -19,19 +19,22 @@
 #ifndef HATNAPICLIENTTRAITS_H
 #define HATNAPICLIENTTRAITS_H
 
+#include <hatn/logcontext/context.h>
+
 #include <hatn/api/api.h>
 #include <hatn/api/requestunit.h>
+#include <hatn/api/message.h>
 
 HATN_API_NAMESPACE_BEGIN
 
 namespace client {
 
-using ClientTaskContext=common::TaskContext;
+using ClientTaskContext=HATN_LOGCONTEXT_NAMESPACE::TaskLogContext;
 
 struct DefaultClientTraits
 {
     using Context=ClientTaskContext;
-    using MessageBuf=HATN_DATAUNIT_NAMESPACE::WireData;
+    using MessageType=Message<hana::true_,HATN_DATAUNIT_NAMESPACE::WireData>;
     using RequestUnit=api::RequestManaged;
 };
 

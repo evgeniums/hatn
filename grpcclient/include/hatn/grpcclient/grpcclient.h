@@ -24,10 +24,15 @@
 
 HATN_GRPCCLIENT_NAMESPACE_BEGIN
 
+struct DefaultGrpcClientTraits : public HATN_API_NAMESPACE::client::DefaultClientTraits
+{
+    using MessageType=HATN_API_NAMESPACE::Message<hana::false_,HATN_DATAUNIT_NAMESPACE::WireData>;
+};
+
 template <typename Router, typename Traits>
 using GrpcTransportWrapper=GrpcTransport;
 
-template <typename RouterT, typename SessionWrapperT, typename Traits=HATN_API_NAMESPACE::client::DefaultClientTraits>
+template <typename RouterT, typename SessionWrapperT, typename Traits=DefaultGrpcClientTraits>
 using GrpcClient=HATN_API_NAMESPACE::client::Client<RouterT,GrpcTransportWrapper,SessionWrapperT,Traits>;
 
 HATN_GRPCCLIENT_NAMESPACE_END

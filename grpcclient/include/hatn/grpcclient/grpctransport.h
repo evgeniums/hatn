@@ -46,6 +46,7 @@ namespace common=HATN_COMMON_NAMESPACE;
 HDU_UNIT(grpc_transport_config,
     HDU_FIELD(maximum_concurrent_calls,TYPE_UINT32,1,false,100)
     HDU_REPEATED_FIELD(priority_channels,TYPE_UINT8,2)
+    HDU_FIELD(user_agent,TYPE_STRING,3,false,"hatngrpcclient")
 )
 
 namespace detail {
@@ -59,23 +60,14 @@ class HATN_GRPCCLIENT_EXPORT GrpcTransport : public base::ConfigObject<grpc_tran
         constexpr static const char* const ConfigSection="grpc";
 
         GrpcTransport(
-            common::SharedPtr<Router> router,
             common::ThreadQWithTaskContext* thread=common::ThreadQWithTaskContext::current(),
             const common::pmr::AllocatorFactory* /*factory*/=common::pmr::AllocatorFactory::getDefault()
         );
 
         GrpcTransport(
-                common::SharedPtr<Router> router,
                 const common::pmr::AllocatorFactory* factory
-            ) : GrpcTransport(std::move(router),common::ThreadQWithTaskContext::current(),factory)
+            ) : GrpcTransport(common::ThreadQWithTaskContext::current(),factory)
         {}
-
-        GrpcTransport(
-            common::ThreadQWithTaskContext* thread=common::ThreadQWithTaskContext::current(),
-            const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
-            ) : GrpcTransport({},thread,factory)
-        {
-        }
 
         Error loadLogConfig(
             const HATN_BASE_NAMESPACE::ConfigTree& configTree,

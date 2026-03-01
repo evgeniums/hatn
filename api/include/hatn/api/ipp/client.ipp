@@ -134,12 +134,17 @@ void Client<RouterT,Transport,SessionWrapperT,Traits>::doExec(
 
     Error ec;
 
+    auto maxQueueDepth=config().fieldValue(config::max_queue_depth);
+    auto sessionWaitingReqCount=m_sessionWaitingReqCount[req->priority()];
+    auto queueSize=queue.size();
+
     // check if client is closed
     if (m_closed || m_networkDisconnected)
     {
         ec=commonError(common::CommonError::ABORTED);
     }
-    else if (req->priority()!=Priority::Highest && queue.size()>(config().fieldValue(config::max_queue_depth)+m_sessionWaitingReqCount[req->priority()]))
+    else if (req->priority()!=Priority::Highest
+               && queueSize>(maxQueueDepth + sessionWaitingReqCount))
     {
         // check if queue is filled
         ec=apiLibError(ApiLibError::QUEUE_OVERFLOW);
