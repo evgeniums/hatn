@@ -183,6 +183,12 @@ class StringOnStackT : public ArenaWrapperT<PreallocatedSize,FallbackAllocatorT>
             this->append(data,size);
         }
 
+        void load(const char* data)
+        {
+            this->clear();
+            this->append(data);
+        }
+
         operator lib::string_view() const noexcept
         {
             return lib::string_view{this->data(),this->size()};
