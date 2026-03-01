@@ -10,7 +10,7 @@
 /*
 
 */
-/** @file api/client/grpcrouter.h
+/** @file grpcclientt/grpcrouter.h
   *
   */
 
@@ -19,21 +19,19 @@
 #ifndef HATNGRPCROUTER_H
 #define HATNGRPCROUTER_H
 
-#include <hatn/grpcclient/grpcclient.h>
-#include <hatn/api/client/tcpclientconfig.h>
+#include <hatn/grpcclient/grpcclientdefs.h>
+#include <hatn/api/client/tlsclientconfig.h>
 
 HATN_GRPCCLIENT_NAMESPACE_BEGIN
 
 namespace api=HATN_API_NAMESPACE;
 namespace clientapi=HATN_API_NAMESPACE::client;
 
-class Router
+class Router : public clientapi::TlsClientConfig
 {
     public:
 
-    private:
-
-        std::shared_ptr<clientapi::TcpClientConfig> m_config;
+        using clientapi::TlsClientConfig::TlsClientConfig;
 };
 
 HATN_GRPCCLIENT_NAMESPACE_END

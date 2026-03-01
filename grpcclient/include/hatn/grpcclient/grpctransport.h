@@ -19,175 +19,205 @@
 #ifndef HATNGRPCTRANSPORT_H
 #define HATNGRPCTRANSPORT_H
 
-#include <hatn/common/pmr/allocatorfactory.h>
+#include <hatn/common/threadwithqueue.h>
 
 #include <hatn/base/configobject.h>
+#include <hatn/dataunit/unitwrapper.h>
+#include <hatn/dataunit/syntax.h>
 
 #include <hatn/logcontext/context.h>
 
 #include <hatn/api/api.h>
+#include <hatn/api/apiconstants.h>
+#include <hatn/api/priority.h>
 #include <hatn/api/client/defaulttraits.h>
-#include <hatn/api/client/clientrequest.h>
 
-#include <hatn/grpcclient/grpcclient.h>
+#include <hatn/grpcclient/grpcclientdefs.h>
 #include <hatn/grpcclient/grpcrouter.h>
+
+HATN_API_NAMESPACE_BEGIN
+class Tenancy;
+HATN_API_NAMESPACE_END
 
 HATN_GRPCCLIENT_NAMESPACE_BEGIN
 
-HDU_UNIT(config,
-    HDU_FIELD(var1,TYPE_UINT32,1)
+namespace common=HATN_COMMON_NAMESPACE;
+
+HDU_UNIT(grpc_transport_config,
+    HDU_FIELD(maximum_concurrent_calls,TYPE_UINT32,1,false,100)
+    HDU_REPEATED_FIELD(priority_channels,TYPE_UINT8,2)
 )
 
-template <typename SessionWrapperT, typename Traits=clientapi::DefaultClientTraits>
-class Client : public common::TaskSubcontext,
-               public base::ConfigObject<config::type>
+namespace detail {
+class GrpcTransport_p;
+}
+
+class HATN_GRPCCLIENT_EXPORT GrpcTransport : public base::ConfigObject<grpc_transport_config::type>
 {
     public:
 
-        using Req=clientapi::Request<SessionWrapperT,typename Traits::MessageBuf,typename Traits::RequestUnit>;
-        using MessageType=typename Req::MessageType;
-        using Context=typename Traits::Context;
-        using ReqCtx=clientapi::RequestContext<Req,Context>;
+        constexpr static const char* const ConfigSection="grpc";
 
-    public:
+        GrpcTransport(
+            common::SharedPtr<Router> router,
+            common::ThreadQWithTaskContext* thread=common::ThreadQWithTaskContext::current(),
+            const common::pmr::AllocatorFactory* /*factory*/=common::pmr::AllocatorFactory::getDefault()
+        );
 
-        Client(
+        GrpcTransport(
                 common::SharedPtr<Router> router,
-                common::ThreadQWithTaskContext* thread=common::ThreadQWithTaskContext::current(),
-                const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
-            ) : m_router(std::move(router)),
-                m_allocatorFactory(factory),
-                m_thread(thread),                
-                m_closed(false),
-                m_networkDisconnected(false)
+                const common::pmr::AllocatorFactory* factory
+            ) : GrpcTransport(std::move(router),common::ThreadQWithTaskContext::current(),factory)
+        {}
+
+        GrpcTransport(
+            common::ThreadQWithTaskContext* thread=common::ThreadQWithTaskContext::current(),
+            const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
+            ) : GrpcTransport({},thread,factory)
         {
         }
-
-        Client(
-            common::SharedPtr<Router> router,
-            const common::pmr::AllocatorFactory* factory
-            ) : Client(std::move(router),common::ThreadQWithTaskContext::current(),factory)
-        {}
 
         Error loadLogConfig(
             const HATN_BASE_NAMESPACE::ConfigTree& configTree,
             const std::string& configPath,
             HATN_BASE_NAMESPACE::config_object::LogRecords& records,
             const HATN_BASE_NAMESPACE::config_object::LogSettings& settings
-        )
-        {
-        }
-
-        Error exec(
-            common::SharedPtr<Context> ctx,
-            clientapi::RequestCb<Context> callback,
-            SessionWrapperT session,
-            const api::Service& service,
-            const api::Method& method,
-            MessageType message,
-            lib::string_view topic={},
-            api::Priority priority=api::Priority::Normal,
-            uint32_t timeoutMs=0,
-            clientapi::MethodAuth methodAuth={}
         );
 
-        Error exec(
-            common::SharedPtr<Context> ctx,
-            clientapi::RequestCb<Context> callback,
-            const api::Service& service,
-            const api::Method& method,
-            MessageType message,
-            lib::string_view topic={},
-            api::Priority priority=api::Priority::Normal,
-            uint32_t timeoutMs=0,
-            clientapi::MethodAuth methodAuth={}
+        template <typename RequestT>
+        Error serializeRequest(
+            common::SharedPtr<RequestT> req,
+            lib::string_view topic,
+            const HATN_API_NAMESPACE::Tenancy& tenancy
         )
         {
-            return exec(std::move(ctx),std::move(callback),SessionWrapperT{},service,method,std::move(message),topic,priority,timeoutMs,std::move(methodAuth));
+            req->setTopicAndTenancy(topic,tenancy);
+            return OK;
         }
 
-        void exec(
-            common::SharedPtr<Context> ctx,
-            clientapi::RequestCb<Context> callback,
-            common::SharedPtr<ReqCtx> req
+        template <typename RequestT>
+        Error serializeRequest(
+            common::SharedPtr<RequestT>
+        )
+        {
+            return OK;
+        }
+
+        template <typename RequestT, typename CallbackT>
+        void sendRequest(
+            common::SharedPtr<RequestT> req,
+            CallbackT callback
         );
 
-        template <typename ContextT1, typename CallbackT>
+        template <typename ContextT, typename CallbackT>
         void close(
-            common::SharedPtr<ContextT1> ctx,
-            CallbackT callback,
-            bool callbackRequests
+            common::SharedPtr<ContextT>,
+            CallbackT callback
+        )
+        {
+            closeChannels();
+            if (callback)
+            {
+                callback({});
+            }
+        }
+
+        template <typename RequestT>
+        void cancelRequest(
+            common::SharedPtr<RequestT> req
         );
 
-        void setName(std::string name)
-        {
-            m_name=std::move(name);
-        }
+        bool canSend(HATN_API_NAMESPACE::Priority p) const;
 
-        auto router() const
-        {
-            return m_router;
-        }
+        void setName(std::string name);
 
-        void setNetworkDisconnected(bool enable)
-        {
-            m_networkDisconnected.store(enable);
-        }
+        const std::string& name() const;
+
+        void setRouter(common::SharedPtr<Router> Router);
+
+        common::SharedPtr<Router> router() const;
 
     private:
 
-        common::SharedPtr<Router> m_router;
-        const common::pmr::AllocatorFactory* m_allocatorFactory;
-        common::ThreadQWithTaskContext* m_thread;
+        void initChannels();
+        void closeChannels();
 
-        std::atomic<bool> m_closed;
-        std::atomic<bool> m_networkDisconnected;
-
-        std::string m_name;
+        std::unique_ptr<detail::GrpcTransport_p> pimpl;
 };
 
-template <typename ClientT>
-using ClientContext=common::TaskContextType<ClientT,HATN_LOGCONTEXT_NAMESPACE::Context>;
+#if 0
+#include <grpcpp/generic/generic_stub.h>
+#include <grpcpp/grpcpp.h>
 
-template <typename T>
-struct allocateClientContextT
-{
-    template <typename ...Args>
-    auto operator () (
-            const HATN_COMMON_NAMESPACE::pmr::polymorphic_allocator<T>& allocator,
-            Args&&... args
-        ) const
-    {
-        return HATN_COMMON_NAMESPACE::allocateTaskContextType<T>(
-            allocator,
-            HATN_COMMON_NAMESPACE::subcontexts(
-                    HATN_COMMON_NAMESPACE::subcontext(std::forward<Args>(args)...),
-                    HATN_COMMON_NAMESPACE::subcontext()
-                )
-            );
-    }
-};
-template <typename T>
-constexpr allocateClientContextT<T> allocateClientContext{};
+void CallGenericWithCallback(std::shared_ptr<grpc::Channel> channel,
+                             const std::string& method_path,
+                             const std::string& serialized_request) {
+    // 1. Create the GenericStub
+    grpc::GenericStub stub(channel);
 
-template <typename T>
-struct makeClientContextT
-{
-    template <typename ...Args>
-    auto operator () (
-            Args&&... args
-        ) const
-    {
-        return HATN_COMMON_NAMESPACE::makeTaskContextType<T>(
-            HATN_COMMON_NAMESPACE::subcontexts(
-                HATN_COMMON_NAMESPACE::subcontext(std::forward<Args>(args)...),
-                HATN_COMMON_NAMESPACE::subcontext()
-                )
-            );
-    }
-};
-template <typename T>
-constexpr makeClientContextT<T> makeClientContext{};
+    // 2. Prepare the request buffer
+    grpc::Slice slice(serialized_request.data(), serialized_request.size());
+    grpc::ByteBuffer request_buf(&slice, 1);
+
+    // 3. Prepare response containers
+    auto* response_buf = new grpc::ByteBuffer();
+    auto* status = new grpc::Status();
+    auto* context = new grpc::ClientContext();
+
+    // 4. Initiate the Unary Call with a lambda callback
+    stub.unary()->UnaryCall(context, method_path, &request_buf, response_buf,
+        [response_buf, status, context](grpc::Status s) {
+            *status = s;
+            if (status->ok()) {
+                // Success: Process response_buf here
+                std::cout << "RPC Success!" << std::endl;
+            } else {
+                std::cerr << "RPC Failed: " << status->error_message() << std::endl;
+            }
+
+            // Cleanup allocated resources in the callback
+            delete response_buf;
+            delete status;
+            delete context;
+        });
+}
+
+#include <grpcpp/grpcpp.h>
+#include <fstream>
+#include <string>
+
+// Helper to read file content into a string
+std::string read_file(const std::string& filename) {
+    std::ifstream file(filename);
+    return {std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
+}
+
+void run_client() {
+    // 1. Define custom certificate paths
+    std::string ca_cert = read_file("ca.crt");      // Root CA to verify server
+    std::string client_cert = read_file("client.crt"); // Client's public cert
+    std::string client_key = read_file("client.key");   // Client's private key
+
+    // 2. Configure SSL options
+    grpc::SslCredentialsOptions ssl_opts;
+    ssl_opts.pem_root_certs = ca_cert; // Set custom Root CA
+
+    // Optional: Add client certs for mutual TLS
+    grpc::SslCredentialsOptions::PemKeyCertPair pkcp;
+    pkcp.cert_chain = client_cert;
+    pkcp.private_key = client_key;
+    ssl_opts.pem_key_cert_pairs.push_back(pkcp);
+
+    // 3. Create secure channel credentials
+    auto channel_creds = grpc::SslCredentials(ssl_opts);
+
+    // 4. Create the channel and stub
+    auto channel = grpc::CreateChannel("localhost:50051", channel_creds);
+    // YourService::Stub stub(channel);
+}
+
+
+#endif
 
 HATN_GRPCCLIENT_NAMESPACE_END
 
