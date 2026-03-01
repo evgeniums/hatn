@@ -56,7 +56,7 @@ class LoginController
             db::Topic topic
         ) const
         {
-            checkCanLogin(std::move(ctx),std::move(callback),login.string(),topic);
+            checkCanLogin(std::move(ctx),std::move(callback),login.toString(),topic);
         }
 };
 

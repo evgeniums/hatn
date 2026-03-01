@@ -93,7 +93,16 @@ void LoginController<ContextTraits>::checkCanLogin(
     {
         HATN_CTX_SCOPE_WITH_BARRIER("[checklogin]")
 
-        auto cb=[checkUser=std::move(checkUser),callback=std::move(callback),topic=db::TopicHolder{topic}](auto ctx, Error ec, common::SharedPtr<user_login::managed> loginObj) mutable
+        db::Topic holdingTopic;
+        if (!topic.isWithHolder())
+        {
+            holdingTopic.load(topic);
+        }
+        else
+        {
+            holdingTopic=topic;
+        }
+        auto cb=[checkUser=std::move(checkUser),callback=std::move(callback),topic=holdingTopic](auto ctx, Error ec, common::SharedPtr<user_login::managed> loginObj) mutable
         {
             if (ec)
             {
