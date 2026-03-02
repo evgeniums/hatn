@@ -207,6 +207,8 @@ void GrpcTransport::sendRequest(
     }
     HATN_CTX_DEBUG_RECORDS(1,"call method",{"method",method})
 
+    common::ByteArray barr;
+
     // prepare buffers
     auto bufs=req->spanBuffers();
     std::vector<grpc::Slice> slices;
@@ -214,6 +216,7 @@ void GrpcTransport::sendRequest(
     for (const auto& buf : bufs)
     {
         slices.emplace_back(buf.data(),buf.size());
+        barr.append(buf.data(),buf.size());
     }
     grpc::ByteBuffer requestBuf(slices.data(),slices.size());
     auto responseBuf=std::make_shared<grpc::ByteBuffer>();
@@ -247,6 +250,7 @@ void GrpcTransport::sendRequest(
             for (const auto& slice : slices)
             {
                 req->responseData.appendBuffer(common::ConstDataBuf{reinterpret_cast<const char*>(slice.begin()), slice.size()});
+                req->responseData.incSize(slice.size());
             }
         }
 
@@ -278,6 +282,27 @@ void GrpcTransport::cancelRequest(
 {
     auto channel=pimpl->channel(req->priority());
     channel->cancelRequest(req);
+}
+
+//---------------------------------------------------------------
+
+template <typename RequestT>
+common::Result<common::SharedPtr<HATN_API_NAMESPACE::ResponseManaged>> GrpcTransport::parseResponse(
+        common::SharedPtr<RequestT> req
+    )
+{
+    auto r=req->parseResponse();
+
+    if (r)
+    {
+        std::cerr << "GrpcTransport::parseResponse error err_msg: " << r.error().message() << " err_code: " << r.error().code() << std::endl;
+    }
+    else
+    {
+        std::cout << "GrpcTransport::parseResponse message" << r.value()->toString(true) << std::endl;
+    }
+
+    return r;
 }
 
 //--------------------------------------------------------------------------

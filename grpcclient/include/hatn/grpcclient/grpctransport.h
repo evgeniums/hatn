@@ -30,6 +30,7 @@
 #include <hatn/api/api.h>
 #include <hatn/api/apiconstants.h>
 #include <hatn/api/priority.h>
+#include <hatn/api/responseunit.h>
 #include <hatn/api/client/defaulttraits.h>
 
 #include <hatn/grpcclient/grpcclientdefs.h>
@@ -95,6 +96,11 @@ class HATN_GRPCCLIENT_EXPORT GrpcTransport : public base::ConfigObject<grpc_tran
             return OK;
         }
 
+        template <typename RequestT>
+        common::Result<common::SharedPtr<HATN_API_NAMESPACE::ResponseManaged>> parseResponse(
+            common::SharedPtr<RequestT> req
+        );
+
         template <typename RequestT, typename CallbackT>
         void sendRequest(
             common::SharedPtr<RequestT> req,
@@ -136,80 +142,6 @@ class HATN_GRPCCLIENT_EXPORT GrpcTransport : public base::ConfigObject<grpc_tran
 
         std::unique_ptr<detail::GrpcTransport_p> pimpl;
 };
-
-#if 0
-#include <grpcpp/generic/generic_stub.h>
-#include <grpcpp/grpcpp.h>
-
-void CallGenericWithCallback(std::shared_ptr<grpc::Channel> channel,
-                             const std::string& method_path,
-                             const std::string& serialized_request) {
-    // 1. Create the GenericStub
-    grpc::GenericStub stub(channel);
-
-    // 2. Prepare the request buffer
-    grpc::Slice slice(serialized_request.data(), serialized_request.size());
-    grpc::ByteBuffer request_buf(&slice, 1);
-
-    // 3. Prepare response containers
-    auto* response_buf = new grpc::ByteBuffer();
-    auto* status = new grpc::Status();
-    auto* context = new grpc::ClientContext();
-
-    // 4. Initiate the Unary Call with a lambda callback
-    stub.unary()->UnaryCall(context, method_path, &request_buf, response_buf,
-        [response_buf, status, context](grpc::Status s) {
-            *status = s;
-            if (status->ok()) {
-                // Success: Process response_buf here
-                std::cout << "RPC Success!" << std::endl;
-            } else {
-                std::cerr << "RPC Failed: " << status->error_message() << std::endl;
-            }
-
-            // Cleanup allocated resources in the callback
-            delete response_buf;
-            delete status;
-            delete context;
-        });
-}
-
-#include <grpcpp/grpcpp.h>
-#include <fstream>
-#include <string>
-
-// Helper to read file content into a string
-std::string read_file(const std::string& filename) {
-    std::ifstream file(filename);
-    return {std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>()};
-}
-
-void run_client() {
-    // 1. Define custom certificate paths
-    std::string ca_cert = read_file("ca.crt");      // Root CA to verify server
-    std::string client_cert = read_file("client.crt"); // Client's public cert
-    std::string client_key = read_file("client.key");   // Client's private key
-
-    // 2. Configure SSL options
-    grpc::SslCredentialsOptions ssl_opts;
-    ssl_opts.pem_root_certs = ca_cert; // Set custom Root CA
-
-    // Optional: Add client certs for mutual TLS
-    grpc::SslCredentialsOptions::PemKeyCertPair pkcp;
-    pkcp.cert_chain = client_cert;
-    pkcp.private_key = client_key;
-    ssl_opts.pem_key_cert_pairs.push_back(pkcp);
-
-    // 3. Create secure channel credentials
-    auto channel_creds = grpc::SslCredentials(ssl_opts);
-
-    // 4. Create the channel and stub
-    auto channel = grpc::CreateChannel("localhost:50051", channel_creds);
-    // YourService::Stub stub(channel);
-}
-
-
-#endif
 
 HATN_GRPCCLIENT_NAMESPACE_END
 
