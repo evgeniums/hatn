@@ -93,7 +93,7 @@ bool GrpcTransport::canSend(HATN_API_NAMESPACE::Priority p) const
 
     {
         common::MutexScopedLock l{channel->mutex};
-        return channel->pendingRequests.size() < config().fieldValue(grpc_transport_config::maximum_concurrent_calls);
+        return channel->pendingRequests.size() < config().fieldValue(grpc_config::maximum_concurrent_calls);
     }
 }
 
@@ -113,12 +113,12 @@ Error GrpcTransport::loadLogConfig(
 
     base::ConfigTreePath p{configPath};
     p.append(ConfigSection);
-    auto ec=base::ConfigObject<grpc_transport_config::type>::loadLogConfig(configTree,p,records,settings);
+    auto ec=base::ConfigObject<grpc_config::type>::loadLogConfig(configTree,p,records,settings);
     HATN_CHECK_EC(ec)
 
     if (name().empty())
     {
-        setName(std::string{config().fieldValue(grpc_transport_config::user_agent)});
+        setName(std::string{config().fieldValue(grpc_config::user_agent)});
     }
 
     return OK;
@@ -157,22 +157,24 @@ void GrpcTransport::initChannels()
         creds=grpc::SslCredentials(sslOpts);
     }
 
+    std::string configJson{config().fieldValue(grpc_config::config_json)};
+
     // init priority channels
     auto maxPriotity=static_cast<uint8_t>(api::Priority::Highest);
-    for (size_t i=0;i<config().field(grpc_transport_config::priority_channels).count();i++)
+    for (size_t i=0;i<config().field(grpc_config::priority_channels).count();i++)
     {
-        auto p=config().field(grpc_transport_config::priority_channels).at(i);
+        auto p=config().field(grpc_config::priority_channels).at(i);
         if (p<maxPriotity)
         {
             auto priority=static_cast<api::Priority>(p);
             auto it=pimpl->channels.emplace(std::piecewise_construct,std::forward_as_tuple(priority),
                                     std::forward_as_tuple());
-            it.first->second.init(address,creds,name());
+            it.first->second.init(address,creds,name(),configJson);
         }
     }
 
     // init default priority channel
-    pimpl->defaultChannel.init(address,creds,name());
+    pimpl->defaultChannel.init(address,creds,name(),configJson);
 }
 
 //--------------------------------------------------------------------------
@@ -187,10 +189,14 @@ void GrpcTransport::addMessageTypeMap(
 
 //--------------------------------------------------------------------------
 
-void detail::PriorityChannel::init(const std::string& address, std::shared_ptr<grpc::ChannelCredentials> creds, const std::string& userAgent)
+void detail::PriorityChannel::init(const std::string& address,
+                                   std::shared_ptr<grpc::ChannelCredentials> creds,
+                                   const std::string& userAgent,
+                                   const std::string& configJson)
 {
     grpc::ChannelArguments args;
-    args.SetUserAgentPrefix(userAgent);
+    args.SetUserAgentPrefix(userAgent);    
+    args.SetServiceConfigJSON(configJson);
 
     channel = grpc::CreateCustomChannel(address,creds,args);
     stub= std::make_shared<grpc::GenericStub>(channel);

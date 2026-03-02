@@ -73,7 +73,11 @@ struct PriorityChannel
     PriorityChannel()
     {}
 
-    void init(const std::string& address, std::shared_ptr<grpc::ChannelCredentials> creds, const std::string& userAgent);
+    void init(const std::string& address,
+              std::shared_ptr<grpc::ChannelCredentials> creds,
+              const std::string& userAgent,
+              const std::string& configJson
+              );
 
     void close()
     {
@@ -159,7 +163,7 @@ public:
     Error makeError(
         int grpcCode,
         std::string status,
-        const grpc_transport_config::type& config,
+        const grpc_config::type& config,
         const grpc::ClientContext* grpcCtx,
         std::string messageType,
         common::ByteArrayShared respData
@@ -189,7 +193,7 @@ public:
 Error GrpcTransport_p::makeError(
         int grpcCode,
         std::string status,
-        const grpc_transport_config::type& config,
+        const grpc_config::type& config,
         const grpc::ClientContext* grpcCtx,
         std::string messageType,
         common::ByteArrayShared respData
@@ -198,8 +202,8 @@ Error GrpcTransport_p::makeError(
     int code=-grpcCode;
     const std::multimap<grpc::string_ref, grpc::string_ref>& metadata = grpcCtx->GetServerInitialMetadata();
 
-    auto family=findHeader(metadata,config.fieldValue(grpc_transport_config::error_family_header));
-    auto description=findHeader(metadata,config.fieldValue(grpc_transport_config::error_description_header));
+    auto family=findHeader(metadata,config.fieldValue(grpc_config::error_family_header));
+    auto description=findHeader(metadata,config.fieldValue(grpc_config::error_description_header));
 
     // make api error from response_error_message
     auto nativeError=std::make_shared<common::NativeError>(-1,&api::ApiLibErrorCategory::getCategory());
@@ -233,6 +237,10 @@ void GrpcTransport::sendRequest(
 
     // create context
     auto context = channel->addRequest(req);
+    context->set_wait_for_ready(true);
+    std::chrono::system_clock::time_point deadline =
+        std::chrono::system_clock::now() + std::chrono::seconds(config().fieldValue(grpc_config::deadline_timeout));
+    context->set_deadline(deadline);
 
     // add authorization token and other headers to context
     auto token=req->session().sessionToken();
@@ -242,16 +250,17 @@ void GrpcTransport::sendRequest(
 
         std::cout << "GrpcTransport::sendRequest bearer: " << bearer << std::endl;
 
+        //! @todo optimization: store tag names in strings
         context->AddMetadata("authorization", bearer);
-        context->AddMetadata("x-token-tag", req->session().tokenTag());
+        context->AddMetadata(std::string{config().fieldValue(grpc_config::auth_tag_header)}, req->session().tokenTag());
     }
     if (!req->topic().empty())
     {
-        context->AddMetadata("x-topic", req->topic());
+        context->AddMetadata(std::string{config().fieldValue(grpc_config::topic_header)}, req->topic());
     }
-    if (req->tenancy())
+    if (req->tenancy() && !req->tenancy()->tenancyId().empty())
     {
-        context->AddMetadata("x-tenancy", std::string{req->tenancy()->tenancyId()});
+        context->AddMetadata(std::string{config().fieldValue(grpc_config::tenancy_header)}, std::string{req->tenancy()->tenancyId()});
     }
 
     // prepare request
@@ -285,6 +294,19 @@ void GrpcTransport::sendRequest(
     // prepare callback
     auto cb=[req,channel,responseBuf,callback,context,this](grpc::Status status)
     {
+        const std::multimap<grpc::string_ref, grpc::string_ref>& metadata = context->GetServerInitialMetadata();
+
+#if 0
+        // dump response headers
+        std::cout << "------HEADERS-----" << std::endl;
+        for (auto it = metadata.begin(); it != metadata.end(); ++it) {
+            // Convert string_ref to std::string for printing
+            std::cout << std::string(it->first.data(), it->first.size()) << ": "
+                      << std::string(it->second.data(), it->second.size()) << std::endl;
+        }
+std::cout << "-----------------" << std::endl;
+#endif
+
         // copy response data
         common::ByteArrayShared respData=common::makeShared<common::ByteArray>();
         std::vector<grpc::Slice> slices;
@@ -300,11 +322,10 @@ void GrpcTransport::sendRequest(
         clientapi::Response resp;
         resp.setStatus(api::protocol::ResponseStatus::Success);
         resp.setMessageData(respData);
-        const std::multimap<grpc::string_ref, grpc::string_ref>& metadata = context->GetServerInitialMetadata();
-        auto respType=pimpl->findHeader(metadata,config().fieldValue(grpc_transport_config::message_type_header));
+        auto respType=pimpl->findHeader(metadata,config().fieldValue(grpc_config::message_type_header));
         auto mappedRespType=pimpl->mapMessageType(respType);
         resp.setMessageType(mappedRespType);
-        resp.setId(pimpl->findHeader(metadata,config().fieldValue(grpc_transport_config::id_header)));
+        resp.setId(pimpl->findHeader(metadata,config().fieldValue(grpc_config::id_header)));
 
         // check status
         if (!status.ok())
@@ -319,7 +340,7 @@ void GrpcTransport::sendRequest(
                 resp.setStatus(api::protocol::ResponseStatus::Generic);
             }
 
-            auto appStatus=pimpl->findHeader(metadata,config().fieldValue(grpc_transport_config::status_header));
+            auto appStatus=pimpl->findHeader(metadata,config().fieldValue(grpc_config::status_header));
             if (appStatus.empty())
             {
                 // possibly network errors

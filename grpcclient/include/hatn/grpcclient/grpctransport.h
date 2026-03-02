@@ -43,7 +43,20 @@ HATN_GRPCCLIENT_NAMESPACE_BEGIN
 
 namespace common=HATN_COMMON_NAMESPACE;
 
-HDU_UNIT(grpc_transport_config,
+constexpr const char* DefaultConfigJson = R"({
+  "methodConfig": [{
+    "name": [{"service": ""}],
+    "retryPolicy": {
+      "maxAttempts": 5,
+      "initialBackoff": "1s",
+      "maxBackoff": "10s",
+      "backoffMultiplier": 2,
+      "retryableStatusCodes": ["UNAVAILABLE", "INTERNAL"]
+    }
+  }]
+})";
+
+HDU_UNIT(grpc_config,
     HDU_FIELD(maximum_concurrent_calls,TYPE_UINT32,1,false,100)
     HDU_REPEATED_FIELD(priority_channels,TYPE_UINT8,2)
     HDU_FIELD(user_agent,TYPE_STRING,3,false,"hatngrpcclient")
@@ -52,13 +65,18 @@ HDU_UNIT(grpc_transport_config,
     HDU_FIELD(message_type_header,TYPE_STRING,6,false,"x-hatn-mtype")
     HDU_FIELD(error_family_header,TYPE_STRING,7,false,"x-hatn-efamily")
     HDU_FIELD(error_description_header,TYPE_STRING,8,false,"x-hatn-edescription")
+    HDU_FIELD(topic_header,TYPE_STRING,9,false,"x-hatn-topic")
+    HDU_FIELD(tenancy_header,TYPE_STRING,10,false,"x-hatn-tenancy")
+    HDU_FIELD(auth_tag_header,TYPE_STRING,11,false,"x-hatn-atag")
+    HDU_FIELD(config_json,TYPE_STRING,12,false,DefaultConfigJson)
+    HDU_FIELD(deadline_timeout,TYPE_UINT32,13,false,55)
 )
 
 namespace detail {
 class GrpcTransport_p;
 }
 
-class HATN_GRPCCLIENT_EXPORT GrpcTransport : public base::ConfigObject<grpc_transport_config::type>
+class HATN_GRPCCLIENT_EXPORT GrpcTransport : public base::ConfigObject<grpc_config::type>
 {
     public:
 
