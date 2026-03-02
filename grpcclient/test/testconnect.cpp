@@ -23,6 +23,7 @@
 #include <hatn/common/random.h>
 
 #include <hatn/logcontext/streamlogger.h>
+#include <hatn/logcontext/logconfigrecords.h>
 
 #include <hatn/dataunit/compare.h>
 
@@ -94,7 +95,7 @@ struct TestEnv : public ::hatn::test::MultiThreadFixture
     TestEnv& operator=(TestEnv&&) =delete;
 };
 
-constexpr const uint32_t TcpPort=5000;
+constexpr const uint32_t TcpPort=25273;
 
 /********************** Messages **************************/
 
@@ -125,7 +126,7 @@ auto createClientApp(std::string configFileName)
 {
     app::AppName appName{"authclient","Grpc Client"};
     auto app=std::make_shared<app::App>(appName);
-    auto configFile=MultiThreadFixture::assetsFilePath("grpcclient",configFileName);
+    auto configFile=MultiThreadFixture::assetsFilePath("grpcclient",configFileName);    
     auto ec=app->loadConfigFile(configFile);
     HATN_TEST_EC(ec);
     BOOST_REQUIRE(!ec);
@@ -152,7 +153,7 @@ auto createClient(std::shared_ptr<app::App> app)
 
     HATN_BASE_NAMESPACE::config_object::LogRecords records;
     auto& client=ctx->get<ClientType>();
-    std::ignore=client.loadLogConfig(app->configTree(),"grpc",records,{});
+    std::ignore=loadLogConfig("Configuration of grpc client",client,app->configTree(),"grpc");
 
     client.setRouter(std::move(router));
 
