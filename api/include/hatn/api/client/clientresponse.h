@@ -19,6 +19,8 @@
 #ifndef HATNAPICLIENTRESPONSE_H
 #define HATNAPICLIENTRESPONSE_H
 
+#include <hatn/dataunit/unitwrapper.h>
+
 #include <hatn/api/api.h>
 #include <hatn/api/responseunit.h>
 #include <hatn/api/makeapierror.h>
@@ -30,101 +32,102 @@ HATN_API_NAMESPACE_BEGIN
 namespace client
 {
 
-struct Response
+class Response
 {
-    common::SharedPtr<ResponseManaged> unit;
-    common::ByteArrayShared unitRawData;
-    common::ByteArrayShared message;
+    public:
 
-    Response()=default;
+        using IdType=std::string;
 
-    Response(
-            common::SharedPtr<ResponseManaged> unit,
-            common::ByteArrayShared unitRawData,
-            common::ByteArrayShared message
-        ) : unit(std::move(unit)),
-            unitRawData(std::move(unitRawData)),
-            message(std::move(message))
-    {}
+        Response()=default;
 
-    auto status() const noexcept
-    {
-        return unit->fieldValue(protocol::response::status);
-    }
-
-    bool isSuccess() const noexcept
-    {
-        return status()==protocol::ResponseStatus::Success;
-    }
-
-    Error parseError(const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()) const
-    {
-        if (isSuccess())
+        void setMessageData(common::ByteArrayShared value)
         {
-            return Error{};
+            m_messageData=std::move(value);
         }
 
-        const auto& messageField=unit->field(protocol::response::message);
-
-        // if error message field not set then construct api error from response status
-        if (unit->fieldValue(protocol::response::message_type)!=protocol::response_error_message::conf().name || !messageField.isSet())
+        auto messageData() const noexcept
         {
-            return makeApiError(
-                ApiLibError::SERVER_RESPONDED_WITH_ERROR,
-                ApiLibErrorCategory::getCategory(),
-                unit->fieldValue(protocol::response::status),
-                ApiGenericErrorCategory::getCategory()
-            );
+            return m_messageData;
         }
 
-        // if error message field is set then parse it
-        du::WireBufSolidShared buf{messageField.skippedNotParsedContent()};
-        protocol::response_error_message::managed errUnit{factory};
-        if (!du::io::deserialize(errUnit,buf))
+        void setStatus(protocol::ResponseStatus value) noexcept
         {
-            return apiLibError(ApiLibError::FAILED_DESERIALIZE_RESPONSE_ERROR);
+            m_status=value;
         }
 
-        // make api error from response_error_message
-        auto nativeError=std::make_shared<common::NativeError>(ApiLibError::SERVER_RESPONDED_WITH_ERROR,&ApiLibErrorCategory::getCategory());
-        common::ApiError apiError{errUnit.fieldValue(protocol::response_error_message::code)};
-        nativeError->setApiError(std::move(apiError));
-        nativeError->mutableApiError()->setDescription(std::string{errUnit.fieldValue(protocol::response_error_message::description)});
-        nativeError->mutableApiError()->setFamily(std::string{errUnit.fieldValue(protocol::response_error_message::family)});
-        nativeError->mutableApiError()->setStatus(std::string{errUnit.fieldValue(protocol::response_error_message::status)});
-        nativeError->mutableApiError()->setDataType(std::string{errUnit.fieldValue(protocol::response_error_message::data_type)});
-        const auto& dataField=errUnit.field(protocol::response_error_message::data);
-        if (dataField.isSet())
+        auto status() const noexcept
         {
-            nativeError->mutableApiError()->setData(dataField.byteArrayShared());
-        }
-        return Error{ApiLibError::SERVER_RESPONDED_WITH_ERROR,std::move(nativeError)};
-    }
-
-    template <typename UnitT>
-    Error parse(UnitT& obj, lib::string_view messageType={}) const
-    {
-        // check message type
-        if (messageType.empty())
-        {
-            messageType=obj.unitName();
-        }
-        if (messageType != unit->fieldValue(protocol::response::message_type))
-        {
-            return apiLibError(ApiLibError::MISMATCHED_RESPONSE_MESSAGE_TYPE);
+            return m_status;
         }
 
-        // deserialize message
-        du::WireBufSolidShared buf{message};
-        Error ec;
-        if (!du::io::deserialize(obj,buf))
+        void setMessageType(std::string value) noexcept
         {
-            return apiLibError(ApiLibError::FAILED_DESERIALIZE_RESPONSE_ERROR);
+            m_messageType=std::move(value);
         }
 
-        // done
-        return OK;
-    }
+        const std::string& messageType() const noexcept
+        {
+            return m_messageType;
+        }
+
+        void setId(IdType value) noexcept
+        {
+            m_id=std::move(value);
+        }
+
+        const IdType& id() const noexcept
+        {
+            return m_id;
+        }
+
+        bool isSuccess() const noexcept
+        {
+            return status()==protocol::ResponseStatus::Success;
+        }
+
+        template <typename UnitT>
+        Error parse(UnitT& obj, lib::string_view messageType={}) const
+        {
+            // check message type
+            if (messageType.empty())
+            {
+                messageType=obj.unitName();
+            }
+            if (messageType != m_messageType)
+            {
+                return apiLibError(ApiLibError::MISMATCHED_RESPONSE_MESSAGE_TYPE);
+            }
+
+            // deserialize message
+            du::WireBufSolidShared buf{m_messageData};
+            Error ec;
+            if (!du::io::deserialize(obj,buf))
+            {
+                return apiLibError(ApiLibError::FAILED_DESERIALIZE_RESPONSE_ERROR);
+            }
+
+            // done
+            return OK;
+        }
+
+        void setErrror(Error ec)
+        {
+            m_error=std::move(ec);
+        }
+
+        Error error() const
+        {
+            return m_error;
+        }
+
+    private:
+
+        IdType m_id;
+        protocol::ResponseStatus m_status;
+        std::string m_messageType;
+        common::ByteArrayShared m_messageData;
+
+        Error m_error;
 };
 
 } // namespace client

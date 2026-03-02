@@ -306,28 +306,13 @@ void Client<RouterT,Transport,SessionWrapperT,Traits>::sendRequest(common::Share
         if (!req->cancelled())
         {
             bool invokeCallback=true;
-            Response respWrapper{};
-
-#if 0
-            auto r=req->parseResponse();
-#else
-            auto r=m_transport.parseResponse(req);
-#endif
-            if (r)
-            {
-                // parsing error
-                ec=r.takeError();
-            }
-            else
-            {
-                const auto& resp=r.value();
-                const auto& respField=resp->field(protocol::response::message);
-                auto respMessage=respField.skippedNotParsedContent();
-                respWrapper=Response{r.takeValue(),req->responseData.sharedMainContainer(),std::move(respMessage)};
-                auto status=respWrapper.status();
-                if (!respWrapper.isSuccess())
+            auto ec=m_transport.parseResponse(req);
+            auto resp=req->takeResponse();
+            if (!ec)
+            {                
+                if (!resp.isSuccess())
                 {
-                    if (status==protocol::ResponseStatus::AuthError && !req->session().isNull())
+                    if (resp.status()==protocol::ResponseStatus::AuthError && !req->session().isNull())
                     {
                         // process auth error in session
                         if (!m_closed)
@@ -336,21 +321,18 @@ void Client<RouterT,Transport,SessionWrapperT,Traits>::sendRequest(common::Share
                             // set session invalid
                             req->session().setValid(false);
                             // refresh session
-                            refreshSession(std::move(req),std::move(respWrapper));
+                            refreshSession(std::move(req),std::move(resp));
                         }
                     }
 
-                    if (invokeCallback)
-                    {
-                        // parse error response
-                        ec=respWrapper.parseError(m_allocatorFactory);
-                    }
+                    // get error response
+                    ec=resp.error();
                 }
             }
 
             if (invokeCallback)
             {
-                req->callback("apiclientresp",req->taskCtx,ec,std::move(respWrapper));
+                req->callback("apiclientresp",req->taskCtx,ec,std::move(resp));
             }
         }
 

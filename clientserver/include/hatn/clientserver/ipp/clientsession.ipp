@@ -132,7 +132,7 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
         }
 
         // define request callback
-        auto reqCb=[this,sessionCtx=std::move(sessionCtx),invokeAuth=std::move(invokeAuth),client,callback=std::move(callback)](auto ctx, const Error& ec, api::client::Response response) mutable
+        auto reqCb=[sessionCtx=std::move(sessionCtx),invokeAuth=std::move(invokeAuth),client,callback=std::move(callback)](auto ctx, const Error& ec, api::client::Response response) mutable
         {
             HATN_CTX_SCOPE("clientsession::negotiatecb")
 
@@ -145,7 +145,7 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
 
             if (!response.isSuccess())
             {
-                callback(std::move(ctx),response.parseError(factory()));
+                callback(std::move(ctx),response.error());
                 return;
             }
 
@@ -192,7 +192,7 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
         auto ec=negotiationResponse.parse(*negotiateResp);
         if (ec)
         {
-            HATN_CTX_ERROR_RECORDS(ec,"failed to parse negotiation response message",{"message_type",negotiationResponse.unit->fieldValue(api::protocol::response::message_type)})
+            HATN_CTX_ERROR_RECORDS(ec,"failed to parse negotiation response message",{"message_type",negotiationResponse.messageType()})
             callback(std::move(ctx),api::makeApiError(std::move(ec),api::ApiAuthError::AUTH_NEGOTIATION_FAILED,api::ApiAuthErrorCategory::getCategory()));
             return;
         }
@@ -230,17 +230,17 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
         HATN_CTX_SCOPE("clientsession::handleTokens")
 
         // check response message
-        if (authResponse.unit->fieldValue(api::protocol::response::message_type)!=auth_complete::conf().name)
+        if (authResponse.messageType()!=auth_complete::conf().name)
         {
             auto ec=clientServerError(ClientServerError::AUTH_COMPLETION_FAILED);
-            HATN_CTX_ERROR_RECORDS(ec,"invalid auth complete message type",{"message_type",authResponse.unit->fieldValue(api::protocol::response::message_type)})
+            HATN_CTX_ERROR_RECORDS(ec,"invalid auth complete message type",{"message_type",authResponse.messageType()})
             callback(std::move(ctx),std::move(ec));
             return;
         }
 
         // parse response message
         auth_complete::managed authCompleteMsg{factory()};
-        du::WireBufSolidShared buf{authResponse.message};
+        du::WireBufSolidShared buf{authResponse.messageData()};
         Error ec;
         du::io::deserialize(authCompleteMsg,buf,ec);
         if (ec)

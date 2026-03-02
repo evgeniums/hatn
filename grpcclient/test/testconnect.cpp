@@ -24,6 +24,8 @@
 
 #include <hatn/logcontext/streamlogger.h>
 
+#include <hatn/dataunit/compare.h>
+
 #include <hatn/dataunit/ipp/syntax.ipp>
 #include <hatn/dataunit/ipp/wirebuf.ipp>
 #include <hatn/dataunit/ipp/objectid.ipp>
@@ -242,30 +244,41 @@ BOOST_FIXTURE_TEST_CASE(Echo,TestEnv)
     api::Method echoMethod{"Echo"};
     auto invokeEcho=[serviceClient,app,&echoMethod]()
     {
-        auto cb=[](auto ctx, const Error& ec, auto response)
+        auto msg=common::makeShared<service1_msg1::managed>();
+
+        auto cb=[msg](auto ctx, const Error& ec, api::client::Response response)
         {
-            HATN_TEST_MESSAGE_TS(fmt::format("invokeTask1 cb, ec: {}/{}",ec.value(),ec.message()));
-            BOOST_CHECK(!ec);
+            HATN_TEST_MESSAGE_TS(fmt::format("invokeEcho cb, ec: {}/{}",ec.value(),ec.message()));
+            BOOST_REQUIRE(!ec);
+
+            auto msg1=common::makeShared<service1_msg1::managed>();
+            HATN_DATAUNIT_NAMESPACE::WireBufSolidShared buf{response.messageData()};
+            auto ok=HATN_DATAUNIT_NAMESPACE::io::deserialize(*msg1,buf);
+            BOOST_CHECK(ok);
+
+            HATN_TEST_MESSAGE_TS(fmt::format("Echo received: {}",msg1->toString(true)));
+
+            BOOST_CHECK(HATN_DATAUNIT_NAMESPACE::unitsEqual(msg,msg1));
         };
 
         auto ctx=makeLogCtx();
         auto& logCtx=ctx->get<LogContext>();
-        logCtx.setLogger(app->logger().logger());
-        service1_msg1::type msg;
-        msg.setFieldValue(service1_msg1::field1,100);
-        msg.setFieldValue(service1_msg1::field2,"hello world!");
+        logCtx.setLogger(app->logger().logger());        
+        msg->setFieldValue(service1_msg1::field1,100);
+        msg->setFieldValue(service1_msg1::field2,"hello world!");
+        HATN_TEST_MESSAGE_TS(fmt::format("Echo send: {}",msg->toString(true)));
         serviceClient->exec(
             ctx,
             cb,
             echoMethod,
-            msg,
+            *msg,
             "topic1"
         );
     };
 
     clientThread->execAsync(invokeEcho);
 
-    int secs=180;
+    int secs=5;
     BOOST_TEST_MESSAGE(fmt::format("Running test for {} seconds",secs));
     exec(secs);
 

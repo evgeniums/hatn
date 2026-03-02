@@ -177,11 +177,20 @@ void GrpcTransport::initChannels()
 
 //--------------------------------------------------------------------------
 
+void GrpcTransport::addMessageTypeMap(
+        std::string pb,
+        std::string du
+    )
+{
+    pimpl->typeMap[std::move(pb)]=std::move(du);
+}
+
+//--------------------------------------------------------------------------
+
 void detail::PriorityChannel::init(const std::string& address, std::shared_ptr<grpc::ChannelCredentials> creds, const std::string& userAgent)
 {
     grpc::ChannelArguments args;
     args.SetUserAgentPrefix(userAgent);
-    // args.SetString(GRPC_ARG_PRIMARY_USER_AGENT_STRING, userAgent);
 
     channel = grpc::CreateCustomChannel(address,creds,args);
     stub= std::make_shared<grpc::GenericStub>(channel);

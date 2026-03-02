@@ -110,11 +110,67 @@ Error RawTransport<RouterT,Traits>::serializeRequest(
 
 template <typename RouterT, typename Traits>
 template <typename RequestT>
-common::Result<common::SharedPtr<ResponseManaged>> RawTransport<RouterT,Traits>::parseResponse(
+Error RawTransport<RouterT,Traits>::parseResponse(
         common::SharedPtr<RequestT> req
     )
 {
-    return req->parseResponse();
+    Error ec;
+    auto respUnit=req->factory()->template createObject<ResponseManaged>(req->factory());
+    du::io::deserialize(*respUnit,req->responseData,ec);
+    HATN_CHECK_EC(ec)
+
+    Response resp{};
+    resp.setId(std::string{respUnit->fieldValue(protocol::response::id)});
+    resp.setStatus(respUnit->fieldValue(protocol::response::status));
+    resp.setMessageType(std::string{respUnit->fieldValue(protocol::response::message_type)});
+    resp.setMessageData(respUnit->field(protocol::response::message).skippedNotParsedContent());
+    req->setResponse(std::move(resp));
+
+    auto parseError=[&resp]()
+    {
+        const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault();
+
+        // if error message field not set then construct api error from response status
+        if (resp.messageType()!=protocol::response_error_message::conf().name || resp.messageData().isNull())
+        {
+            return makeApiError(
+                ApiLibError::SERVER_RESPONDED_WITH_ERROR,
+                ApiLibErrorCategory::getCategory(),
+                resp.status(),
+                ApiGenericErrorCategory::getCategory()
+            );
+        }
+
+        // if error message field is set then parse it
+        du::WireBufSolidShared buf{resp.messageData()};
+        protocol::response_error_message::managed errUnit{factory};
+        if (!du::io::deserialize(errUnit,buf))
+        {
+            return apiLibError(ApiLibError::FAILED_DESERIALIZE_RESPONSE_ERROR);
+        }
+
+        // make api error from response_error_message
+        auto nativeError=std::make_shared<common::NativeError>(ApiLibError::SERVER_RESPONDED_WITH_ERROR,&ApiLibErrorCategory::getCategory());
+        common::ApiError apiError{errUnit.fieldValue(protocol::response_error_message::code)};
+        nativeError->setApiError(std::move(apiError));
+        nativeError->mutableApiError()->setDescription(std::string{errUnit.fieldValue(protocol::response_error_message::description)});
+        nativeError->mutableApiError()->setFamily(std::string{errUnit.fieldValue(protocol::response_error_message::family)});
+        nativeError->mutableApiError()->setStatus(std::string{errUnit.fieldValue(protocol::response_error_message::status)});
+        nativeError->mutableApiError()->setDataType(std::string{errUnit.fieldValue(protocol::response_error_message::data_type)});
+        const auto& dataField=errUnit.field(protocol::response_error_message::data);
+        if (dataField.isSet())
+        {
+            nativeError->mutableApiError()->setData(dataField.byteArrayShared());
+        }
+        return Error{ApiLibError::SERVER_RESPONDED_WITH_ERROR,std::move(nativeError)};
+    };
+
+    if (!resp.isSuccess())
+    {
+        resp.setErrror(parseError());
+    }
+
+    return OK;
 }
 
 //---------------------------------------------------------------

@@ -280,7 +280,7 @@ struct Request : public common::TaskSubcontext
         Error ec;
         requestBuf.setSize(requestBuf.mainContainer()->size());
         du::io::deserialize(unit,requestBuf,ec);
-        response.unit.setFieldValue(HATN_API_NAMESPACE::protocol::response::id,id());
+        response.unit.setFieldValue(HATN_API_NAMESPACE::protocol::response::id,id().toString());
         return ec;
     }
 

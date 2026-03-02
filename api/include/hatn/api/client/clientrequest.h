@@ -33,7 +33,6 @@
 #include <hatn/api/method.h>
 #include <hatn/api/client/methodauth.h>
 #include <hatn/api/requestunit.h>
-#include <hatn/api/responseunit.h>
 #include <hatn/api/message.h>
 #include <hatn/api/tenancy.h>
 #include <hatn/api/client/session.h>
@@ -141,7 +140,10 @@ struct Request
             return m_methodAuth;
         }
 
-        common::Result<common::SharedPtr<ResponseManaged>> parseResponse() const;
+        const common::pmr::AllocatorFactory* factory() const
+        {
+            return m_factory;
+        }
 
         const common::pmr::AllocatorFactory* m_factory;
 
@@ -175,6 +177,21 @@ struct Request
             return m_tenancy;
         }
 
+        void setResponse(Response response)
+        {
+            m_response=std::move(response);
+        }
+
+        const Response& response() const
+        {
+            return m_response;
+        }
+
+        Response takeResponse()
+        {
+            return std::move(m_response);
+        }
+
         void regenId();
         common::SharedPtr<RequestUnitT> m_unit;
 
@@ -189,6 +206,8 @@ struct Request
         MethodAuth m_methodAuth;        
         du::WireBufSolidShared requestData;
         mutable du::WireBufSolidShared responseData;
+
+        Response m_response;
 
         const Service* m_service;
         const Method* m_method;

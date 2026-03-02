@@ -30,7 +30,6 @@
 #include <hatn/api/api.h>
 #include <hatn/api/apiconstants.h>
 #include <hatn/api/priority.h>
-#include <hatn/api/responseunit.h>
 #include <hatn/api/client/defaulttraits.h>
 
 #include <hatn/grpcclient/grpcclientdefs.h>
@@ -48,6 +47,11 @@ HDU_UNIT(grpc_transport_config,
     HDU_FIELD(maximum_concurrent_calls,TYPE_UINT32,1,false,100)
     HDU_REPEATED_FIELD(priority_channels,TYPE_UINT8,2)
     HDU_FIELD(user_agent,TYPE_STRING,3,false,"hatngrpcclient")
+    HDU_FIELD(status_header,TYPE_STRING,4,false,"x-hatn-status")
+    HDU_FIELD(id_header,TYPE_STRING,5,false,"x-hatn-id")
+    HDU_FIELD(message_type_header,TYPE_STRING,6,false,"x-hatn-mtype")
+    HDU_FIELD(error_family_header,TYPE_STRING,7,false,"x-hatn-efamily")
+    HDU_FIELD(error_description_header,TYPE_STRING,8,false,"x-hatn-edescription")
 )
 
 namespace detail {
@@ -97,7 +101,7 @@ class HATN_GRPCCLIENT_EXPORT GrpcTransport : public base::ConfigObject<grpc_tran
         }
 
         template <typename RequestT>
-        common::Result<common::SharedPtr<HATN_API_NAMESPACE::ResponseManaged>> parseResponse(
+        Error parseResponse(
             common::SharedPtr<RequestT> req
         );
 
@@ -134,6 +138,11 @@ class HATN_GRPCCLIENT_EXPORT GrpcTransport : public base::ConfigObject<grpc_tran
         void setRouter(common::SharedPtr<Router> Router);
 
         common::SharedPtr<Router> router() const;
+
+        void addMessageTypeMap(
+            std::string pb,
+            std::string du
+        );
 
     private:
 

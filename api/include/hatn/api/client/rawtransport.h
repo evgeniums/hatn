@@ -30,8 +30,8 @@
 #include <hatn/api/api.h>
 #include <hatn/api/apiconstants.h>
 #include <hatn/api/priority.h>
-#include <hatn/api/responseunit.h>
 #include <hatn/api/connectionpool.h>
+#include <hatn/api/client/clientresponse.h>
 
 HATN_API_NAMESPACE_BEGIN
 
@@ -80,7 +80,7 @@ class RawTransport : public base::ConfigObject<raw_transport_config::type>
         );
 
         template <typename RequestT>
-        common::Result<common::SharedPtr<ResponseManaged>> parseResponse(
+        Error parseResponse(
             common::SharedPtr<RequestT> req
         );
 

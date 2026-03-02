@@ -27,6 +27,7 @@
 #include <hatn/common/locker.h>
 #include <hatn/logcontext/contextlogger.h>
 #include <hatn/api/apiliberror.h>
+#include <hatn/api/client/clientresponse.h>
 
 #include <hatn/grpcclient/grpctransport.h>
 
@@ -143,6 +144,7 @@ public:
     std::map<api::Priority,detail::PriorityChannel> channels;
 
     detail::PriorityChannel defaultChannel;
+    std::map<std::string,std::string> typeMap;
 
     detail::PriorityChannel* channel(HATN_API_NAMESPACE::Priority p)
     {
@@ -153,7 +155,66 @@ public:
         }
         return &defaultChannel;
     }
+
+    Error makeError(
+        int grpcCode,
+        std::string status,
+        const grpc_transport_config::type& config,
+        const grpc::ClientContext* grpcCtx,
+        std::string messageType,
+        common::ByteArrayShared respData
+    );
+
+    std::string findHeader(const std::multimap<grpc::string_ref,grpc::string_ref>& metadata, lib::string_view headerName)
+    {
+        auto it = metadata.find(grpc::string_ref{headerName.data(),headerName.size()});
+        if (it != metadata.end())
+        {
+            return std::string{it->second.data(),it->second.size()};
+        }
+        return std::string{};
+    };
+
+    std::string mapMessageType(const std::string& pb) const
+    {
+        auto it=typeMap.find(pb);
+        if (it!=typeMap.end())
+        {
+            return it->second;
+        }
+        return pb;
+    }
 };
+
+Error GrpcTransport_p::makeError(
+        int grpcCode,
+        std::string status,
+        const grpc_transport_config::type& config,
+        const grpc::ClientContext* grpcCtx,
+        std::string messageType,
+        common::ByteArrayShared respData
+    )
+{
+    int code=-grpcCode;
+    const std::multimap<grpc::string_ref, grpc::string_ref>& metadata = grpcCtx->GetServerInitialMetadata();
+
+    auto family=findHeader(metadata,config.fieldValue(grpc_transport_config::error_family_header));
+    auto description=findHeader(metadata,config.fieldValue(grpc_transport_config::error_description_header));
+
+    // make api error from response_error_message
+    auto nativeError=std::make_shared<common::NativeError>(-1,&api::ApiLibErrorCategory::getCategory());
+    common::ApiError apiError{code};
+    nativeError->setApiError(std::move(apiError));
+    nativeError->mutableApiError()->setDescription(description);
+    nativeError->mutableApiError()->setFamily(family);
+    nativeError->mutableApiError()->setStatus(status);
+    if (!messageType.empty() && !respData->empty())
+    {
+        nativeError->mutableApiError()->setDataType(messageType);
+        nativeError->mutableApiError()->setData(respData);
+    }
+    return Error{api::ApiLibError::SERVER_RESPONDED_WITH_ERROR,std::move(nativeError)};
+}
 
 }
 
@@ -222,41 +283,76 @@ void GrpcTransport::sendRequest(
     auto responseBuf=std::make_shared<grpc::ByteBuffer>();
 
     // prepare callback
-    auto cb=[req,channel,responseBuf,callback](grpc::Status status)
+    auto cb=[req,channel,responseBuf,callback,context,this](grpc::Status status)
     {
-        // check status
-        if (!status.ok())
-        {
-            //! @todo Map error codes to API lib codes
-
-            auto nativeErr=std::make_shared<common::NativeError>(
-                    status.error_message(),
-                    status.error_code(),
-                    &api::ApiLibErrorCategory::getCategory()
-                );
-            Error ec{
-                    api::ApiLibError::TRANSPORT_REQUEST_FAILED,
-                    std::move(nativeErr)
-                };
-            channel->removeRequest(req);
-            callback(std::move(ec));
-            return;
-        }
-
         // copy response data
+        common::ByteArrayShared respData=common::makeShared<common::ByteArray>();
         std::vector<grpc::Slice> slices;
         if (responseBuf->Dump(&slices).ok())
         {
             for (const auto& slice : slices)
             {
-                req->responseData.appendBuffer(common::ConstDataBuf{reinterpret_cast<const char*>(slice.begin()), slice.size()});
-                req->responseData.incSize(slice.size());
+                respData->append(reinterpret_cast<const char*>(slice.begin()),slice.size());
             }
         }
 
-        // done
-        HATN_CTX_STACK_BARRIER_OFF("grpctransport::sendrequest")
+        // parse response
+        clientapi::Response resp;
+        resp.setStatus(api::protocol::ResponseStatus::Success);
+        resp.setMessageData(respData);
+        const std::multimap<grpc::string_ref, grpc::string_ref>& metadata = context->GetServerInitialMetadata();
+        auto respType=pimpl->findHeader(metadata,config().fieldValue(grpc_transport_config::message_type_header));
+        auto mappedRespType=pimpl->mapMessageType(respType);
+        resp.setMessageType(mappedRespType);
+        resp.setId(pimpl->findHeader(metadata,config().fieldValue(grpc_transport_config::id_header)));
+
+        // check status
+        if (!status.ok())
+        {
+            if (status.error_code()==grpc::StatusCode::UNAUTHENTICATED)
+            {
+                resp.setStatus(api::protocol::ResponseStatus::AuthError);
+            }
+            else
+            {
+                //! @todo maybe map appStatus to response status
+                resp.setStatus(api::protocol::ResponseStatus::Generic);
+            }
+
+            auto appStatus=pimpl->findHeader(metadata,config().fieldValue(grpc_transport_config::status_header));
+            if (appStatus.empty())
+            {
+                // possibly network errors
+                auto nativeErr=std::make_shared<common::NativeError>(
+                    status.error_message(),
+                    -status.error_code(),
+                    &api::ApiLibErrorCategory::getCategory()
+                    );
+                Error ec{
+                    api::ApiLibError::TRANSPORT_REQUEST_FAILED,
+                    std::move(nativeErr)
+                };
+
+                channel->removeRequest(req);
+                callback(std::move(ec));
+                return;
+            }
+
+            auto apiError=pimpl->makeError(
+                    status.error_code(),
+                    std::move(appStatus),
+                    config(),
+                    context.get(),
+                    resp.messageType(),
+                    respData
+                );
+            resp.setErrror(std::move(apiError));
+        }
+
+        // done                
+        req->setResponse(std::move(resp));
         channel->removeRequest(req);
+        HATN_CTX_STACK_BARRIER_OFF("grpctransport::sendrequest")
         callback({});
     };
 
@@ -287,22 +383,11 @@ void GrpcTransport::cancelRequest(
 //---------------------------------------------------------------
 
 template <typename RequestT>
-common::Result<common::SharedPtr<HATN_API_NAMESPACE::ResponseManaged>> GrpcTransport::parseResponse(
+Error GrpcTransport::parseResponse(
         common::SharedPtr<RequestT> req
     )
 {
-    auto r=req->parseResponse();
-
-    if (r)
-    {
-        std::cerr << "GrpcTransport::parseResponse error err_msg: " << r.error().message() << " err_code: " << r.error().code() << std::endl;
-    }
-    else
-    {
-        std::cout << "GrpcTransport::parseResponse message" << r.value()->toString(true) << std::endl;
-    }
-
-    return r;
+    return req->response().error();
 }
 
 //--------------------------------------------------------------------------

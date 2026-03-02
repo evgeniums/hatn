@@ -94,18 +94,6 @@ lib::string_view Request<SessionT,MessageT,RequestUnitT>::id() const noexcept
     return id.value();
 }
 
-template <typename SessionT, typename MessageT, typename RequestUnitT>
-common::Result<common::SharedPtr<ResponseManaged>> Request<SessionT,MessageT,RequestUnitT>::parseResponse() const
-{
-    Error ec;
-
-    auto resp=m_factory->createObject<ResponseManaged>(m_factory);
-    du::io::deserialize(*resp,responseData,ec);
-    HATN_CHECK_EC(ec)
-
-    return resp;
-}
-
 //---------------------------------------------------------------
 
 } // namespace client

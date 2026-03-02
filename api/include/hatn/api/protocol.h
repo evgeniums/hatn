@@ -30,6 +30,7 @@
 
 #define HATN_API_RESPONSE_STATUS(Do) \
     Do(ApiResponseStatus,Success,_TR("success","api_protocol",translator)) \
+    Do(ApiResponseStatus,Generic,_TR("generic error","api_protocol",translator)) \
     Do(ApiResponseStatus,AuthError,_TR("authentification error","api_protocol",translator)) \
     Do(ApiResponseStatus,Forbidden,_TR("forbidden","api_protocol",translator)) \
     Do(ApiResponseStatus,InternalServerError,_TR("internal server error","api_protocol",translator)) \
