@@ -10,7 +10,7 @@
 /*
 
 */
-/** @file api/protocolunits.h
+/** @file api/responseunit.h
   *
   */
 
@@ -30,7 +30,7 @@ namespace protocol
 {
 
 HDU_UNIT(response,
-    HDU_FIELD(id,TYPE_OBJECT_ID,1,true)
+    HDU_FIELD(id,TYPE_OBJECT_ID,1)
     HDU_FIELD(status,HDU_TYPE_ENUM(ResponseStatus),2,false,protocol::ResponseStatus::Success)
     HDU_FIELD(message_type,HDU_TYPE_FIXED_STRING(ResponseMsgTypeLengthMax),3)
     HDU_FIELD(message,TYPE_DATAUNIT,4)
