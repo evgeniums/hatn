@@ -308,7 +308,11 @@ void Client<RouterT,Transport,SessionWrapperT,Traits>::sendRequest(common::Share
             bool invokeCallback=true;
             Response respWrapper{};
 
+#if 0
             auto r=req->parseResponse();
+#else
+            auto r=m_transport.parseResponse(req);
+#endif
             if (r)
             {
                 // parsing error
