@@ -43,6 +43,8 @@ HATN_GRPCCLIENT_NAMESPACE_BEGIN
 
 namespace common=HATN_COMMON_NAMESPACE;
 
+#if 0
+constexpr const uint32_t DefaultDeadlineTimeout=15;
 constexpr const char* DefaultConfigJson = R"({
   "methodConfig": [{
     "name": [{"service": ""}],
@@ -55,6 +57,10 @@ constexpr const char* DefaultConfigJson = R"({
     }
   }]
 })";
+#else
+constexpr const char* DefaultConfigJson ="";
+constexpr const uint32_t DefaultDeadlineTimeout=0;
+#endif
 
 HDU_UNIT(grpc_config,
     HDU_FIELD(maximum_concurrent_calls,TYPE_UINT32,1,false,100)
@@ -69,7 +75,7 @@ HDU_UNIT(grpc_config,
     HDU_FIELD(tenancy_header,TYPE_STRING,10,false,"x-hatn-tenancy")
     HDU_FIELD(auth_tag_header,TYPE_STRING,11,false,"x-hatn-atag")
     HDU_FIELD(config_json,TYPE_STRING,12,false,DefaultConfigJson)
-    HDU_FIELD(deadline_timeout,TYPE_UINT32,13,false,55)
+    HDU_FIELD(deadline_timeout,TYPE_UINT32,13,false,0)
 )
 
 namespace detail {

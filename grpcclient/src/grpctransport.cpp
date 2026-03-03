@@ -195,8 +195,11 @@ void detail::PriorityChannel::init(const std::string& address,
                                    const std::string& configJson)
 {
     grpc::ChannelArguments args;
-    args.SetUserAgentPrefix(userAgent);    
-    args.SetServiceConfigJSON(configJson);
+    args.SetUserAgentPrefix(userAgent);
+    if (!configJson.empty())
+    {
+        args.SetServiceConfigJSON(configJson);
+    }
 
     channel = grpc::CreateCustomChannel(address,creds,args);
     stub= std::make_shared<grpc::GenericStub>(channel);

@@ -237,10 +237,13 @@ void GrpcTransport::sendRequest(
 
     // create context
     auto context = channel->addRequest(req);
-    context->set_wait_for_ready(true);
-    std::chrono::system_clock::time_point deadline =
-        std::chrono::system_clock::now() + std::chrono::seconds(config().fieldValue(grpc_config::deadline_timeout));
-    context->set_deadline(deadline);
+    if (config().fieldValue(grpc_config::deadline_timeout)!=0)
+    {
+        context->set_wait_for_ready(true);
+        std::chrono::system_clock::time_point deadline =
+            std::chrono::system_clock::now() + std::chrono::seconds(config().fieldValue(grpc_config::deadline_timeout));
+        context->set_deadline(deadline);
+    }
 
     // add authorization token and other headers to context
     auto token=req->session().sessionToken();
@@ -296,7 +299,7 @@ void GrpcTransport::sendRequest(
     {
         const std::multimap<grpc::string_ref, grpc::string_ref>& metadata = context->GetServerInitialMetadata();
 
-#if 0
+#if 1
         // dump response headers
         std::cout << "------HEADERS-----" << std::endl;
         for (auto it = metadata.begin(); it != metadata.end(); ++it) {
