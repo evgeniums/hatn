@@ -43,7 +43,7 @@ HATN_GRPCCLIENT_NAMESPACE_BEGIN
 
 namespace common=HATN_COMMON_NAMESPACE;
 
-#if 0
+#if 1
 constexpr const uint32_t DefaultDeadlineTimeout=15;
 constexpr const char* DefaultConfigJson = R"({
   "methodConfig": [{

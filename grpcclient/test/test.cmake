@@ -1,5 +1,5 @@
 SET (TEST_SOURCES
-    ${GRPCCLIENT_TEST_SRC}/testconnect.cpp
+    ${GRPCCLIENT_TEST_SRC}/testgrpc.cpp
 )
 
 SET (TEST_HEADERS
@@ -34,7 +34,7 @@ ENDFUNCTION(TestGrpcclient)
 ADD_CUSTOM_TARGET(grpcclienttest-src SOURCES ${TEST_HEADERS} ${TEST_SOURCES} ${SOURCES})
 
 SET (TEST_JSON
-    ${GRPCCLIENT_TEST_SRC}/assets/echo.jsonc
+    ${GRPCCLIENT_TEST_SRC}/assets/grpcclient.jsonc
 )
 
 ADD_CUSTOM_TARGET(grpcclienttest-json SOURCES ${TEST_JSON})

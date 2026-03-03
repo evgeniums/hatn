@@ -54,6 +54,8 @@
 #include <hatn/api/ipp/makeapierror.ipp>
 #include <hatn/grpcclient/ipp/grpctransport.ipp>
 
+constexpr const static int TEST_DURATION=5;
+
 using GrpcClientWithAuth= HATN_CLIENT_SERVER_NAMESPACE::ClientWithSharedSecretAuthT<HATN_GRPCCLIENT_NAMESPACE::Router,
                                                                                     HATN_GRPCCLIENT_NAMESPACE::GrpcClient>;
 
@@ -237,7 +239,7 @@ auto createClientWithAuth(SharedPtr<ClientCtxType> clientCtx, SessionWrapperT se
 
 /********************** Tests **************************/
 
-BOOST_AUTO_TEST_SUITE(TestConnect)
+BOOST_AUTO_TEST_SUITE(TestGrpc)
 
 BOOST_FIXTURE_TEST_CASE(CreateClient,TestEnv)
 {
@@ -245,7 +247,7 @@ BOOST_FIXTURE_TEST_CASE(CreateClient,TestEnv)
     auto clientThread=threadWithContextTask(0);
 
     BOOST_TEST_MESSAGE("create app");
-    auto app=createClientApp("echo.jsonc");
+    auto app=createClientApp("grpcclient.jsonc");
 
     BOOST_TEST_MESSAGE("create no auth client");
     auto client=createClient(app);
@@ -268,7 +270,7 @@ BOOST_FIXTURE_TEST_CASE(Echo,TestEnv)
     createThreads(1);
     auto clientThread=threadWithContextTask(0);
 
-    auto app=createClientApp("echo.jsonc");
+    auto app=createClientApp("grpcclient.jsonc");
     auto client=createClient(app);
     auto session=client::makeSessionNoAuthContext();
     auto clientWithAuth=createClientWithAuth(client,session);
@@ -316,7 +318,7 @@ BOOST_FIXTURE_TEST_CASE(Echo,TestEnv)
 
     clientThread->execAsync(invokeEcho);
 
-    int secs=5;
+    int secs=TEST_DURATION;
     BOOST_TEST_MESSAGE(fmt::format("Running test for {} seconds",secs));
     exec(secs);
 
@@ -330,7 +332,7 @@ BOOST_FIXTURE_TEST_CASE(Basic,TestEnv)
     createThreads(1);
     auto clientThread=threadWithContextTask(0);
 
-    auto app=createClientApp("echo.jsonc");
+    auto app=createClientApp("grpcclient.jsonc");
     auto client=createClient(app);
     auto session=client::makeSessionNoAuthContext();
     auto clientWithAuth=createClientWithAuth(client,session);
@@ -389,7 +391,7 @@ BOOST_FIXTURE_TEST_CASE(Basic,TestEnv)
 
     clientThread->execAsync(invokeEcho);
 
-    int secs=180;
+    int secs=TEST_DURATION;
     BOOST_TEST_MESSAGE(fmt::format("Running test for {} seconds",secs));
     exec(secs);
 
@@ -403,7 +405,7 @@ BOOST_FIXTURE_TEST_CASE(Repeated,TestEnv)
     createThreads(1);
     auto clientThread=threadWithContextTask(0);
 
-    auto app=createClientApp("echo.jsonc");
+    auto app=createClientApp("grpcclient.jsonc");
     auto client=createClient(app);
     auto session=client::makeSessionNoAuthContext();
     auto clientWithAuth=createClientWithAuth(client,session);
@@ -475,7 +477,7 @@ BOOST_FIXTURE_TEST_CASE(Repeated,TestEnv)
 
     clientThread->execAsync(invokeEcho);
 
-    int secs=180;
+    int secs=TEST_DURATION;
     BOOST_TEST_MESSAGE(fmt::format("Running test for {} seconds",secs));
     exec(secs);
 
@@ -489,7 +491,7 @@ BOOST_FIXTURE_TEST_CASE(Embedded,TestEnv)
     createThreads(1);
     auto clientThread=threadWithContextTask(0);
 
-    auto app=createClientApp("echo.jsonc");
+    auto app=createClientApp("grpcclient.jsonc");
     auto client=createClient(app);
     auto session=client::makeSessionNoAuthContext();
     auto clientWithAuth=createClientWithAuth(client,session);
@@ -602,7 +604,7 @@ BOOST_FIXTURE_TEST_CASE(Embedded,TestEnv)
 
     clientThread->execAsync(invokeEcho);
 
-    int secs=180;
+    int secs=TEST_DURATION;
     BOOST_TEST_MESSAGE(fmt::format("Running test for {} seconds",secs));
     exec(secs);
 
