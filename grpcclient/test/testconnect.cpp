@@ -54,19 +54,18 @@
 #include <hatn/api/ipp/makeapierror.ipp>
 #include <hatn/grpcclient/ipp/grpctransport.ipp>
 
-HATN_CLIENT_SERVER_NAMESPACE_BEGIN
+using GrpcClientWithAuth= HATN_CLIENT_SERVER_NAMESPACE::ClientWithSharedSecretAuthT<HATN_GRPCCLIENT_NAMESPACE::Router,
+                                                                                    HATN_GRPCCLIENT_NAMESPACE::GrpcClient>;
 
-using GrpcClientWithAuth=ClientWithSharedSecretAuthT<HATN_GRPCCLIENT_NAMESPACE::Router,HATN_GRPCCLIENT_NAMESPACE::GrpcClient>;
+constexpr  HATN_CLIENT_SERVER_NAMESPACE::makeClientWithSharedSecretAuthContextT<HATN_GRPCCLIENT_NAMESPACE::Router,
+                                                 HATN_GRPCCLIENT_NAMESPACE::GrpcClient>
+makeGrpcClientWithAuthContext;
 
-// constexpr makeClientWithSharedSecretAuthContextT<HATN_GRPCCLIENT_NAMESPACE::Router,HATN_GRPCCLIENT_NAMESPACE::GrpcClient> makeGrpcClientWithAuthContext;
+HATN_TASK_CONTEXT_DECLARE(GrpcClientWithAuth)
+HATN_TASK_CONTEXT_DECLARE(GrpcClientWithAuth::Client)
 
-HATN_CLIENT_SERVER_NAMESPACE_END
-
-HATN_TASK_CONTEXT_DECLARE(HATN_CLIENT_SERVER_NAMESPACE::GrpcClientWithAuth,HATN_CLIENT_SERVER_EXPORT)
-HATN_TASK_CONTEXT_DECLARE(HATN_CLIENT_SERVER_NAMESPACE::GrpcClientWithAuth::Client,HATN_CLIENT_SERVER_EXPORT)
-
-HATN_TASK_CONTEXT_DEFINE(HATN_CLIENT_SERVER_NAMESPACE::GrpcClientWithAuth,GrpcClientWithAuth)
-HATN_TASK_CONTEXT_DEFINE(HATN_CLIENT_SERVER_NAMESPACE::GrpcClientWithAuth::Client,GrpcClientWithAuthClient)
+HATN_TASK_CONTEXT_DEFINE(GrpcClientWithAuth,GrpcClientWithAuth)
+HATN_TASK_CONTEXT_DEFINE(GrpcClientWithAuth::Client,GrpcClientWithAuthClient)
 
 HATN_API_USING
 HATN_COMMON_USING
@@ -151,47 +150,48 @@ auto createClient(std::shared_ptr<app::App> app)
     auto& logContext=ctx->get<HATN_LOGCONTEXT_NAMESPACE::Context>();
     logContext.setLogger(app->logger().logger());
 
-    HATN_BASE_NAMESPACE::config_object::LogRecords records;
     auto& client=ctx->get<ClientType>();
-    std::ignore=loadLogConfig("Configuration of grpc client",client,app->configTree(),"grpc");
+    auto ec=loadLogConfig("Configuration of grpc client",client,app->configTree(),"grpc");
+    HATN_TEST_EC(ec)
 
     client.setRouter(std::move(router));
 
     return ctx;
 }
 
-#if 0
-auto createClient(ThreadQWithTaskContext* thread)
+auto createSessionClient(std::shared_ptr<app::App> app)
 {
-    auto resolver=std::make_shared<client::IpHostResolver>(thread);
-#if 0
-    std::vector<client::IpHostName> hosts;
-    hosts.resize(1);
-    hosts[0].name="localhost";
-    hosts[0].port=TcpPort;
-    hosts[0].ipVersion=IpVersion::V4;
-    auto router=makeShared<client::PlainTcpRouter>(
-            hosts,
-            resolver,
-            thread
-        );
-#else
+    auto thread=app->appThread();
+    const pmr::AllocatorFactory* factory=app->allocatorFactory().factory();
     auto router=makeShared<grpcclient::Router>();
-#endif
     router->setHost("localhost",TcpPort);
     router->setInsecure(true);
-    auto cl=client::makeClientContext<client::ClientContext<ClientType>>(
-                std::move(router),
-                thread
-            );
 
-    const HATN_BASE_NAMESPACE::ConfigTree configTree;
-    HATN_BASE_NAMESPACE::config_object::LogRecords records;
-    auto& client=cl->get<ClientType>();
-    std::ignore=client.loadLogConfig(configTree,{},records,{});
-    return cl;
+    auto ctx=makeGrpcClientWithAuthContext(
+        common::subcontexts(
+            common::subcontext(),
+            common::subcontext(
+                    thread,
+                    factory
+                ),
+            common::subcontext(),
+            common::subcontext()
+        )
+    );
+    auto& session=ctx->get<GrpcClientWithAuth::Session>();
+    session.setSerializedHeaderNeeded(false);
+
+    auto& logContext=ctx->get<HATN_LOGCONTEXT_NAMESPACE::Context>();
+    logContext.setLogger(app->logger().logger());
+
+    auto& client=ctx->get<GrpcClientWithAuth::Client>();
+    auto ec=loadLogConfig("Configuration of grpc client",client,app->configTree(),"grpc");
+    HATN_TEST_EC(ec)
+
+    client.setRouter(std::move(router));
+
+    return ctx;
 }
-#endif
 
 using ClientWithAuthType=client::ClientWithAuth<client::SessionWrapper<client::SessionNoAuth,client::SessionNoAuthContext>,client::ClientContext<ClientType>,ClientType>;
 using ClientWithAuthCtxType=client::ClientWithAuthContext<ClientWithAuthType>;
@@ -210,21 +210,29 @@ auto createClientWithAuth(SharedPtr<ClientCtxType> clientCtx, SessionWrapperT se
 
 BOOST_AUTO_TEST_SUITE(TestConnect)
 
-#if 0
 BOOST_FIXTURE_TEST_CASE(CreateClient,TestEnv)
 {
-    createThreads(2);
-    auto workThread=threadWithContextTask(1);
+    createThreads(1);
+    auto clientThread=threadWithContextTask(0);
 
-    std::ignore=createClient(workThread.get());
+    BOOST_TEST_MESSAGE("create app");
+    auto app=createClientApp("echo.jsonc");
 
-    auto grpcClientCtx=createGrpcClient();
-    auto& session=grpcClientCtx->get<clientserver::GrpcClientWithAuth::Session>();
-    session.setSerializedHeaderNeeded(false);
+    BOOST_TEST_MESSAGE("create no auth client");
+    auto client=createClient(app);
+
+    BOOST_TEST_MESSAGE("create client with shared secret session");
+    auto sessionClient=createSessionClient(app);
+
+    clientThread->start();
+
+    BOOST_TEST_MESSAGE("waiting 3 seconds...");
+    exec(3);
+    BOOST_TEST_MESSAGE("done");
+    clientThread->stop();
 
     BOOST_CHECK(true);
 }
-#endif
 
 BOOST_FIXTURE_TEST_CASE(Echo,TestEnv)
 {
