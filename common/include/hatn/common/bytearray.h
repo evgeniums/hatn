@@ -881,7 +881,15 @@ template class HATN_COMMON_EXPORT WithStaticAllocator<ByteArrayManaged>;
 class HATN_COMMON_EXPORT ByteArrayManaged : public ManagedWrapper<ByteArray>,
                                             public WithStaticAllocator<ByteArrayManaged>
 {
-    using ManagedWrapper<ByteArray>::ManagedWrapper;
+    public:
+
+        using ManagedWrapper<ByteArray>::ManagedWrapper;
+
+        SharedPtr<ByteArrayManaged> sharedFromThis() const noexcept
+        {
+            auto self=const_cast<ByteArrayManaged*>(this);
+            return SharedPtr<ByteArrayManaged>(static_cast<ByteArrayManaged*>(self),self);
+        }
 };
 using ByteArrayShared=SharedPtr<ByteArrayManaged>;
 
