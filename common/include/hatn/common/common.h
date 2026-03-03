@@ -30,6 +30,7 @@
 #define NOMINMAX
 #endif
 
+#include <cassert>
 #include <hatn/common/visibilitymacros.h>
 
 #ifndef HATN_COMMON_EXPORT
@@ -47,6 +48,7 @@
 #define HATN_COMMON_NAMESPACE_END }}
 
 HATN_COMMON_NAMESPACE_BEGIN
+struct shared_pointer_tag{};
 HATN_COMMON_NAMESPACE_END
 
 #define HATN_COMMON_NAMESPACE hatn::common
@@ -66,5 +68,9 @@ HATN_COMMON_NAMESPACE_END
 #define HATN_TEST_USING using namespace hatn::test;
 
 #define HATN_NO_EXPORT
+
+#define Assert(condition,message) assert((condition) && message); if (!(condition)) throw std::runtime_error(message);
+#define AssertThrow(condition,message) if (!(condition)) {throw std::runtime_error(message);}
+#define AssertThrowEx(condition,message,ex) if (!(condition)) {throw ex(message);}
 
 #endif // HATNCOMMON_H

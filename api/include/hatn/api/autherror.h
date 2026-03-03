@@ -19,6 +19,7 @@
 #ifndef HATNAPIAUTHERROR_H
 #define HATNAPIAUTHERROR_H
 
+#include <hatn/common/errorcodes.h>
 #include <hatn/common/apierror.h>
 
 #include <hatn/api/api.h>

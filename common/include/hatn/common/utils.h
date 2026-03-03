@@ -46,8 +46,6 @@ string to_string(T&& value,
 
 HATN_COMMON_NAMESPACE_BEGIN
 
-struct shared_pointer_tag{};
-
 //! Common utils
 struct HATN_COMMON_EXPORT Utils final
 {
@@ -138,10 +136,6 @@ template<class T, size_t N>
 CArray<T, N>& asCArray(std::array<T, N>& a) {
     return reinterpret_cast<T(&)[N]>(*a.data());
 }
-
-#define Assert(condition,message) assert((condition) && message); if (!(condition)) throw std::runtime_error(message);
-#define AssertThrow(condition,message) if (!(condition)) {throw std::runtime_error(message);}
-#define AssertThrowEx(condition,message,ex) if (!(condition)) {throw ex(message);}
 
 //---------------------------------------------------------------
 HATN_COMMON_NAMESPACE_END

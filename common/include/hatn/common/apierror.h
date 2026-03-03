@@ -21,8 +21,8 @@
 #include <string>
 
 #include <hatn/common/common.h>
-#include <hatn/common/bytearray.h>
 #include <hatn/common/format.h>
+#include <hatn/common/sharedptr.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
@@ -49,6 +49,8 @@ class HATN_COMMON_EXPORT ApiErrorCategory
             return strcmp(family(),other.family())==0;
         }
 };
+
+class ByteArrayManaged;
 
 //! API error is used to hold information to be sent back as a result of some request or API command.
 class HATN_COMMON_EXPORT ApiError
@@ -100,16 +102,30 @@ class HATN_COMMON_EXPORT ApiError
 
         std::string message(const Translator* translator=nullptr) const
         {
+            std::string str;
+
             if (!m_description.empty())
             {
                 if (m_nestedMessage)
                 {
-                    auto str=m_cat->message(m_code,translator);
+                    str=m_cat->message(m_code,translator);
                     fmt::format_to(std::back_inserter(str),": {}",m_description);
                     return str;
                 }
+
                 return m_description;
             }
+            else if (!m_status.empty())
+            {
+                if (m_nestedMessage)
+                {
+                    str=m_cat->message(m_code,translator);
+                    fmt::format_to(std::back_inserter(str),": {}",m_status);
+                    return str;
+                }
+                return m_status;
+            }
+
             return m_cat->message(m_code,translator);
         }
 
@@ -132,12 +148,13 @@ class HATN_COMMON_EXPORT ApiError
             return m_cat;
         }
 
-        void setData(ByteArrayShared data)
+        template <typename T>
+        void setData(T data)
         {
             m_data=std::move(data);
         }
 
-        ByteArrayShared data() const
+        auto data() const
         {
             return m_data;
         }
@@ -177,7 +194,7 @@ class HATN_COMMON_EXPORT ApiError
 
         const ApiErrorCategory* m_cat;
         int m_code;
-        ByteArrayShared m_data;
+        EmbeddedSharedPtr<ByteArrayManaged> m_data;
         std::string m_dataType;
         std::string m_description;
         std::string m_status;

@@ -24,7 +24,6 @@
 
 #include <hatn/common/common.h>
 #include <hatn/common/stdwrappers.h>
-#include <hatn/common/utils.h>
 
 #include <hatn/common/pointers/mempool/managedobject.h>
 #include <hatn/common/pointers/mempool/weakctrl.h>

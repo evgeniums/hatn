@@ -26,6 +26,7 @@
 #include <hatn/common/errorcategory.h>
 #include <hatn/common/apierror.h>
 #include <hatn/common/error.h>
+#include <hatn/common/bytearray.h>
 #include <hatn/common/commonerrorcodes.h>
 
 HATN_COMMON_NAMESPACE_BEGIN

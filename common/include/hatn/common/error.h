@@ -29,6 +29,7 @@
 #include <hatn/common/stdwrappers.h>
 #include <hatn/common/errorcategory.h>
 #include <hatn/common/format.h>
+#include <hatn/common/apierror.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
@@ -241,6 +242,10 @@ class HATN_COMMON_EXPORT HATN_NODISCARD Error final
                     }
                 }
                 break;
+            }
+            if (apiError()!=nullptr)
+            {
+                buf.append(apiError()->message());
             }
         }
 

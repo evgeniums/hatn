@@ -21,8 +21,6 @@
 #include <memory>
 
 #include <hatn/common/common.h>
-#include <hatn/common/utils.h>
-
 #include <hatn/common/pointers/std/managedobject.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
