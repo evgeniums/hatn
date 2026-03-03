@@ -380,6 +380,12 @@ class FieldTmplBytes : public Field, public BytesType
             return buf()->at(index);
         }
 
+        template <typename T1>
+        bool operator ==(const T1& other) const noexcept
+        {
+            return buf()->isEqual(other.data(),other.size());
+        }
+
         /**
          * @brief Use shared version of byte arrays data when parsing wired data
          * @param enable Enabled on/off

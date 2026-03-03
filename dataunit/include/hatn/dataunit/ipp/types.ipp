@@ -347,6 +347,13 @@ struct BytesTraits : public BytesTraitsBase
     {
         return lib::string_view{dataPtr(),dataSize()};
     }
+
+    template <typename T>
+    inline bool operator ==(const T& other) const noexcept
+    {
+        return stringView()==lib::string_view{other.data(),other.size()};
+    }
+
     private:
 
         sharedType shared;
