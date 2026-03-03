@@ -433,7 +433,7 @@ class Scalar : public Field
 
 //---------------------------------------------------------------
 
-//! Base class template for fixed size fields on wire.
+//! Base class template for varint fields on wire.
 template <typename Type>
 class VarInt : public Scalar<Type>
 {
@@ -502,7 +502,7 @@ class VarInt : public Scalar<Type>
 
 //---------------------------------------------------------------
 
-//! Base class template for fixed size fields on wire
+//! Base class template for enum fields on wire
 template <typename Type>
 class IntEnum : public VarInt<Type>
 {
