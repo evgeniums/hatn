@@ -451,18 +451,21 @@ class Uid : public common::WithSharedValue<uid::managed>
         {
             if (!local().isNull() && !other.local().isNull())
             {
-                return HATN_DATAUNIT_NAMESPACE::unitsEqual(local().get(),other.local().get());
+                return HATN_DATAUNIT_NAMESPACE::unitsEqual(local().get(),other.local().get())
+                       && version()==other.version() && index() == other.index();
             }
             if (!server().isNull() && !other.server().isNull())
             {
-                return HATN_DATAUNIT_NAMESPACE::unitsEqual(server().get(),other.server().get());
+                return HATN_DATAUNIT_NAMESPACE::unitsEqual(server().get(),other.server().get())
+                       && version()==other.version() && index() == other.index();
             }
             if (!global().isNull() && !other.global().isNull())
             {
-                return HATN_DATAUNIT_NAMESPACE::unitsEqual(global().get(),other.global().get());
+                return HATN_DATAUNIT_NAMESPACE::unitsEqual(global().get(),other.global().get())
+                       && version()==other.version() && index() == other.index();
             }
 
-            return HATN_DATAUNIT_NAMESPACE::unitsEqual(get(),other);
+            return HATN_DATAUNIT_NAMESPACE::unitsEqual(get(),other) && version()==other.version() && index() == other.index();
         }
 
         LocalUid local() const noexcept
