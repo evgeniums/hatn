@@ -150,7 +150,7 @@ public:
     detail::PriorityChannel defaultChannel;
     std::map<std::string,std::string> typeMap;
 
-    detail::PriorityChannel* channel(HATN_API_NAMESPACE::Priority p)
+    inline detail::PriorityChannel* channel(HATN_API_NAMESPACE::Priority p)
     {
         auto it=channels.find(p);
         if (it!=channels.end())
@@ -160,7 +160,7 @@ public:
         return &defaultChannel;
     }
 
-    Error makeError(
+    inline Error makeError(
         int grpcCode,
         std::string status,
         const grpc_config::type& config,
@@ -169,7 +169,7 @@ public:
         common::ByteArrayShared respData
     );
 
-    std::string findHeader(const std::multimap<grpc::string_ref,grpc::string_ref>& metadata, lib::string_view headerName)
+    inline std::string findHeader(const std::multimap<grpc::string_ref,grpc::string_ref>& metadata, lib::string_view headerName)
     {
         auto it = metadata.find(grpc::string_ref{headerName.data(),headerName.size()});
         if (it != metadata.end())
@@ -179,7 +179,7 @@ public:
         return std::string{};
     };
 
-    std::string mapMessageType(const std::string& pb) const
+    inline std::string mapMessageType(const std::string& pb) const
     {
         auto it=typeMap.find(pb);
         if (it!=typeMap.end())
@@ -190,7 +190,7 @@ public:
     }
 };
 
-Error GrpcTransport_p::makeError(
+inline Error GrpcTransport_p::makeError(
         int grpcCode,
         std::string status,
         const grpc_config::type& config,

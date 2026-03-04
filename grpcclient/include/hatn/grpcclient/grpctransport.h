@@ -142,10 +142,7 @@ class HATN_GRPCCLIENT_EXPORT GrpcTransport : public base::ConfigObject<grpc_conf
         )
         {
             closeChannels();
-            if (callback)
-            {
-                callback({});
-            }
+            callback({});
         }
 
         template <typename RequestT>
@@ -154,6 +151,11 @@ class HATN_GRPCCLIENT_EXPORT GrpcTransport : public base::ConfigObject<grpc_conf
         );
 
         bool canSend(HATN_API_NAMESPACE::Priority p) const;
+
+        void setName(lib::string_view name)
+        {
+            setName(std::string{name});
+        }
 
         void setName(std::string name);
 
