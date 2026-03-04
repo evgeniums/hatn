@@ -65,6 +65,11 @@ Error Request<SessionT,MessageT,RequestUnitT>::serialize(
 template <typename SessionT, typename MessageT, typename RequestUnitT>
 void Request<SessionT,MessageT,RequestUnitT>::regenId()
 {
+    if (!m_unit)
+    {
+        //! @todo Keep ID somwhere in request
+        return;
+    }
     auto& id=m_unit->field(protocol::request::id);
     id.mutableValue()->generate();
     std::ignore=serialize();
@@ -90,6 +95,12 @@ Error Request<SessionT,MessageT,RequestUnitT>::serialize(
 template <typename SessionT, typename MessageT, typename RequestUnitT>
 lib::string_view Request<SessionT,MessageT,RequestUnitT>::id() const noexcept
 {
+    if (!m_unit)
+    {
+        //! @todo Keep ID somwhere in request
+        return {};
+    }
+
     auto& id=m_unit->field(protocol::request::id);;
     return id.value();
 }

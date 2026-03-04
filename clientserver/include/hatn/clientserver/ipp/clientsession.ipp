@@ -64,14 +64,14 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
     // if auth header is not ready then try to use session token
     if (!m_session->isAuthHeaderValid())
     {
-        if (m_sessionToken)
+        if (m_sessionTokenContainer)
         {
             // check if token expired
-            if (!isAuthTokenExpired(m_sessionToken.get()))
+            if (!isAuthTokenExpired(m_sessionTokenContainer.get()))
             {
                 if (m_session->isSerializedHeaderNeeded())
                 {
-                    auto ec=m_session->serializeAuthHeader(api::AuthProtocol::name(),api::AuthProtocol::version(),m_sessionToken);
+                    auto ec=m_session->serializeAuthHeader(api::AuthProtocol::name(),api::AuthProtocol::version(),m_sessionTokenContainer);
                     if (ec)
                     {
                         HATN_CTX_ERROR(ec,"failed to serialize session token")
@@ -85,8 +85,8 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
                 else
                 {
                     m_session->setSessionToken(
-                        m_sessionToken->field(auth_with_token::token).byteArrayShared(),
-                        std::string{m_sessionToken->field(auth_with_token::tag).value()}
+                        m_sessionTokenContainer->field(auth_with_token::token).byteArrayShared(),
+                        std::string{m_sessionTokenContainer->field(auth_with_token::tag).value()}
                     );
                     callback(std::move(ctx),{});
                     return;
@@ -94,20 +94,21 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
             }
         }
     }
-    m_sessionToken.reset();
+    m_sessionTokenContainer.reset();
+    m_session->resetSessionToken();
     m_session->resetAuthHeader();
 
     // try to refresh tokens
-    if (m_refreshToken)
+    if (m_refreshTokenContainer)
     {
         // check if token expired
-        if (!isAuthTokenExpired(m_refreshToken.get()))
+        if (!isAuthTokenExpired(m_refreshTokenContainer.get()))
         {
             //! @todo critical: Implement token refreshing
             // return;
         }
     }
-    m_refreshToken.reset();
+    m_refreshTokenContainer.reset();
 
     // send auth negotiation request
     auto negotiateAuthProtocol=[this,sessionCtx=m_session->sharedMainCtx()](auto&& invokeAuth, auto ctx, auto callback, ClientT* client)
@@ -251,15 +252,15 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
         }
 
         // handle tokens
-        m_sessionToken=authCompleteMsg.field(auth_complete::session_token).sharedValue();
-        m_refreshToken=authCompleteMsg.field(auth_complete::refresh_token).sharedValue();
-        if (!m_sessionToken)
+        m_sessionTokenContainer=authCompleteMsg.field(auth_complete::session_token).sharedValue();
+        m_refreshTokenContainer=authCompleteMsg.field(auth_complete::refresh_token).sharedValue();
+        if (!m_sessionTokenContainer)
         {
             HATN_CTX_ERROR(ec,"empty session token in auth complete message")
             callback(std::move(ctx),clientServerError(ClientServerError::AUTH_COMPLETION_FAILED));
             return;
         }
-        if (!m_refreshToken)
+        if (!m_refreshTokenContainer)
         {
             HATN_CTX_ERROR(ec,"empty refresh token in auth complete message")
             callback(std::move(ctx),clientServerError(ClientServerError::AUTH_COMPLETION_FAILED));
@@ -267,9 +268,9 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
         }
 
         // serialize session token
-        if (!isAuthTokenExpired(m_sessionToken.get()))
+        if (!isAuthTokenExpired(m_sessionTokenContainer.get()))
         {
-            auto ec=m_session->serializeAuthHeader(api::AuthProtocol::name(),api::AuthProtocol::version(),m_sessionToken);
+            auto ec=m_session->serializeAuthHeader(api::AuthProtocol::name(),api::AuthProtocol::version(),m_sessionTokenContainer);
             if (ec)
             {
                 HATN_CTX_ERROR(ec,"failed to serialize session token")
@@ -288,14 +289,14 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
         if (m_tokensUpdatedCb)
         {
             du::WireBufSolidShared sessionTokenBuf{factory()};
-            du::io::serialize(*m_sessionToken,sessionTokenBuf,ec);
+            du::io::serialize(*m_sessionTokenContainer,sessionTokenBuf,ec);
             if (ec)
             {
                 HATN_CTX_ERROR(ec,"failed to serialize session token")
             }
             ec.reset();
             du::WireBufSolidShared refreshTokenBuf{factory()};
-            du::io::serialize(*m_refreshToken,refreshTokenBuf,ec);
+            du::io::serialize(*m_refreshTokenContainer,refreshTokenBuf,ec);
             if (ec)
             {
                 HATN_CTX_ERROR(ec,"failed to serialize refresh token")

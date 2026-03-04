@@ -41,6 +41,7 @@ Error ClientSessionBase::loadToken(common::SharedPtr<auth_token::managed>& token
 {
     token=factory()->createObject<auth_token::managed>();
 
+    token->setParseToSharedArrays(true);
     du::WireBufSolid buf{content.data(),content.size(),true,factory()};
 
     Error ec;
@@ -51,8 +52,8 @@ Error ClientSessionBase::loadToken(common::SharedPtr<auth_token::managed>& token
 //--------------------------------------------------------------------------
 
 Error ClientSessionBase::loadSessionToken(lib::string_view content)
-{
-    auto ec=loadToken(m_sessionToken,content);
+{    
+    auto ec=loadToken(m_sessionTokenContainer,content);
     HATN_CTX_CHECK_EC_MSG(ec,"failed to load session token")
     return OK;
 }
@@ -61,7 +62,7 @@ Error ClientSessionBase::loadSessionToken(lib::string_view content)
 
 Error ClientSessionBase::loadRefreshToken(lib::string_view content)
 {
-    auto ec=loadToken(m_refreshToken,content);
+    auto ec=loadToken(m_refreshTokenContainer,content);
     HATN_CTX_CHECK_EC_MSG(ec,"failed to load refresh token")
     return OK;
 }

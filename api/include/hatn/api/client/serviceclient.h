@@ -43,13 +43,13 @@ class ServiceClient : public Service
         {}
 
         template <typename ContextT, typename CallbackT, typename ...Args>
-        void exec(
+        Error exec(
                 common::SharedPtr<ContextT> ctx,
                 CallbackT callback,
                 Args&& ...args
             )
         {
-            impl().exec(std::move(ctx),std::move(callback),*this,std::forward<Args>(args)...);
+            return impl().exec(std::move(ctx),std::move(callback),*this,std::forward<Args>(args)...);
         }
 
         template <typename ContextT, typename CallbackT, typename ...Args>
@@ -106,7 +106,7 @@ class ClientWithAuthT : public ServiceMethodsAuthT,
         using ClientWithSession::exec;
 
         template <typename CallbackT>
-        void exec(
+        Error exec(
             common::SharedPtr<Context> ctx,
             CallbackT callback,
             const Service& service,
@@ -134,10 +134,11 @@ class ClientWithAuthT : public ServiceMethodsAuthT,
                 }
             };
             this->makeAuthHeader(std::move(ctx),std::move(methodAuthCb),service,method,message,topic,this->factory());
+            return OK;
         }
 
         template <typename MessageUnitT, typename CallbackT>
-        void exec(                
+        Error exec(
                 common::SharedPtr<Context> ctx,
                 CallbackT callback,
                 const Service& service,
@@ -150,13 +151,8 @@ class ClientWithAuthT : public ServiceMethodsAuthT,
         {
             MessageType msg;
             auto ec=msg.setContent(message);
-            if (ec)
-            {
-                //! @todo Log error
-                callback(std::move(ctx),ec,Response{});
-                return;
-            }
-            exec(std::move(ctx),std::move(callback),service,method,std::move(msg),topic,priority,timeoutMs);
+            HATN_CHECK_EC(ec)
+            return exec(std::move(ctx),std::move(callback),service,method,std::move(msg),topic,priority,timeoutMs);
         }
 
         template <typename CallbackT>

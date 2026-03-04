@@ -33,7 +33,7 @@ template <typename RouterT,
          template <typename Router, typename SessionWrapper, typename Traits> class TransportT,
          typename Traits=DefaultClientTraits,
          typename ...AuthProtocols>
-class ClientWithAuthT : public common::TaskContext
+class ClientWithAuthT : public common::TaskSubcontext
 {
     public:
 
@@ -57,6 +57,34 @@ class ClientWithAuthT : public common::TaskContext
             const std::string& configPath
         );
 
+        template <typename MessageUnitT>
+        Error exec(
+                common::SharedPtr<RequestContext> ctx,
+                Callback callback,
+                const api::Service& service,
+                const api::Method& method,
+                const MessageUnitT& message,
+                lib::string_view topic={},
+                api::Priority priority=api::Priority::Normal,
+                uint32_t timeoutMs=0,
+                clientapi::MethodAuth methodAuth={}
+            )
+        {
+            MessageType msg;
+            auto ec=msg.setContent(message);
+            HATN_CHECK_EC(ec)
+            return exec(std::move(ctx),
+                 std::move(callback),
+                 service,
+                 method,
+                 std::move(msg),
+                 topic,
+                 priority,
+                 timeoutMs,
+                 std::move(methodAuth)
+            );
+        }
+
         Error exec(
             common::SharedPtr<RequestContext> ctx,
             Callback callback,
@@ -68,6 +96,34 @@ class ClientWithAuthT : public common::TaskContext
             uint32_t timeoutMs=0,
             clientapi::MethodAuth methodAuth={}
         );
+
+        template <typename MessageUnitT>
+        Error execNoAuth(
+            common::SharedPtr<RequestContext> ctx,
+            Callback callback,
+            const api::Service& service,
+            const api::Method& method,
+            MessageUnitT message,
+            lib::string_view topic={},
+            api::Priority priority=api::Priority::Normal,
+            uint32_t timeoutMs=0,
+            clientapi::MethodAuth methodAuth={}
+        )
+        {
+            MessageType msg;
+            auto ec=msg.setContent(message);
+            HATN_CHECK_EC(ec)
+            return execNoAuth(std::move(ctx),
+                 std::move(callback),
+                 service,
+                 method,
+                 std::move(msg),
+                 topic,
+                 priority,
+                 timeoutMs,
+                 std::move(methodAuth)
+            );
+        }
 
         Error execNoAuth(
             common::SharedPtr<RequestContext> ctx,

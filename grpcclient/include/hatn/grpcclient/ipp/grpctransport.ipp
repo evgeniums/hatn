@@ -408,10 +408,10 @@ void GrpcTransport::cancelRequest(
 
 template <typename RequestT>
 Error GrpcTransport::parseResponse(
-        common::SharedPtr<RequestT> req
+        common::SharedPtr<RequestT> /*req*/
     )
 {
-    return req->response().error();
+    return OK;
 }
 
 //--------------------------------------------------------------------------

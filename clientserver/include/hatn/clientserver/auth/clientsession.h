@@ -80,8 +80,8 @@ class HATN_CLIENT_SERVER_EXPORT ClientSessionBase : public common::pmr::WithFact
 
     protected:
 
-        common::SharedPtr<auth_token::managed> m_sessionToken;
-        common::SharedPtr<auth_token::managed> m_refreshToken;
+        common::SharedPtr<auth_token::managed> m_sessionTokenContainer;
+        common::SharedPtr<auth_token::managed> m_refreshTokenContainer;
 
         std::string m_login;
         std::string m_topic;

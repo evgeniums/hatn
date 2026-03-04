@@ -306,7 +306,7 @@ void Client<RouterT,Transport,SessionWrapperT,Traits>::sendRequest(common::Share
         if (!req->cancelled())
         {
             bool invokeCallback=true;
-            auto ec=m_transport.parseResponse(req);
+            ec=m_transport.parseResponse(req);
             auto resp=req->takeResponse();
             if (!ec)
             {                

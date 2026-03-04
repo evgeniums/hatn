@@ -82,8 +82,13 @@ HDU_UNIT(auth_refresh,
 
 inline bool isAuthTokenExpired(const auth_token::managed* token)
 {
+    auto dt=token->fieldValue(auth_token::expire);
+    if (dt.isNull())
+    {
+        return false;
+    }
     auto now=common::DateTime::currentUtc();
-    return now.after(token->fieldValue(auth_token::expire));
+    return now.after(dt);
 }
 
 HATN_CLIENT_SERVER_NAMESPACE_END
