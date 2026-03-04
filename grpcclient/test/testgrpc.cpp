@@ -44,6 +44,8 @@
 #include <hatn/clientserver/auth/clientsessionsharedsecret.h>
 #include <hatn/clientserver/clientwithauth.h>
 #include <hatn/clientserver/ipp/clientsession.ipp>
+#include <hatn/clientserver/ipp/clientwithauth.ipp>
+#include <hatn/clientserver/ipp/clientauthprotocolsharedsecret.ipp>
 
 #include <hatn/api/ipp/client.ipp>
 #include <hatn/api/ipp/clientrequest.ipp>
@@ -56,12 +58,14 @@
 
 constexpr const static int TEST_DURATION=5;
 
-using GrpcClientWithAuth= HATN_CLIENT_SERVER_NAMESPACE::ClientWithSharedSecretAuthT<HATN_GRPCCLIENT_NAMESPACE::Router,
-                                                                                    HATN_GRPCCLIENT_NAMESPACE::GrpcClient>;
+using GrpcClinetCtxBuilder= HATN_CLIENT_SERVER_NAMESPACE::makeClientWithSharedSecretAuthContextT<HATN_GRPCCLIENT_NAMESPACE::Router,
+                                                                                                 HATN_GRPCCLIENT_NAMESPACE::GrpcClient>;
 
-constexpr  HATN_CLIENT_SERVER_NAMESPACE::makeClientWithSharedSecretAuthContextT<HATN_GRPCCLIENT_NAMESPACE::Router,
-                                                 HATN_GRPCCLIENT_NAMESPACE::GrpcClient>
-makeGrpcClientWithAuthContext;
+using GrpcClientWithAuthCtx=GrpcClinetCtxBuilder::type;
+using GrpcClientWithAuth=HATN_CLIENT_SERVER_NAMESPACE::ClientWithSharedSecretAuthT<HATN_GRPCCLIENT_NAMESPACE::Router,
+                                                                                HATN_GRPCCLIENT_NAMESPACE::GrpcClient>;
+
+GrpcClinetCtxBuilder makeGrpcClientWithAuthCtx;
 
 HATN_TASK_CONTEXT_DECLARE(GrpcClientWithAuth)
 HATN_TASK_CONTEXT_DECLARE(GrpcClientWithAuth::Client)
@@ -198,7 +202,7 @@ auto createSessionClient(std::shared_ptr<app::App> app)
     router->setHost("localhost",TcpPort);
     router->setInsecure(true);
 
-    auto ctx=makeGrpcClientWithAuthContext(
+    auto ctx=makeGrpcClientWithAuthCtx(
         common::subcontexts(
             common::subcontext(),
             common::subcontext(
@@ -224,7 +228,13 @@ auto createSessionClient(std::shared_ptr<app::App> app)
     return ctx;
 }
 
-using ClientWithAuthType=client::ClientWithAuth<client::SessionWrapper<client::SessionNoAuth,client::SessionNoAuthContext>,client::ClientContext<ClientType>,ClientType>;
+using ClientWithAuthType=client::ClientWithAuth<
+    client::SessionWrapper<
+            client::SessionNoAuth,
+            client::SessionNoAuthContext
+        >,
+    client::ClientContext<ClientType>,
+    ClientType>;
 using ClientWithAuthCtxType=client::ClientWithAuthContext<ClientWithAuthType>;
 
 HATN_TASK_CONTEXT_DECLARE(ClientWithAuthType)
@@ -307,13 +317,14 @@ BOOST_FIXTURE_TEST_CASE(Echo,TestEnv)
         msg->setFieldValue(service1_msg1::field1,100);
         msg->setFieldValue(service1_msg1::field2,"hello world!");
         HATN_TEST_MESSAGE_TS(fmt::format("Echo send: {}",msg->toString(true)));
-        serviceClient->exec(
+        auto ec=serviceClient->exec(
             ctx,
             cb,
             echoMethod,
             *msg,
             "topic1"
         );
+        HATN_TEST_EC(ec)
     };
 
     clientThread->execAsync(invokeEcho);
@@ -380,13 +391,14 @@ BOOST_FIXTURE_TEST_CASE(Basic,TestEnv)
         auto& logCtx=ctx->get<LogContext>();
         logCtx.setLogger(app->logger().logger());
         HATN_TEST_MESSAGE_TS(fmt::format("Command to send: {}",msg->toString(true)));
-        serviceClient->exec(
+        auto ec=serviceClient->exec(
             ctx,
             cb,
             basicTypesMethod,
             *msg,
             "topic1"
         );
+        HATN_TEST_EC(ec)
     };
 
     clientThread->execAsync(invokeEcho);
@@ -466,13 +478,14 @@ BOOST_FIXTURE_TEST_CASE(Repeated,TestEnv)
         auto& logCtx=ctx->get<LogContext>();
         logCtx.setLogger(app->logger().logger());
         HATN_TEST_MESSAGE_TS(fmt::format("Command to send: {}",msg->toString(true)));
-        serviceClient->exec(
+        auto ec=serviceClient->exec(
             ctx,
             cb,
             basicTypesMethod,
             *msg,
             "topic1"
-            );
+        );
+        HATN_TEST_EC(ec)
     };
 
     clientThread->execAsync(invokeEcho);
@@ -593,13 +606,14 @@ BOOST_FIXTURE_TEST_CASE(Embedded,TestEnv)
         auto& logCtx=ctx->get<LogContext>();
         logCtx.setLogger(app->logger().logger());
         HATN_TEST_MESSAGE_TS(fmt::format("Command to send: {}",msg->toString(true)));
-        serviceClient->exec(
+        auto ec=serviceClient->exec(
             ctx,
             cb,
             basicTypesMethod,
             *msg,
             "topic1"
-            );
+        );
+        HATN_TEST_EC(ec)
     };
 
     clientThread->execAsync(invokeEcho);
@@ -613,93 +627,70 @@ BOOST_FIXTURE_TEST_CASE(Embedded,TestEnv)
     BOOST_CHECK(true);
 }
 
-
-#if 0
-BOOST_FIXTURE_TEST_CASE(TestExec,TestEnv)
+BOOST_FIXTURE_TEST_CASE(AuthTokenBearer,TestEnv)
 {
     createThreads(1);
     auto clientThread=threadWithContextTask(0);
 
-    auto session=client::makeSessionNoAuthContext();
-    auto client=createClient(clientThread.get());
-    auto clientWithAuth=createClientWithAuth(client,session);
-    session.setSerializedHeaderNeeded(false);
+    auto app=createClientApp("grpcclient.jsonc");
+    HATN_CTX_ENTER_SCOPE("AuthTokenBearer")
+    BOOST_TEST_MESSAGE("create client with shared secret session");
+    auto client=createSessionClient(app);
+    auto& session=client->get<GrpcClientWithAuth::Session>();
 
-    auto session1=clientserver::makeSessionSharedSecretContext();
-    session1.setSerializedHeaderNeeded(false);
+    std::string tokenString="kwsjdlhfqiwue;fiquh";
+    HATN_CLIENT_SERVER_NAMESPACE::auth_token::type token;
+    token.setFieldValue(HATN_CLIENT_SERVER_NAMESPACE::auth_with_token::token,tokenString);
+    HATN_DATAUNIT_NAMESPACE::WireBufSolid wbuf;
+    BOOST_CHECK_GT(HATN_DATAUNIT_NAMESPACE::io::serialize(token,wbuf),0);
+    auto ec=session.sessionImpl().loadSessionToken(wbuf.mainContainer()->stringView());
+    HATN_TEST_EC(ec)
+    BOOST_REQUIRE(!ec);
 
-    auto service1Client=makeShared<client::ServiceClient<ClientWithAuthCtxType,ClientWithAuthType>>("service1",clientWithAuth);
-    service1Client->setPackage("example1");
-    auto service2Client=makeShared<client::ServiceClient<ClientWithAuthCtxType,ClientWithAuthType>>("service2",clientWithAuth);
-    service2Client->setPackage("example1");
+    auto serviceClient=makeShared<client::ServiceClient<GrpcClientWithAuthCtx,GrpcClientWithAuth>>("GrpcTest",client);
+    serviceClient->setPackage("grpc_api");
 
     clientThread->start();
 
-    auto invokeTask1=[service1Client]()
+    api::Method echoMethod{"EchoToken"};
+    auto invokeEcho=[serviceClient,app,&echoMethod]()
     {
-        auto cb=[](auto ctx, const Error& ec, auto response)
+        auto msg=common::makeShared<service1_msg1::managed>();
+
+        auto cb=[msg](auto ctx, const Error& ec, api::client::Response response)
         {
-            HATN_TEST_MESSAGE_TS(fmt::format("invokeTask1 cb, ec: {}/{}",ec.value(),ec.message()));
-            BOOST_CHECK(!ec);
+            HATN_TEST_MESSAGE_TS(fmt::format("invokeEcho cb, ec: {}/{}",ec.value(),ec.message()));
+            BOOST_REQUIRE(!ec);
+
+            auto msg1=common::makeShared<service1_msg1::managed>();
+            HATN_DATAUNIT_NAMESPACE::WireBufSolidShared buf{response.messageData()};
+            auto ok=HATN_DATAUNIT_NAMESPACE::io::deserialize(*msg1,buf);
+            BOOST_CHECK(ok);
+
+            HATN_TEST_MESSAGE_TS(fmt::format("Echo received: {}",msg1->toString(true)));
+
+            BOOST_CHECK(HATN_DATAUNIT_NAMESPACE::unitsEqual(msg,msg1));
         };
 
         auto ctx=makeLogCtx();
-        service1_msg1::type msg;
-        msg.setFieldValue(service1_msg1::field1,100);
-        msg.setFieldValue(service1_msg1::field2,"hello world!");
-        service1Client->exec(
+        auto& logCtx=ctx->get<LogContext>();
+        logCtx.setLogger(app->logger().logger());
+        msg->setFieldValue(service1_msg1::field1,100);
+        msg->setFieldValue(service1_msg1::field2,"hello world!");
+        HATN_TEST_MESSAGE_TS(fmt::format("Echo send: {}",msg->toString(true)));
+        auto ec=serviceClient->exec(
             ctx,
             cb,
-            "service1_method1",
-            msg,
+            echoMethod,
+            *msg,
             "topic1"
         );
+        HATN_TEST_EC(ec)
     };
 
-    auto invokeTasks=[service2Client,invokeTask1]()
-    {
-        invokeTask1();
+    clientThread->execAsync(invokeEcho);
 
-        auto cb2=[](auto ctx, const Error& ec, auto response)
-        {
-            HATN_TEST_MESSAGE_TS(fmt::format("invokeTasks cb2, ec: {}/{}",ec.value(),ec.message()));
-            BOOST_CHECK(!ec);
-        };
-        auto cb3=[](auto ctx, const Error& ec, auto response)
-        {
-            HATN_TEST_MESSAGE_TS(fmt::format("invokeTasks cb3, ec: {}/{}",ec.value(),ec.message()));
-            BOOST_CHECK(!ec);
-        };
-
-        auto ctx2=makeLogCtx();
-        service2_msg1::type msg2;
-        msg2.setFieldValue(service2_msg1::field2,200);
-        msg2.setFieldValue(service2_msg1::field1,"Hi!");
-        service2Client->exec(
-            ctx2,
-            cb2,
-            "service2_method1",
-            msg2,
-            "topic1"
-        );
-
-        auto ctx3=makeLogCtx();
-        service2_msg2::type msg3;
-        msg3.setFieldValue(service2_msg2::f1,300);
-        msg3.setFieldValue(service2_msg2::f2,"It is service2_msg2::f2");
-        msg3.setFieldValue(service2_msg2::f3,"It is service2_msg2::f3");
-        service2Client->exec(
-            ctx3,
-            cb3,
-            "service2_method2",
-            msg3,
-            "topic1"
-        );
-    };
-
-    clientThread->execAsync(invokeTasks);
-
-    int secs=3;
+    int secs=180;
     BOOST_TEST_MESSAGE(fmt::format("Running test for {} seconds",secs));
     exec(secs);
 
@@ -707,6 +698,6 @@ BOOST_FIXTURE_TEST_CASE(TestExec,TestEnv)
 
     BOOST_CHECK(true);
 }
-#endif
+
 BOOST_AUTO_TEST_SUITE_END()
 
