@@ -107,7 +107,7 @@ static void testAccountConfig(std::shared_ptr<CryptPlugin>& plugin, const std::s
     }
     BOOST_REQUIRE(!password);
     serverNode.setFieldValue(server_node::auth_token2,password.value());
-    auto& serverHost=serverNode.field(server_node::hosts).createAndAppendValue();
+    auto& serverHost=serverNode.mutableField(server_node::hosts).createAndAppendValue();
     serverHost.setFieldValue(server_host::host,"localhost");
     serverHost.setFieldValue(server_host::port,25157);
 
