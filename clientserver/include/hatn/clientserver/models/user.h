@@ -35,7 +35,7 @@ HDU_UNIT_WITH(user,(HDU_BASE(user_profile)),
     HDU_FIELD(reference_type,TYPE_STRING,200)
     HDU_FIELD(reference,TYPE_STRING,201)
     HDU_FIELD(blocked,TYPE_BOOL,202)
-    HDU_FIELD(comments,TYPE_STRING,203)
+    HDU_FIELD(description,TYPE_STRING,203)
 )
 
 using User=user::managed;
