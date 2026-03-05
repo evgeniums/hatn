@@ -45,7 +45,7 @@ class FixedSer
 };
 
 //! Setrializer/deserializer of variable size fields on
-template <typename T>
+template <typename T, bool Signed=false>
 class VariableSer
 {
     public:

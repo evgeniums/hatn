@@ -210,14 +210,14 @@ BOOST_AUTO_TEST_CASE(RequiredField)
     BOOST_CHECK(ec5);
     BOOST_TEST_MESSAGE(ec5.message());
     BOOST_CHECK_EQUAL(ec5.value(),int(UnitError::PARSE_ERROR));
-    BOOST_CHECK_EQUAL(ec5.message(),"failed to parse object: failed to parse field f4 at offset 3: available data size is less than requested size");
+    BOOST_CHECK_EQUAL(ec5.message(),"failed to parse object: failed to parse field f4 at offset 2: available data size is less than requested size");
     auto nativeEc5=ec5.native();
     BOOST_REQUIRE(nativeEc5!=nullptr);
     auto unitEc5=dynamic_cast<const UnitNativeError*>(nativeEc5);
     BOOST_REQUIRE(unitEc5!=nullptr);
     BOOST_CHECK_EQUAL(unitEc5->nativeCode(),int(RawErrorCode::END_OF_STREAM));
     BOOST_CHECK_EQUAL(unitEc5->fieldId(),4);
-    BOOST_CHECK_EQUAL(unitEc5->message(),"failed to parse field f4 at offset 3: available data size is less than requested size");
+    BOOST_CHECK_EQUAL(unitEc5->message(),"failed to parse field f4 at offset 2: available data size is less than requested size");
 
     TestRelaxMissingFieldSerializing=true;
     u2::type v6;
@@ -255,7 +255,7 @@ BOOST_AUTO_TEST_CASE(UnitBufErrors)
     auto fillBuf=[&v1,&buf1]()
     {
         Error ec1;
-        BOOST_CHECK_EQUAL(io::serialize(v1,buf1,ec1),28);
+        BOOST_CHECK_EQUAL(io::serialize(v1,buf1,ec1),17);
         BOOST_CHECK(!ec1);
     };
 
@@ -270,55 +270,56 @@ BOOST_AUTO_TEST_CASE(UnitBufErrors)
     ec.reset();
     fillBuf();
     buf1.mainContainer()->resize(buf1.mainContainer()->size()-1);
-    BOOST_CHECK_EQUAL(buf1.mainContainer()->size(),27);
+    BOOST_CHECK_EQUAL(buf1.mainContainer()->size(),16);
     u3::type v2;
     BOOST_CHECK(!io::deserialize(v2,buf1,ec));
     BOOST_CHECK(ec);
     BOOST_TEST_MESSAGE(ec.message());
     BOOST_CHECK_EQUAL(ec.value(),int(UnitError::PARSE_ERROR));
-    BOOST_CHECK_EQUAL(ec.message(),"failed to parse object: failed to parse field f5 at offset 26: unexpected end of buffer");
+    BOOST_CHECK_EQUAL(ec.message(),"failed to parse object: failed to parse field f5 at offset 10: repeated count 7 exceeds available buffer size 6");
     auto nativeEc=ec.native();
     BOOST_REQUIRE(nativeEc!=nullptr);
     auto unitEc=dynamic_cast<const UnitNativeError*>(nativeEc);
     BOOST_REQUIRE(unitEc!=nullptr);
     BOOST_CHECK_EQUAL(unitEc->nativeCode(),int(RawErrorCode::END_OF_STREAM));
     BOOST_CHECK_EQUAL(unitEc->fieldId(),5);
-    BOOST_CHECK_EQUAL(unitEc->message(),"failed to parse field f5 at offset 26: unexpected end of buffer");
+    BOOST_CHECK_EQUAL(unitEc->message(),"failed to parse field f5 at offset 10: repeated count 7 exceeds available buffer size 6");
 
     ec.reset();
     fillBuf();
     buf1.mainContainer()->resize(buf1.mainContainer()->size()-10);
-    BOOST_CHECK_EQUAL(buf1.mainContainer()->size(),18);
-    BOOST_CHECK(!io::deserialize(v2,buf1,ec));
-    BOOST_CHECK(ec);
-    BOOST_TEST_MESSAGE(ec.message());
-    BOOST_CHECK_EQUAL(ec.value(),int(UnitError::PARSE_ERROR));
-    BOOST_CHECK_EQUAL(ec.message(),"failed to parse object: failed to parse field f5 at offset 14: repeated count 7 exceeds available buffer size 4");
-    nativeEc=ec.native();
-    BOOST_REQUIRE(nativeEc!=nullptr);
-    unitEc=dynamic_cast<const UnitNativeError*>(nativeEc);
-    BOOST_REQUIRE(unitEc!=nullptr);
-    BOOST_CHECK_EQUAL(unitEc->nativeCode(),int(RawErrorCode::END_OF_STREAM));
-    BOOST_CHECK_EQUAL(unitEc->fieldId(),5);
-    BOOST_CHECK_EQUAL(unitEc->message(),"failed to parse field f5 at offset 14: repeated count 7 exceeds available buffer size 4");
-
-    ec.reset();
-    fillBuf();
-    buf1.mainContainer()->resize(buf1.mainContainer()->size()-21);
-    buf1.incSize(-21);
     BOOST_CHECK_EQUAL(buf1.mainContainer()->size(),7);
     BOOST_CHECK(!io::deserialize(v2,buf1,ec));
     BOOST_CHECK(ec);
     BOOST_TEST_MESSAGE(ec.message());
     BOOST_CHECK_EQUAL(ec.value(),int(UnitError::PARSE_ERROR));
-    BOOST_CHECK_EQUAL(ec.message(),"failed to parse object: failed to parse field f3 at offset 7: unexpected end of buffer");
+    BOOST_CHECK_EQUAL(ec.message(),"failed to parse object: failed to parse field f4 at offset 7: unexpected end of buffer");
     nativeEc=ec.native();
     BOOST_REQUIRE(nativeEc!=nullptr);
     unitEc=dynamic_cast<const UnitNativeError*>(nativeEc);
     BOOST_REQUIRE(unitEc!=nullptr);
     BOOST_CHECK_EQUAL(unitEc->nativeCode(),int(RawErrorCode::END_OF_STREAM));
-    BOOST_CHECK_EQUAL(unitEc->fieldId(),3);
-    BOOST_CHECK_EQUAL(unitEc->message(),"failed to parse field f3 at offset 7: unexpected end of buffer");
+    BOOST_CHECK_EQUAL(unitEc->fieldId(),4);
+    BOOST_CHECK_EQUAL(unitEc->message(),"failed to parse field f4 at offset 7: unexpected end of buffer");
+
+    ec.reset();
+    fillBuf();
+    BOOST_REQUIRE_GE(buf1.mainContainer()->size(),10);
+    buf1.mainContainer()->resize(buf1.mainContainer()->size()-10);
+    buf1.incSize(-10);
+    BOOST_CHECK_EQUAL(buf1.mainContainer()->size(),7);
+    BOOST_CHECK(!io::deserialize(v2,buf1,ec));
+    BOOST_CHECK(ec);
+    BOOST_TEST_MESSAGE(ec.message());
+    BOOST_CHECK_EQUAL(ec.value(),int(UnitError::PARSE_ERROR));
+    BOOST_CHECK_EQUAL(ec.message(),"failed to parse object: failed to parse field f4 at offset 7: unexpected end of buffer");
+    nativeEc=ec.native();
+    BOOST_REQUIRE(nativeEc!=nullptr);
+    unitEc=dynamic_cast<const UnitNativeError*>(nativeEc);
+    BOOST_REQUIRE(unitEc!=nullptr);
+    BOOST_CHECK_EQUAL(unitEc->nativeCode(),int(RawErrorCode::END_OF_STREAM));
+    BOOST_CHECK_EQUAL(unitEc->fieldId(),4);
+    BOOST_CHECK_EQUAL(unitEc->message(),"failed to parse field f4 at offset 7: unexpected end of buffer");
 
     ec.reset();
     fillBuf();
@@ -329,7 +330,7 @@ BOOST_AUTO_TEST_CASE(UnitBufErrors)
     {
         (*buf1.mainContainer())[i]=static_cast<char>(urand(1,255));
     }
-    BOOST_CHECK_EQUAL(buf1.mainContainer()->size(),38);
+    BOOST_CHECK_EQUAL(buf1.mainContainer()->size(),27);
     auto maybeOk=io::deserialize(v2,buf1,ec);
     if (!maybeOk)
     {

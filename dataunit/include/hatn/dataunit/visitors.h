@@ -368,7 +368,7 @@ struct HATN_DATAUNIT_EXPORT visitors
                 auto handler=[&acc](auto&& field, auto&&)
                 {
                     // add tag size
-                    acc+=sizeof(uint32_t);
+                    acc+=sizeof(uint32_t)+1;
                     // add field size
                     acc+=field.fieldSize();
                     return true;

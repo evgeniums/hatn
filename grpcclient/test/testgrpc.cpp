@@ -110,8 +110,8 @@ HDU_UNIT(service1_msg1,
 )
 
 HDU_UNIT(basic,
-    HDU_FIELD(vsint32,TYPE_INT32,1)
-    HDU_FIELD(vsint64,TYPE_INT64,2)
+    HDU_FIELD(vsint32,TYPE_SINT32,1)
+    HDU_FIELD(vsint64,TYPE_SINT64,2)
     HDU_FIELD(vuint32,TYPE_UINT32,3)
     HDU_FIELD(vuint64,TYPE_UINT64,4)
     HDU_FIELD(vsfixed32,TYPE_FIXED_INT32,5)
@@ -124,6 +124,14 @@ HDU_UNIT(basic,
     HDU_FIELD(vboolf,TYPE_BOOL,12)
     HDU_FIELD(vstring,TYPE_STRING,13)
     HDU_FIELD(vbytes,TYPE_BYTES,14)
+    HDU_FIELD(vint32,TYPE_INT32,15)
+    HDU_FIELD(vint64,TYPE_INT64,16)
+    HDU_FIELD(vint32_1,TYPE_INT32,17)
+    HDU_FIELD(vint64_2,TYPE_INT64,18)
+    HDU_FIELD(vsint32_1,TYPE_SINT32,19)
+    HDU_FIELD(vsint64_2,TYPE_SINT64,20)
+    HDU_FIELD(vsfixed32_1,TYPE_FIXED_INT32,21)
+    HDU_FIELD(vsfixed64_2,TYPE_FIXED_INT64,22)
 )
 
 HDU_UNIT(repeated,
@@ -359,10 +367,18 @@ BOOST_FIXTURE_TEST_CASE(Basic,TestEnv)
         auto msg=common::makeShared<basic::managed>();
         msg->setFieldValue(basic::vsint32, -1234);
         msg->setFieldValue(basic::vsint64, -1234567890);
+        msg->setFieldValue(basic::vsint32_1, 12345);
+        msg->setFieldValue(basic::vsint64_2, 123456789);
+        msg->setFieldValue(basic::vint32, -123);
+        msg->setFieldValue(basic::vint64, -123456789);
+        msg->setFieldValue(basic::vint32_1, 123);
+        msg->setFieldValue(basic::vint64_2, 1234567);
         msg->setFieldValue(basic::vuint32, 1234);
         msg->setFieldValue(basic::vuint64, 1234567890);
         msg->setFieldValue(basic::vsfixed32, -5678);
         msg->setFieldValue(basic::vsfixed64, -5678901234);
+        msg->setFieldValue(basic::vsfixed32_1, 567);
+        msg->setFieldValue(basic::vsfixed64_2, 567890123);
         msg->setFieldValue(basic::vfixed32, 5678);
         msg->setFieldValue(basic::vfixed64, 5678901234);
         msg->setFieldValue(basic::vfloat, 12.34);
@@ -379,7 +395,10 @@ BOOST_FIXTURE_TEST_CASE(Basic,TestEnv)
 
             auto msg1=common::makeShared<basic::managed>();
             HATN_DATAUNIT_NAMESPACE::WireBufSolidShared buf{response.messageData()};
-            auto ok=HATN_DATAUNIT_NAMESPACE::io::deserialize(*msg1,buf);
+
+            Error ec1;
+            auto ok=HATN_DATAUNIT_NAMESPACE::io::deserialize(*msg1,buf,ec1);
+            HATN_TEST_EC(ec1)
             BOOST_CHECK(ok);
 
             HATN_TEST_MESSAGE_TS(fmt::format("Response received: {}",msg1->toString(true)));
@@ -690,7 +709,7 @@ BOOST_FIXTURE_TEST_CASE(AuthTokenBearer,TestEnv)
 
     clientThread->execAsync(invokeEcho);
 
-    int secs=180;
+    int secs=TEST_DURATION;
     BOOST_TEST_MESSAGE(fmt::format("Running test for {} seconds",secs));
     exec(secs);
 

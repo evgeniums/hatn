@@ -88,7 +88,7 @@ BOOST_AUTO_TEST_CASE(SerializeIntField)
     f1.set(300);
     BOOST_CHECK_EQUAL(300,f1.get());
     auto size=du::io::size(obj1);
-    BOOST_CHECK_EQUAL(9,size);
+    BOOST_CHECK_EQUAL(15,size);
 
     auto du1f2=du1::field2;
     const auto* f1Parser=obj1.fieldParser<du::WireDataSingle>(du1f2);
@@ -113,6 +113,18 @@ BOOST_AUTO_TEST_CASE(SerializeIntField)
     ok=du::io::deserialize(obj3,buf2);
     BOOST_CHECK(ok);
     BOOST_CHECK_EQUAL(300,obj3.field(du1::field2).get());
+
+    type obj4;
+    obj4.setFieldValue(du1::field2,-123);
+    du::WireDataSingle buf4;
+    auto r3=du::io::serialize(obj4,buf4);
+    BOOST_CHECK(r3>0);
+    type obj5;
+    ok=obj5.parse(buf4);
+    BOOST_CHECK(ok);
+    BOOST_CHECK_EQUAL(-123,obj5.field(du1::field2).get());
+    BOOST_TEST_MESSAGE(obj5.toString(true));
+
 }
 
 BOOST_AUTO_TEST_CASE(SerializeStringField)
@@ -125,7 +137,7 @@ BOOST_AUTO_TEST_CASE(SerializeStringField)
     f1.set("Hello world!");
     BOOST_CHECK_EQUAL("Hello world!",f1.value());
     auto size=du::io::size(obj1);
-    BOOST_CHECK_EQUAL(20,size);
+    BOOST_CHECK_EQUAL(21,size);
 
     du::WireDataSingle buf1;
     auto r=du::io::serialize(obj1,buf1);
@@ -169,7 +181,7 @@ BOOST_AUTO_TEST_CASE(SerializeSubunitField)
     f3_4.set("Hello world!");
     BOOST_CHECK_EQUAL("Hello world!",f3_4.c_str());
     auto maxSerializedSize=du::io::size(obj1);
-    BOOST_CHECK_EQUAL(38,maxSerializedSize);
+    BOOST_CHECK_EQUAL(41,maxSerializedSize);
 
     du::WireDataSingle buf1;
     auto r=du::io::serialize(obj1,buf1);
@@ -220,7 +232,7 @@ BOOST_AUTO_TEST_CASE(SerializeRepeatedField)
     f5.appendValue("Hello world!");
     BOOST_CHECK_EQUAL("Hello world!",f5.value(0).buf()->c_str());
     auto size=du::io::size(obj1);
-    BOOST_CHECK_EQUAL(20,size);
+    BOOST_CHECK_EQUAL(21,size);
 
     du::WireDataSingle buf1;
     auto r=du::io::serialize(obj1,buf1);

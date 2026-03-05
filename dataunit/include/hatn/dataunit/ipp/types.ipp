@@ -58,24 +58,40 @@ struct BaseType
 struct HATN_DATAUNIT_EXPORT Bool : public BaseType<uint8_t,std::true_type,ValueType::Bool>
 {
 };
-//! Definition of signed int8 type
+//! Definition of int8 type
 struct HATN_DATAUNIT_EXPORT Int8 : public BaseType<int8_t,std::true_type,ValueType::Int8>
 {
 };
-//! Definition of signed int16 type
+//! Definition of int16 type
 struct HATN_DATAUNIT_EXPORT Int16 : public BaseType<int16_t,std::true_type,ValueType::Int16>
 {
 };
-//! Definition of signed int32 type
+//! Definition of int32 type
 struct HATN_DATAUNIT_EXPORT Int32 : public BaseType<int32_t,std::true_type,ValueType::Int32>
+{
+};
+//! Definition of signed int8 type
+struct HATN_DATAUNIT_EXPORT SInt8 : public BaseType<int8_t,std::true_type,ValueType::Int8>
+{
+};
+//! Definition of signed int16 type
+struct HATN_DATAUNIT_EXPORT SInt16 : public BaseType<int16_t,std::true_type,ValueType::Int16>
+{
+};
+//! Definition of signed int32 type
+struct HATN_DATAUNIT_EXPORT SInt32 : public BaseType<int32_t,std::true_type,ValueType::Int32>
 {
 };
 //! Definition of signed int32 type with fixed wire size
 struct HATN_DATAUNIT_EXPORT FInt32 : public BaseType<int32_t,std::true_type,ValueType::Int32>
 {
 };
-//! Definition of signed int64 type
+//! Definition of int64 type
 struct HATN_DATAUNIT_EXPORT Int64 : public BaseType<int64_t,std::true_type,ValueType::Int64>
+{
+};
+//! Definition of signed int64 type
+struct HATN_DATAUNIT_EXPORT SInt64 : public BaseType<int64_t,std::true_type,ValueType::Int64>
 {
 };
 //! Definition of signed int64 type with fixed wire size
@@ -515,6 +531,10 @@ using TYPE_INT8=Int8;
 using TYPE_INT16=Int16;
 using TYPE_INT32=Int32;
 using TYPE_INT64=Int64;
+using TYPE_SINT8=SInt8;
+using TYPE_SINT16=SInt16;
+using TYPE_SINT32=SInt32;
+using TYPE_SINT64=SInt64;
 using TYPE_FIXED_INT32=FInt32;
 using TYPE_FIXED_INT64=FInt64;
 
