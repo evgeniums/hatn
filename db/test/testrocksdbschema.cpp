@@ -73,8 +73,7 @@ BOOST_AUTO_TEST_CASE(RegisterRocksdbSchema)
     using t1=ModelWithInfo<mo1t>;
     using mt1=typename t1::ModelType;
     static_assert(std::is_same<mt1,mo1t>::value,"");
-    mo1t a(mo1);
-    auto moi1=makeModelWithInfo(mo1);
+    // auto moi1=makeModelWithInfo(mo1);
 
     auto idx1=makeIndex(IndexConfig<Unique>{},object::_id,"idx_id");
     auto idx2=makeIndex(IndexConfig<NotUnique,NotDatePartition,HDB_TTL(3600)>{},object::created_at);
@@ -82,7 +81,7 @@ BOOST_AUTO_TEST_CASE(RegisterRocksdbSchema)
     auto m1=unitModel<nu1::TYPE>(ModelConfig{},idx1,idx2,idx3);
     static_assert(std::is_same<nu1::TYPE,decltype(m1)::UnitType>::value,"");
 
-    auto mi1=makeModelWithInfo(m1);
+    auto mi1=makeModelWithInfo(std::move(m1));
     BOOST_CHECK(mi1->info->nativeModelV()==nullptr);
     std::string s1Name{"schema1"};
     auto s1=makeSchema(s1Name,mi1);
