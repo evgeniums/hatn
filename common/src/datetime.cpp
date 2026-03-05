@@ -31,6 +31,8 @@ HATN_COMMON_NAMESPACE_BEGIN
 
 namespace {
 
+    //! @todo critical: support negative times: epoch and year BC
+
     Date makeDate(const boost::gregorian::date& d)
     {
         return Date{d.year(),d.month(),d.day()};
