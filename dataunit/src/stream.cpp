@@ -146,7 +146,7 @@ int StreamBase::unpackVarInt64(
 //---------------------------------------------------------------
 void StreamBase::packVarInt32(
         char* buf,
-        const uint32_t& value
+        uint32_t value
     )
 {
     char* target=buf;

@@ -434,7 +434,7 @@ class Scalar : public Field
 //---------------------------------------------------------------
 
 //! Base class template for varint fields on wire.
-template <typename Type>
+template <typename Type,bool Signed=false>
 class VarInt : public Scalar<Type>
 {
     public:
@@ -445,25 +445,25 @@ class VarInt : public Scalar<Type>
         template <typename BufferT>
         static bool serialize(const typename Type::type& val, BufferT& wired)
         {
-            return VariableSer<typename Type::type>::serialize(val,wired);
+            return VariableSer<typename Type::type,Signed>::serialize(val,wired);
         }
 
         template <typename BufferT>
         static bool deserialize(typename Type::type& val, BufferT& wired, const AllocatorFactory*)
         {
-            return VariableSer<typename Type::type>::deserialize(val,wired);
+            return VariableSer<typename Type::type,Signed>::deserialize(val,wired);
         }
 
         template <typename BufferT>
         bool serialize(BufferT& wired) const
         {
-            return VariableSer<typename Type::type>::serialize(this->m_value,wired);
+            return VariableSer<typename Type::type,Signed>::serialize(this->m_value,wired);
         }
 
         template <typename BufferT>
         bool deserialize(BufferT& wired, const AllocatorFactory*)
         {
-            this->markSet(VariableSer<typename Type::type>::deserialize(this->m_value,wired));
+            this->markSet(VariableSer<typename Type::type,Signed>::deserialize(this->m_value,wired));
             return this->isSet();
         }
 
@@ -476,13 +476,13 @@ class VarInt : public Scalar<Type>
         //! Get size of value
         static size_t valueSize(const type&) noexcept
         {
-            return fieldSize();
+            return sizeof(std::decay_t<type>);
         }
 
         constexpr static size_t fieldSize() noexcept
         {
-            // varint can take +1 byte more than size of value
-            return sizeof(type)+1;
+            // maximum size of packed varint
+            return 10;
         }
 
     protected:
@@ -693,6 +693,24 @@ struct FieldTmpl<TYPE_INT32> : public VarInt<TYPE_INT32>
     using VarInt<TYPE_INT32>::VarInt;
 };
 
+template <>
+struct FieldTmpl<TYPE_SINT8> : public VarInt<TYPE_SINT8,true>
+{
+    using VarInt<TYPE_SINT8,true>::VarInt;
+};
+
+template <>
+struct FieldTmpl<TYPE_SINT16> : public VarInt<TYPE_SINT16,true>
+{
+    using VarInt<TYPE_SINT16,true>::VarInt;
+};
+
+template <>
+struct FieldTmpl<TYPE_SINT32> : public VarInt<TYPE_SINT32,true>
+{
+    using VarInt<TYPE_SINT32,true>::VarInt;
+};
+
 template <template <typename EnumType> class _Enum,typename EnumType>
 struct FieldTmpl<_Enum<EnumType>> : public IntEnum<_Enum<EnumType>>
 {
@@ -708,6 +726,12 @@ template <>
 struct FieldTmpl<TYPE_INT64> : public VarInt<TYPE_INT64>
 {
     using VarInt<TYPE_INT64>::VarInt;
+};
+
+template <>
+struct FieldTmpl<TYPE_SINT64> : public VarInt<TYPE_SINT64,true>
+{
+    using VarInt<TYPE_SINT64,true>::VarInt;
 };
 
 template <>

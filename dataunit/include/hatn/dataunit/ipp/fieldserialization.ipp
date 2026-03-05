@@ -132,12 +132,12 @@ bool FixedSer<T>::deserialize(T& value, BufferT& wired)
 
 //---------------------------------------------------------------
 
-template <typename T>
+template <typename T, bool Signed>
 template <typename BufferT>
-bool VariableSer<T>::serialize(const T& value, BufferT& wired)
+bool VariableSer<T,Signed>::serialize(const T& value, BufferT& wired)
 {
     auto* buf=wired.mainContainer();
-    auto consumed=Stream<T>::packVarInt(buf,value);
+    auto consumed=Stream<T,Signed>::packVarInt(buf,value);
     if (consumed<0)
     {
         return false;
@@ -148,13 +148,13 @@ bool VariableSer<T>::serialize(const T& value, BufferT& wired)
 
 //---------------------------------------------------------------
 
-template <typename T>
+template <typename T, bool Signed>
 template <typename BufferT>
-bool VariableSer<T>::deserialize(T& value, BufferT& wired)
+bool VariableSer<T,Signed>::deserialize(T& value, BufferT& wired)
 {
     auto* buf=wired.mainContainer();
     size_t availableSize=buf->size()-wired.currentOffset();
-    auto consumed=Stream<T>::unpackVarInt(buf->data()+wired.currentOffset(),availableSize,value);
+    auto consumed=Stream<T,Signed>::unpackVarInt(buf->data()+wired.currentOffset(),availableSize,value);
     if (consumed<0)
     {
         return false;

@@ -123,7 +123,7 @@ struct HATN_DATAUNIT_EXPORT StreamBase
     template <typename BufT>
     static int packVarInt32(
         BufT* buf,
-        const uint32_t& value
+        uint32_t value
     );
 
     /**
@@ -133,13 +133,13 @@ struct HATN_DATAUNIT_EXPORT StreamBase
      */
     static void packVarInt32(
         char* buf,
-        const uint32_t& value
+        uint32_t value
     );
 
     template <typename BufT>
     static int packVarInt64(
         BufT* buf,
-        const uint64_t& value
+        uint64_t value
     );
 
     // ZigZag Transform:  Encodes signed integers so that they can be
@@ -207,9 +207,9 @@ struct StreamUnsigned
         Type& field
     ) noexcept
     {
-        uint32_t value=0;
+        uint64_t value=0;
         bool moreBytesLeft=false;
-        auto processedSize=StreamBase::unpackVarInt32(buf,availableSize,value,moreBytesLeft);
+        auto processedSize=StreamBase::unpackVarInt64(buf,availableSize,value,moreBytesLeft);
         if (processedSize<0||moreBytesLeft)
         {
             return -1;
@@ -234,11 +234,11 @@ struct StreamUnsigned
     template <typename BufT>
     static int packVarInt(
         BufT* buf,
-        const Type& field
+        Type field
     )
     {
-        uint32_t value=static_cast<uint32_t>(field);
-        auto processedSize=StreamBase::packVarInt32(buf,value);
+        uint64_t value=static_cast<uint64_t>(field);
+        auto processedSize=StreamBase::packVarInt64(buf,value);
         return processedSize;
     }
 };
@@ -282,7 +282,7 @@ struct StreamSigned
     template <typename BufT>
     static int packVarInt(
         BufT* buf,
-        const Type& field
+        Type field
     )
     {
         uint32_t value=StreamBase::zigZagEncode32(static_cast<int32_t>(field));
@@ -296,11 +296,12 @@ struct StreamSigned
 };
 
 //! Template classes of streams
-template <typename Type>
+template <typename Type, bool Signed=false>
 struct Stream : public StreamUnsigned<Type>
 {
 };
 
+#if 0
 template <>
 struct Stream<uint32_t>
 {
@@ -336,7 +337,7 @@ struct Stream<uint32_t>
     template <typename BufT>
     static int packVarInt(
         BufT* buf,
-        const uint32_t& field
+        uint32_t field
     )
     {
         auto processedSize=StreamBase::packVarInt32(buf,field);
@@ -347,17 +348,18 @@ struct Stream<uint32_t>
         return processedSize;
     }
 };
+#endif
 
 template <>
-struct Stream<int8_t> : public StreamSigned<int8_t>
+struct Stream<int8_t,true> : public StreamSigned<int8_t>
 {
 };
 template <>
-struct Stream<int16_t> : public StreamSigned<int16_t>
+struct Stream<int16_t,true> : public StreamSigned<int16_t>
 {
 };
 template <>
-struct Stream<int32_t> : public StreamSigned<int32_t>
+struct Stream<int32_t,true> : public StreamSigned<int32_t>
 {
 };
 
@@ -396,7 +398,7 @@ struct Stream<uint64_t>
     template <typename BufT>
     static int packVarInt(
         BufT* buf,
-        const uint64_t& field
+        uint64_t field
     )
     {
         auto processedSize=StreamBase::packVarInt64(buf,field);
@@ -409,7 +411,7 @@ struct Stream<uint64_t>
 };
 
 template <>
-struct Stream<int64_t>
+struct Stream<int64_t,true>
 {
     /**
      * @brief Unpack VarInt and copy it to field
@@ -462,7 +464,7 @@ struct Stream<int64_t>
 template <typename BufT>
 int StreamBase::packVarInt32(
         BufT* buffer,
-        const uint32_t& value
+        uint32_t value
     )
 {
     auto buf=du_detail::wrapBuffer(buffer);
@@ -522,7 +524,7 @@ int StreamBase::packVarInt32(
 template <typename BufT>
 int StreamBase::packVarInt64(
         BufT* buffer,
-        const uint64_t& value
+        uint64_t value
     )
 {
     auto buf=du_detail::wrapBuffer(buffer);

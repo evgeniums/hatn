@@ -471,7 +471,7 @@ template <typename C, typename F, typename T> void wireSingleVar(const T& val)
 
     auto expectedSize=unit1.maxPackedSize();
     auto packedSize=unit1.serialize(wired);
-    BOOST_CHECK(static_cast<int>(expectedSize)>=static_cast<int>(packedSize));
+    BOOST_CHECK_GE(static_cast<int>(expectedSize),static_cast<int>(packedSize));
     BOOST_CHECK_EQUAL(packedSize,wired.mainContainer()->size());
 
     wired.setCurrentOffset(0);
