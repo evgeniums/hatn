@@ -33,7 +33,7 @@ HDU_UNIT(
     HDU_FIELD(name,TYPE_STRING,1)
     HDU_REPEATED_FIELD(hosts,server_host::TYPE,2)
     HDU_FIELD(protocol,TYPE_STRING,3,false,RouteProtocolGrpc)
-    HDU_REPEATED_FIELD(certificate_chain,TYPE_STRING,4)
+    HDU_FIELD(certificate_chain,TYPE_STRING,4)
     HDU_FIELD(auth_protocol,TYPE_STRING,5,false,AUTH_PROTOCOL_HATN_SHARED_SECRET)
     HDU_FIELD(auth_protocol_version,TYPE_UINT32,6,false,AUTH_PROTOCOL_HATN_SHARED_SECRET_VERSION)
     HDU_FIELD(auth_token1,TYPE_STRING,7)
