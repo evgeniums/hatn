@@ -313,6 +313,16 @@ struct FieldTmpl<OidType> : public OidField
 {
     using OidField::OidField;
 
+    constexpr inline static WireType fieldWireType() noexcept
+    {
+        return WireType::WithLength;
+    }
+
+    virtual WireType wireType() const noexcept override
+    {
+        return fieldWireType();
+    }
+
     void setV(const ObjectId& val) override
     {
         this->set(val);
