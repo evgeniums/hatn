@@ -76,7 +76,6 @@ TcpStreamTraits::TcpStreamTraits(TcpStream *stream):
     m_stream(stream),
     m_timeoutTimer(stream->thread())
 {
-    m_timeoutTimer.setAutoAsyncGuardEnabled(false);
     m_timeoutTimer.setSingleShot(true);
 }
 
