@@ -744,6 +744,11 @@ Result<DateTime> DateTime::toTz(const DateTime& from, int8_t tz)
 
 uint64_t DateTime::toEpochMs() const
 {
+    if (isNull())
+    {
+        return 0;
+    }
+
     auto pt=toBoostPtime(*this);
     return boost::posix_time::to_time_t(pt)*1000 + m_time.millisecond() - m_tz*3600000;
 }
@@ -752,6 +757,10 @@ uint64_t DateTime::toEpochMs() const
 
 uint32_t DateTime::toEpoch() const
 {
+    if (isNull())
+    {
+        return 0;
+    }
     return static_cast<uint32_t>(toEpochMs()/1000);
 }
 
@@ -759,6 +768,8 @@ uint32_t DateTime::toEpoch() const
 
 void DateTime::addHours(int value)
 {
+    Assert(!isNull(),"Invalid operation for null datetime");
+
     auto pt=toBoostPtime(*this);
     boost::posix_time::time_duration dd{value,0,0,0};
     pt+=dd;
@@ -769,6 +780,8 @@ void DateTime::addHours(int value)
 
 void DateTime::addMinutes(int value)
 {
+    Assert(!isNull(),"Invalid operation for null datetime");
+
     auto pt=toBoostPtime(*this);
     boost::posix_time::time_duration dd{0,value,0,0};
     pt+=dd;
@@ -779,6 +792,8 @@ void DateTime::addMinutes(int value)
 
 void DateTime::addSeconds(int value)
 {
+    Assert(!isNull(),"Invalid operation for null datetime");
+
     auto pt=toBoostPtime(*this);
     boost::posix_time::time_duration dd{0,0,value,0};
     pt+=dd;
@@ -789,6 +804,8 @@ void DateTime::addSeconds(int value)
 
 void DateTime::addMilliseconds(int value)
 {
+    Assert(!isNull(),"Invalid operation for null datetime");
+
     auto pt=toBoostPtime(*this);
     boost::posix_time::time_duration dd{0,0,0,1000*value};
     pt+=dd;

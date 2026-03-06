@@ -335,6 +335,16 @@ class HATN_COMMON_EXPORT Time
             return OK;
         }
 
+        Error validate(bool resetInvalid=true) const noexcept
+        {
+            auto ec=validate(m_hour,m_minute,m_second,m_millisecond);
+            if (ec && resetInvalid)
+            {
+                const_cast<Time*>(this)->reset();
+            }
+            return ec;
+        }
+
         /**
          * @brief addHours.
          * @param value Hours.
@@ -456,16 +466,6 @@ class HATN_COMMON_EXPORT Time
         uint8_t m_minute;
         uint8_t m_second;
         uint16_t m_millisecond;
-
-        Error validate() noexcept
-        {
-            auto ec=validate(m_hour,m_minute,m_second,m_millisecond);
-            if (ec)
-            {
-                reset();
-            }
-            return ec;
-        }
 
         friend class DateTime;
 };

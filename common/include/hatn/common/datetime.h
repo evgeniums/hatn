@@ -53,10 +53,20 @@ class HATN_COMMON_EXPORT DateTime
          * @param tz Timezone.
          */
         template <typename TzT>
-        DateTime(Date date, Time time, TzT tz)
+        DateTime(Date date, Time time, TzT tz, bool nothrow_=false)
             :m_date(std::move(date)),m_time(std::move(time)),m_tz(static_cast<decltype(m_tz)>(tz))
         {
-            HATN_CHECK_THROW(validate())
+            if (nothrow_)
+            {
+                if (!validate())
+                {
+                    reset();
+                }
+            }
+            else
+            {
+                HATN_CHECK_THROW(validate())
+            }
         }
 
         /**
@@ -268,7 +278,8 @@ class HATN_COMMON_EXPORT DateTime
          * @brief Construct datetime from milliseconds since epoch.
          * @param milliseconds Milliseconds since epoch.
          * @param tz Timezone.
-         * @return Constructed datetime.
+         * @return Constructed datetime or throws
+         * @throws In case date time is invalid
          */
         static DateTime fromEpochMs(uint64_t milliseconds, int8_t tz=0);
 
@@ -276,14 +287,16 @@ class HATN_COMMON_EXPORT DateTime
          * @brief Construct datetime from seconds since epoch.
          * @param seconds Seconds since epoch.
          * @param tz Timezone.
-         * @return Constructed datetime or error.
+         * @return Constructed datetime or throws.
+         * @throws In case date time is invalid
          */
         static DateTime fromEpoch(uint32_t seconds, int8_t tz=0);
 
         /**
          * @brief Construct UTC datetime from milliseconds since epoch.
          * @param milliseconds Milliseconds since epoch.
-         * @return Constructed datetime or error.
+         * @return Constructed datetime or throws.
+         * @throws In case date time is invalid
          */
         static DateTime utcFromEpochMs(uint64_t milliseconds)
         {
@@ -293,7 +306,8 @@ class HATN_COMMON_EXPORT DateTime
         /**
          * @brief Construct local datetime from milliseconds since epoch.
          * @param milliseconds Milliseconds since epoch.
-         * @return Constructed datetime or error.
+         * @return Constructed datetime or throws.
+         * @throws In case date time is invalid
          */
         static DateTime localFromEpochMs(uint64_t milliseconds)
         {
@@ -303,7 +317,8 @@ class HATN_COMMON_EXPORT DateTime
         /**
          * @brief Construct UTC datetime from seconds since epoch.
          * @param seconds Seconds since epoch.
-         * @return Constructed datetime or error.
+         * @return Constructed datetime or throws.
+         * @throws In case date time is invalid
          */
         static DateTime utcFromEpoch(uint32_t seconds)
         {
@@ -313,7 +328,8 @@ class HATN_COMMON_EXPORT DateTime
         /**
          * @brief Construct local datetime from seconds since epoch.
          * @param seconds Seconds since epoch.
-         * @return Constructed datetime or error.
+         * @return Constructed datetime or throws.
+         * @throws In case date time is invalid
          */
         static DateTime localFromEpoch(uint32_t seconds)
         {
@@ -646,7 +662,14 @@ class HATN_COMMON_EXPORT DateTime
 
             auto tz=num&0xFF;
             auto epochMs=num>>8;
-            return fromEpochMs(epochMs,static_cast<int8_t>(tz));
+            try {
+                return fromEpochMs(epochMs,static_cast<int8_t>(tz));
+            }
+            catch (const ErrorException& e)
+            {
+                return e.error();
+            }
+            return DateTime{};
         }
 
         /**
@@ -685,14 +708,19 @@ class HATN_COMMON_EXPORT DateTime
             return m_time;
         }
 
+        Error validate(const Date& date, const Time& time, int8_t tz) const noexcept
+        {
+            HATN_CHECK_RETURN(date.validate())
+            HATN_CHECK_RETURN(time.validate())
+            HATN_CHECK_RETURN(validateTz(tz))
+            return OK;
+        }
+
     private:
 
         Error validate() noexcept
         {
-            HATN_CHECK_RETURN(m_date.validate())
-            HATN_CHECK_RETURN(m_time.validate())
-            HATN_CHECK_RETURN(validateTz(m_tz))
-            return OK;
+            return validate(m_date,m_time,m_tz);
         }
 
         Date m_date;

@@ -332,14 +332,8 @@ class HATN_COMMON_EXPORT Date
 
         static bool isLeapYear(uint16_t year);
 
-    private:
-
-        uint16_t m_year;
-        uint8_t m_month;
-        uint8_t m_day;
-
         template <typename YearT, typename MonthT, typename DayT>
-        Error validate(YearT year, MonthT month, DayT day) noexcept
+        static Error validate(YearT year, MonthT month, DayT day) noexcept
         {
             if (month>12 || day>31 || month==0 || day==0 || year==0)
             {
@@ -352,15 +346,21 @@ class HATN_COMMON_EXPORT Date
             return OK;
         }
 
-        Error validate() noexcept
+        Error validate(bool resetInvalid=true) const noexcept
         {
             auto ec=validate(m_year,m_month,m_day);
-            if (ec)
+            if (ec && resetInvalid)
             {
-                reset();
+                const_cast<Date*>(this)->reset();
             }
             return ec;
         }
+
+    private:
+
+        uint16_t m_year;
+        uint8_t m_month;
+        uint8_t m_day;
 
         friend class DateTime;
 };
