@@ -34,12 +34,13 @@ HDU_UNIT(account_config,
     HDU_FIELD(server_name,TYPE_STRING,5)
     HDU_FIELD(server_id,TYPE_STRING,6)
     HDU_FIELD(server_root_certificate,TYPE_STRING,7)
-    HDU_REPEATED_FIELD(server_certificate_chain,TYPE_STRING,8)
+    HDU_FIELD(server_certificate_chain,TYPE_STRING,8)
     HDU_REPEATED_FIELD(server_route,server_node::TYPE,9)
     HDU_FIELD(description,TYPE_STRING,10)
     HDU_FIELD(token,TYPE_BYTES,11)
     HDU_FIELD(token_tag,TYPE_STRING,12)
     HDU_FIELD(topic,TYPE_STRING,13)
+    HDU_FIELD(title,TYPE_STRING,14)
 )
 
 HDU_UNIT(account_config_token,
