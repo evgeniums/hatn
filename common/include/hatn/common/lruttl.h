@@ -224,6 +224,7 @@ class LruTtl
                     if (status!=AsioDeadlineTimer::Status::Timeout)
                     {
                         p->clear();
+                        p->timer.reset();
                         return;
                     }
 
@@ -253,7 +254,6 @@ class LruTtl
          */
         void stop()
         {
-            pimpl->timer.reset();
             pimpl->timer.stop();
         }
 
