@@ -47,7 +47,14 @@ cmake -G "Unix Makefiles" \
 			    -DCMAKE_INSTALL_PREFIX=$install_path \
 			    -DINSTALL_DEV=1 \
 			    -DDEV_MODULE=$project \
-                -DBUILD_PLUGINS="$hatn_plugins" \
+            	-DBUILD_PLUGINS="$hatn_plugins" \
+            	-DCMAKE_PREFIX_PATH=$deps \
+				-DProtobuf_DIR=$deps/lib/cmake/protobuf \
+				-Dabsl_DIR=$deps/lib/cmake/absl \
+				-Dutf8_range_DIR=$deps/lib/cmake/utf8_range \
+				-DgRPC_DIR=$deps/lib/cmake/grpc \
+				-Dre2_DIR=$deps/lib/cmake/grpc \
+				-Dc-ares_DIR=$deps/lib/cmake/c-ares \
 			    $project_src
 make -j$build_workers install
 cd -
