@@ -32,7 +32,6 @@ HDU_UNIT(auth_negotiate_request,
     HDU_FIELD(login,TYPE_STRING,1,true)
     HDU_FIELD(topic,TYPE_STRING,2)
     HDU_REPEATED_FIELD(protocols,HATN_API_NAMESPACE::auth_protocol::TYPE,3)
-    HDU_REPEATED_FIELD(session_auth,HATN_API_NAMESPACE::auth_protocol::TYPE,4)
 )
 
 HDU_UNIT(auth_protocol_response,
@@ -43,7 +42,6 @@ HDU_UNIT(auth_protocol_response,
 
 HDU_UNIT_WITH(auth_negotiate_response,(HDU_BASE(auth_protocol_response)),
     HDU_FIELD(protocol,HATN_API_NAMESPACE::auth_protocol::TYPE,10)
-    HDU_FIELD(session_auth,HATN_API_NAMESPACE::auth_protocol::TYPE,11)
 )
 
 constexpr const char* AUTH_PROTOCOL_HATN_SHARED_SECRET="hss";
