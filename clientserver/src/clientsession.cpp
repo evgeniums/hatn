@@ -15,6 +15,8 @@
 #include <hatn/dataunit/visitors.h>
 #include <hatn/dataunit/wirebufsolid.h>
 
+#include <hatn/api/method.h>
+
 #include <hatn/logcontext/contextlogger.h>
 
 #include <hatn/clientserver/auth/authprotocol.h>
@@ -25,6 +27,12 @@
 #include <hatn/dataunit/ipp/wirebuf.ipp>
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
+
+const api::Method& negotiateMethod()
+{
+    static api::Method method{AuthNegotiateMethodName};
+    return method;
+}
 
 //--------------------------------------------------------------------------
 ClientSessionBase::ClientSessionBase(

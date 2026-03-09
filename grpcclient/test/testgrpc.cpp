@@ -58,12 +58,15 @@
 
 constexpr const static int TEST_DURATION=5;
 
-using GrpcClinetCtxBuilder= HATN_CLIENT_SERVER_NAMESPACE::makeClientWithSharedSecretAuthContextT<HATN_GRPCCLIENT_NAMESPACE::Router,
-                                                                                                 HATN_GRPCCLIENT_NAMESPACE::GrpcClient>;
+using GrpcClinetCtxBuilder= HATN_CLIENT_SERVER_NAMESPACE::makeClientWithSharedSecretAuthContextT<
+                                                                                HATN_GRPCCLIENT_NAMESPACE::Router,
+                                                                                HATN_GRPCCLIENT_NAMESPACE::GrpcClient,
+                                                                                HATN_GRPCCLIENT_NAMESPACE::DefaultGrpcClientTraits>;
 
 using GrpcClientWithAuthCtx=GrpcClinetCtxBuilder::type;
 using GrpcClientWithAuth=HATN_CLIENT_SERVER_NAMESPACE::ClientWithSharedSecretAuthT<HATN_GRPCCLIENT_NAMESPACE::Router,
-                                                                                HATN_GRPCCLIENT_NAMESPACE::GrpcClient>;
+                                                                                HATN_GRPCCLIENT_NAMESPACE::GrpcClient,
+                                                                                HATN_GRPCCLIENT_NAMESPACE::DefaultGrpcClientTraits>;
 
 GrpcClinetCtxBuilder makeGrpcClientWithAuthCtx;
 
@@ -88,6 +91,18 @@ struct TestEnv : public ::hatn::test::MultiThreadFixture
 {
     TestEnv()
     {
+        HATN_CLIENT_SERVER_NAMESPACE::ProtoMessageMap::instance().registerMessage(
+            HATN_CLIENT_SERVER_NAMESPACE::auth_negotiate_response::conf().name,
+            "whitem.auth.v1.AuthNegotiateResponse"
+        );
+        HATN_CLIENT_SERVER_NAMESPACE::ProtoMessageMap::instance().registerMessage(
+            HATN_CLIENT_SERVER_NAMESPACE::auth_hss_challenge::conf().name,
+            "whitem.auth.v1.AuthHssChallenge"
+        );
+        HATN_CLIENT_SERVER_NAMESPACE::ProtoMessageMap::instance().registerMessage(
+            HATN_CLIENT_SERVER_NAMESPACE::auth_complete::conf().name,
+            "whitem.auth.v1.AuthComplete"
+        );
     }
 
     ~TestEnv()
@@ -646,7 +661,7 @@ BOOST_FIXTURE_TEST_CASE(Embedded,TestEnv)
     BOOST_CHECK(true);
 }
 
-BOOST_FIXTURE_TEST_CASE(AuthTokenBearer,TestEnv)
+BOOST_FIXTURE_TEST_CASE(AuthLoginPhashToken,TestEnv)
 {
     createThreads(1);
     auto clientThread=threadWithContextTask(0);
@@ -657,21 +672,16 @@ BOOST_FIXTURE_TEST_CASE(AuthTokenBearer,TestEnv)
     auto client=createSessionClient(app);
     auto& session=client->get<GrpcClientWithAuth::Session>();
 
-    std::string tokenString="kwsjdlhfqiwue;fiquh";
-    HATN_CLIENT_SERVER_NAMESPACE::auth_token::type token;
-    token.setFieldValue(HATN_CLIENT_SERVER_NAMESPACE::auth_with_token::token,tokenString);
-    HATN_DATAUNIT_NAMESPACE::WireBufSolid wbuf;
-    BOOST_CHECK_GT(HATN_DATAUNIT_NAMESPACE::io::serialize(token,wbuf),0);
-    auto ec=session.sessionImpl().loadSessionToken(wbuf.mainContainer()->stringView());
-    HATN_TEST_EC(ec)
-    BOOST_REQUIRE(!ec);
+    session.sessionImpl().setLogin("19cd25cc34900000468afb0d5","topic1");
+    session.sessionImpl()->setSharedSecret("n63PHYoWVDOQJy02");
+    session.sessionImpl()->setCipherSuites(app->cipherSuites().suites());
 
-    auto serviceClient=makeShared<client::ServiceClient<GrpcClientWithAuthCtx,GrpcClientWithAuth>>("GrpcTest",client);
-    serviceClient->setPackage("grpc_api");
+    auto serviceClient=makeShared<client::ServiceClient<GrpcClientWithAuthCtx,GrpcClientWithAuth>>("Status",client);
+    serviceClient->setPackage("evgo");
 
     clientThread->start();
 
-    api::Method echoMethod{"EchoToken"};
+    api::Method echoMethod{"Echo"};
     auto invokeEcho=[serviceClient,app,&echoMethod]()
     {
         auto msg=common::makeShared<service1_msg1::managed>();
@@ -708,6 +718,59 @@ BOOST_FIXTURE_TEST_CASE(AuthTokenBearer,TestEnv)
     };
 
     clientThread->execAsync(invokeEcho);
+
+    int secs=TEST_DURATION;
+    BOOST_TEST_MESSAGE(fmt::format("Running test for {} seconds",secs));
+    exec(secs);
+
+    clientThread->stop();
+
+    BOOST_CHECK(true);
+}
+
+BOOST_FIXTURE_TEST_CASE(Negotiate,TestEnv)
+{
+    createThreads(1);
+    auto clientThread=threadWithContextTask(0);
+
+    auto app=createClientApp("grpcclient.jsonc");
+    auto client=createClient(app);
+    auto session=client::makeSessionNoAuthContext();
+    auto clientWithAuth=createClientWithAuth(client,session);
+    session.setSerializedHeaderNeeded(false);
+    auto serviceClient=makeShared<client::ServiceClient<ClientWithAuthCtxType,ClientWithAuthType>>("Auth",clientWithAuth);
+    serviceClient->setPackage("evgo");
+
+    clientThread->start();
+
+    api::Method negotiateMethod{"Negotiate"};
+    auto invokeNegotiate=[serviceClient,app,&negotiateMethod]()
+    {
+        auto msg=common::makeShared<HATN_CLIENT_SERVER_NAMESPACE::auth_negotiate_request::managed>();
+        msg->setFieldValue(HATN_CLIENT_SERVER_NAMESPACE::auth_negotiate_request::topic, "topic1");
+        msg->setFieldValue(HATN_CLIENT_SERVER_NAMESPACE::auth_negotiate_request::login, "login1");
+
+        auto cb=[msg](auto ctx, const Error& ec, api::client::Response response)
+        {
+            HATN_TEST_MESSAGE_TS(fmt::format("invokeBasic cb, ec: {}/{}",ec.value(),ec.message()));
+            BOOST_REQUIRE(!ec);
+        };
+
+        auto ctx=makeLogCtx();
+        auto& logCtx=ctx->get<LogContext>();
+        logCtx.setLogger(app->logger().logger());
+        HATN_TEST_MESSAGE_TS(fmt::format("Command to send: {}",msg->toString(true)));
+        auto ec=serviceClient->exec(
+            ctx,
+            cb,
+            negotiateMethod,
+            *msg,
+            "topic1"
+        );
+        HATN_TEST_EC(ec)
+    };
+
+    clientThread->execAsync(invokeNegotiate);
 
     int secs=TEST_DURATION;
     BOOST_TEST_MESSAGE(fmt::format("Running test for {} seconds",secs));

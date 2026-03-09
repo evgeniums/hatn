@@ -244,8 +244,21 @@ struct ContainerOnStackConstRef
     const common::ByteArray& m_container;
 };
 
+struct WireBufSolidSharedTraits : public WireBufSolidTraitsBase<ContainerShared>
+{
+    using WireBufSolidTraitsBase<ContainerShared>::WireBufSolidTraitsBase;
+
+    common::SpanBuffers chainBuffers(const AllocatorFactory* factory=AllocatorFactory::getDefault()) const
+    {
+        common::SpanBuffers bufs{factory->objectAllocator<common::SpanBuffer>()};
+        common::SpanBuffer buf{sharedMainContainer()};
+        bufs.emplace_back(std::move(buf));
+        return bufs;
+    }
+};
+
 using WireBufSolidTraits=WireBufSolidTraitsBase<ContainerOnStack>;
-using WireBufSolidSharedTraits=WireBufSolidTraitsBase<ContainerShared>;
+// using WireBufSolidSharedTraits=WireBufSolidTraitsBase<ContainerShared>;
 using WireBufSolidRefTraits=WireBufSolidTraitsBase<ContainerOnStackRef>;
 using WireBufSolidConstRefTraits=WireBufSolidTraitsBase<ContainerOnStackConstRef>;
 

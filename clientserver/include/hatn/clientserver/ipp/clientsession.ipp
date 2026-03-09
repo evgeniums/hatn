@@ -16,7 +16,6 @@
 #ifndef HATNCLIENTSESSIONT_IPP
 #define HATNCLIENTSESSIONT_IPP
 
-#include "hatn/api/message.h"
 #include <hatn/common/meta/chain.h>
 
 #include <hatn/logcontext/contextlogger.h>
@@ -131,7 +130,9 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
 
             //! @todo fill protocols and session_auth
         }
-
+#if 0
+        std::cout << "ClientSessionTraits::refresh[negotiateAuthProtocol]: " << req->toString(true) << std::endl;
+#endif
         // define request callback
         auto reqCb=[sessionCtx=std::move(sessionCtx),invokeAuth=std::move(invokeAuth),client,callback=std::move(callback)](auto ctx, const Error& ec, api::client::Response response) mutable
         {
@@ -164,13 +165,12 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
         }
 
         // send request to server
-        //! @todo optimization: Use static method singleton
         auto ctx1=ctx.template staticCast<common::TaskContext>();
         ec=client->exec(
             ctx1,
             std::move(reqCb),
             *service(),
-            api::Method{AuthNegotiateMethodName},
+            negotiateMethod(),
             std::move(msg),
             topic(),
             api::Priority::Highest,
@@ -197,6 +197,8 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
             callback(std::move(ctx),api::makeApiError(std::move(ec),api::ApiAuthError::AUTH_NEGOTIATION_FAILED,api::ApiAuthErrorCategory::getCategory()));
             return;
         }
+
+        HATN_CTX_DEBUG_RECORDS(10,"negotiaion response",{"response",negotiateResp->toString(true)})
 
         // define invoke cb
         auto invokeCb=[handleTokens=std::move(handleTokens),callback=std::move(callback),sessionCtx=std::move(sessionCtx)](auto ctx,const Error& ec, api::client::Response authResponse) mutable
@@ -241,6 +243,7 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
 
         // parse response message
         auth_complete::managed authCompleteMsg{factory()};
+        authCompleteMsg.setParseToSharedArrays(true);
         du::WireBufSolidShared buf{authResponse.messageData()};
         Error ec;
         du::io::deserialize(authCompleteMsg,buf,ec);
@@ -250,7 +253,9 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
             callback(std::move(ctx),clientServerError(ClientServerError::AUTH_COMPLETION_FAILED));
             return;
         }
-
+#if 0
+        std::cout << "ClientSessionTraits::refresh[handleTokens] resp: " << authCompleteMsg.toString(true) << std::endl;
+#endif
         // handle tokens
         m_sessionTokenContainer=authCompleteMsg.field(auth_complete::session_token).sharedValue();
         m_refreshTokenContainer=authCompleteMsg.field(auth_complete::refresh_token).sharedValue();
@@ -267,7 +272,15 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
             return;
         }
 
-        // serialize session token
+        // update session token in session
+        m_session->setSessionToken(
+            m_sessionTokenContainer->field(auth_with_token::token).byteArrayShared(),
+            std::string{m_sessionTokenContainer->field(auth_with_token::tag).value()}
+        );
+#if 0
+        std::cout << "ClientSessionTraits::refresh[handleTokens] m_sessionTokenContainer: " << m_sessionTokenContainer->toString(true) << std::endl;
+#endif
+        // serialize session token for holding in session
         if (!isAuthTokenExpired(m_sessionTokenContainer.get()))
         {
             auto ec=m_session->serializeAuthHeader(api::AuthProtocol::name(),api::AuthProtocol::version(),m_sessionTokenContainer);

@@ -16,7 +16,6 @@
 #ifndef HATNAUTHPROTOCOLSHAREDSECRET_IPP
 #define HATNAUTHPROTOCOLSHAREDSECRET_IPP
 
-#include "hatn/api/message.h"
 #include <hatn/logcontext/contextlogger.h>
 
 #include <hatn/dataunit/visitors.h>
@@ -28,7 +27,10 @@
 #include <hatn/api/priority.h>
 #include <hatn/api/client/clientresponse.h>
 
+#include <hatn/clientserver/protomessagemap.h>
+
 #include <hatn/clientserver/clientservererror.h>
+#include <hatn/clientserver/protomessagemap.h>
 #include <hatn/clientserver/auth/authprotocol.h>
 #include <hatn/clientserver/auth/clientsession.h>
 #include <hatn/clientserver/auth/clientauthprotocolsharedsecret.h>
@@ -48,7 +50,14 @@ void ClientAuthProtocolSharedSecret::invoke(
     HATN_CTX_SCOPE("authsharedsecret")
 
     // check message type
-    if (authNegotiateResponse->fieldValue(auth_protocol_response::message_type) != auth_hss_challenge::conf().name)
+    bool msgTypeOk=authNegotiateResponse->fieldValue(auth_protocol_response::message_type) == auth_hss_challenge::conf().name;
+    if (!msgTypeOk)
+    {
+        auto protoType=ProtoMessageMap::instance().findProtoByCpp(auth_hss_challenge::conf().name);
+        auto msgProtoType=authNegotiateResponse->fieldValue(auth_protocol_response::message_type);
+        msgTypeOk=msgProtoType == protoType;
+    }
+    if (!msgTypeOk)
     {
         auto ec=api::makeApiError(api::ApiAuthError::AUTH_NEGOTIATION_FAILED,api::ApiAuthErrorCategory::getCategory());
         HATN_CTX_ERROR_RECORDS(ec,"invalid message type in auth_negotiate_response",{"message_type",authNegotiateResponse->fieldValue(auth_protocol_response::message_type)})
@@ -70,7 +79,6 @@ void ClientAuthProtocolSharedSecret::invoke(
 
     // prepare HSS auth request with MAC using shared secret
     auto req=session()->factory()->template createObject<auth_hss_check::managed>();
-    req->setFieldValue(auth_hss_check::token,authNegotiateResponse->fieldValue(auth_protocol_response::token));
     ec=calculateMAC(challengeMsg.fieldValue(auth_hss_challenge::challenge),*req->field(auth_hss_check::mac).buf(true),challengeMsg.fieldValue(auth_hss_challenge::cipher_suite));
     if (ec)
     {
@@ -78,7 +86,12 @@ void ClientAuthProtocolSharedSecret::invoke(
         callback(std::move(ctx),clientServerError(ClientServerError::AUTH_PROCESSING_FAILED),{});
         return;
     }
-
+    req->setFieldValue(auth_hss_check::token,authNegotiateResponse->fieldValue(auth_protocol_response::token));
+    req->setFieldValue(auth_hss_check::login,session()->login());
+    req->setFieldValue(auth_hss_check::topic,session()->topic());
+#if 0
+    std::cout << "ClientAuthProtocolSharedSecret::invoke req:" << req->toString(true) << std::endl;
+#endif
     // define request callback
     auto reqCb=[callback=std::move(callback)](auto ctx, const Error& ec, api::client::Response response) mutable
     {
@@ -109,7 +122,7 @@ void ClientAuthProtocolSharedSecret::invoke(
         ctx,
         std::move(reqCb),
         *session()->service(),
-        api::Method{AuthHssCheckMethodName},
+        hssLogin(),
         std::move(msg),
         session()->topic(),
         api::Priority::Highest,

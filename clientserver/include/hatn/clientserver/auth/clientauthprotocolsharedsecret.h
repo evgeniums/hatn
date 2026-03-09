@@ -19,10 +19,14 @@
 #include <hatn/crypt/keycontainer.h>
 #include <hatn/crypt/ciphersuite.h>
 
+#include <hatn/api/method.h>
+
 #include <hatn/clientserver/clientserver.h>
 #include <hatn/clientserver/auth/clientauthprotocol.h>
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
+
+const api::Method& HATN_CLIENT_SERVER_EXPORT hssLogin();
 
 class HATN_CLIENT_SERVER_EXPORT ClientAuthProtocolSharedSecretImpl : public ClientAuthProtocol
 {

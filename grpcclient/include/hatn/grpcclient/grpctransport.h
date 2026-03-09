@@ -20,6 +20,7 @@
 #define HATNGRPCTRANSPORT_H
 
 #include <hatn/common/threadwithqueue.h>
+#include <hatn/common/singleton.h>
 
 #include <hatn/base/configobject.h>
 #include <hatn/dataunit/unitwrapper.h>

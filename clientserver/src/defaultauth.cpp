@@ -24,6 +24,7 @@ HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 const api::Service& DefaultAuthService::instance()
 {
     static api::Service inst{AuthServiceName,AuthServiceVersion};
+    inst.setPackage(AuthServicePackage);
     return inst;
 }
 

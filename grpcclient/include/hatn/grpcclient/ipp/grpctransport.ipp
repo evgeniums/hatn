@@ -25,9 +25,11 @@
 #include <grpcpp/generic/generic_stub.h>
 
 #include <hatn/common/locker.h>
+#include <hatn/common/containerutils.h>
 #include <hatn/logcontext/contextlogger.h>
 #include <hatn/api/apiliberror.h>
 #include <hatn/api/client/clientresponse.h>
+#include <hatn/clientserver/protomessagemap.h>
 
 #include <hatn/grpcclient/grpctransport.h>
 
@@ -186,7 +188,7 @@ public:
         {
             return it->second;
         }
-        return pb;
+        return HATN_CLIENT_SERVER_NAMESPACE::ProtoMessageMap::instance().findCppByProto(pb);
     }
 };
 
@@ -246,16 +248,22 @@ void GrpcTransport::sendRequest(
     }
 
     // add authorization token and other headers to context
-    auto token=req->session().sessionToken();
-    if (!token.isNull())
+    if (!req->session().isNull())
     {
-        auto bearer=fmt::format("Bearer {}",token->toStdString());
+        auto token=req->session().sessionToken();
+        if (!token.isNull())
+        {
+            std::string tokenBase64;
+            common::ContainerUtils::rawToBase64(*token,tokenBase64);
 
-        std::cout << "GrpcTransport::sendRequest bearer: " << bearer << std::endl;
-
-        //! @todo optimization: store tag names in strings
-        context->AddMetadata("authorization", bearer);
-        context->AddMetadata(std::string{config().fieldValue(grpc_config::auth_tag_header)}, req->session().tokenTag());
+            auto bearer=fmt::format("Bearer {}",tokenBase64);
+#if 0
+            std::cout << "GrpcTransport::sendRequest bearer: " << bearer << std::endl;
+#endif
+            //! @todo optimization: store tag names in strings
+            context->AddMetadata("authorization", bearer);
+            context->AddMetadata(std::string{config().fieldValue(grpc_config::auth_tag_header)}, req->session().tokenTag());
+        }
     }
     if (!req->topic().empty())
     {
@@ -283,7 +291,7 @@ void GrpcTransport::sendRequest(
     common::ByteArray barr;
 
     // prepare buffers
-    auto bufs=req->spanBuffers();
+    auto bufs=req->message().chainBuffers();
     std::vector<grpc::Slice> slices;
     slices.reserve(bufs.size());
     for (const auto& buf : bufs)
@@ -295,7 +303,7 @@ void GrpcTransport::sendRequest(
     auto responseBuf=std::make_shared<grpc::ByteBuffer>();
 
     // prepare callback
-    auto cb=[req,channel,responseBuf,callback,context,this](grpc::Status status)
+    auto cb=[req,channel,responseBuf,callback,context,bufs,this](grpc::Status status)
     {
         const std::multimap<grpc::string_ref, grpc::string_ref>& metadata = context->GetServerInitialMetadata();
 

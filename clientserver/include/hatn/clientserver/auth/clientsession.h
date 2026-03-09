@@ -31,6 +31,8 @@ HDU_UNIT(client_session_config,
     HDU_FIELD(timeout_secs,TYPE_UINT32,1,false,30)
 )
 
+const api::Method& HATN_CLIENT_SERVER_EXPORT negotiateMethod();
+
 class HATN_CLIENT_SERVER_EXPORT ClientSessionBase : public common::pmr::WithFactory,
                                                     public api::AuthProtocol,
                                                     public api::WithService,

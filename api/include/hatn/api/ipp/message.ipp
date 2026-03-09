@@ -40,7 +40,7 @@ Error Message<Subunit,BufT>::setContent(const UnitT& message, const common::pmr:
         )
     du::RawError::setEnabledTL(true);
 
-    m_content=factory->createObject<du::WireDataChained>(factory,true);
+    m_content=factory->createObject<du::WireDataSingleShared>(factory);
 
     auto ok=hana::eval_if(
         Subunit{},

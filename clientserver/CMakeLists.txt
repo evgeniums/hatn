@@ -27,6 +27,8 @@ SET (HEADERS
     include/hatn/clientserver/models/expire.h
 
     include/hatn/clientserver/models/filesdefs.h
+
+    include/hatn/clientserver/protomessagemap.h
 )
 
 SET (HEADERS
@@ -84,6 +86,7 @@ SET (SOURCES
     src/plaintcpclientwithauth.cpp
 
     src/cachedbmodelsprovider.cpp
+    src/protomessagemap.cpp
 )
 
 BUILD_HATN_MODULE()

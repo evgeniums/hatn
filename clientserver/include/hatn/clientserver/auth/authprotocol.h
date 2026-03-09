@@ -22,11 +22,12 @@
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
+constexpr const char* AuthServicePackage="evgo";
 constexpr const uint32_t AuthServiceVersion=1;
-constexpr const char* AuthServiceName="auth";
-constexpr const char* AuthNegotiateMethodName="negotiate";
-constexpr const char* AuthRefreshMethodName="refresh";
-constexpr const char* AuthHssCheckMethodName="hss_check";
+constexpr const char* AuthServiceName="Auth";
+constexpr const char* AuthNegotiateMethodName="Negotiate";
+constexpr const char* AuthRefreshMethodName="Refresh";
+constexpr const char* AuthHssLoginMethodName="Login";
 
 HDU_UNIT(auth_negotiate_request,
     HDU_FIELD(login,TYPE_STRING,1,true)
@@ -56,8 +57,11 @@ HDU_UNIT(auth_hss_challenge,
 )
 
 HDU_UNIT(auth_hss_check,
-    HDU_FIELD(token,TYPE_BYTES,1,true)
-    HDU_FIELD(mac,TYPE_BYTES,2,true)
+    HDU_FIELD(token,TYPE_BYTES,1)
+    HDU_FIELD(mac,TYPE_BYTES,2)
+
+    HDU_FIELD(login,TYPE_STRING,3)
+    HDU_FIELD(topic,TYPE_STRING,4)
 )
 
 HDU_UNIT(auth_with_token,
