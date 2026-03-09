@@ -593,15 +593,16 @@ std::map<CryptAlgorithmTypeNameMapKey,std::shared_ptr<CryptEngine>> CipherSuites
 
 //---------------------------------------------------------------
 const CipherSuite* CipherSuites::suite(const CipherSuite::IdType &key) const noexcept
-{    
+{
+    if (key.empty())
+    {
+        return m_defaultSuite.get();
+    }
+
     auto it=m_suites.find(key);
     if (it!=m_suites.end())
     {
         return it->second.get();
-    }
-    if (key.empty())
-    {
-        return m_defaultSuite.get();
     }
     return nullptr;
 }
