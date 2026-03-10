@@ -274,6 +274,12 @@ void GrpcTransport::sendRequest(
         context->AddMetadata(std::string{config().fieldValue(grpc_config::tenancy_header)}, std::string{req->tenancy()->tenancyId()});
     }
 
+    // add headers from method auth
+    for (const auto& methodHeader : req->methodAuth().headers())
+    {
+        context->AddMetadata(methodHeader.first,methodHeader.second);
+    }
+
     // prepare request
 
     // construct full path of the method
