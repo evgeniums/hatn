@@ -57,9 +57,31 @@ class Auth
             return m_authHeader;
         }
 
+        void setHeader(std::string name, std::string value)
+        {
+            m_messageHeaders[std::move(name)]=std::move(value);
+        }
+
+        std::string getHeader(lib::string_view name) const
+        {
+            auto it=m_messageHeaders.find(name);
+            if (it!=m_messageHeaders.end())
+            {
+                return it->second;
+            }
+            return {};
+        }
+
+        const auto& headers() const
+        {
+            return m_messageHeaders;
+        }
+
     private:
 
         common::ByteArrayShared m_authHeader;
+
+        std::map<std::string,std::string,std::less<>> m_messageHeaders;
 };
 
 HATN_API_NAMESPACE_END
