@@ -65,6 +65,10 @@ void ClientAuthProtocolSharedSecret::invoke(
         return;
     }
 
+#if 1
+    std::cout << "ClientAuthProtocolSharedSecret::invoke authNegotiateResponse: " << authNegotiateResponse->toString(true) << std::endl;
+#endif
+
     // parse message
     Error ec;
     auth_hss_challenge::type challengeMsg{session()->factory()};
@@ -89,7 +93,7 @@ void ClientAuthProtocolSharedSecret::invoke(
     req->setFieldValue(auth_hss_check::token,authNegotiateResponse->fieldValue(auth_protocol_response::token));
     req->setFieldValue(auth_hss_check::login,session()->login());
     req->setFieldValue(auth_hss_check::topic,session()->topic());
-#if 0
+#if 1
     std::cout << "ClientAuthProtocolSharedSecret::invoke req:" << req->toString(true) << std::endl;
 #endif
     // define request callback

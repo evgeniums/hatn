@@ -130,7 +130,7 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
 
             //! @todo fill protocols and session_auth
         }
-#if 0
+#if 1
         std::cout << "ClientSessionTraits::refresh[negotiateAuthProtocol]: " << req->toString(true) << std::endl;
 #endif
         // define request callback
@@ -253,7 +253,7 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
             callback(std::move(ctx),clientServerError(ClientServerError::AUTH_COMPLETION_FAILED));
             return;
         }
-#if 0
+#if 1
         std::cout << "ClientSessionTraits::refresh[handleTokens] resp: " << authCompleteMsg.toString(true) << std::endl;
 #endif
         // handle tokens
