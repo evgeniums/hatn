@@ -26,7 +26,7 @@
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
-HDU_UNIT_WITH(login_profile,(HDU_BASE(db::object),HDU_BASE(at_server)),
+HDU_UNIT(login_profile,
     HDU_FIELD(name,TYPE_STRING,1)
     HDU_FIELD(auth_scheme,api::auth_protocol::TYPE,2)
     HDU_FIELD(expire_at,TYPE_DATETIME,3)

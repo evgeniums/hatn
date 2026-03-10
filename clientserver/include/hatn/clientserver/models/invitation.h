@@ -141,8 +141,9 @@ HDU_UNIT_WITH(client_invitation,(HDU_BASE(HATN_DB_NAMESPACE::object),HDU_BASE(in
 HDU_UNIT_WITH(invitation_parameters,(HDU_BASE(HATN_DB_NAMESPACE::with_expire)),
     HDU_FIELD(private_oid,TYPE_OBJECT_ID,1)
     HDU_FIELD(name,encryptable_string::TYPE,2)
-    HDU_FIELD(mode,HDU_TYPE_ENUM(InvitationPublishMode),3)
-    HDU_FIELD(reuse,HDU_TYPE_ENUM(InvitationReuseMode),4,false,InvitationReuseMode::Unlimited)
+    HDU_FIELD(password,encryptable_string::TYPE,3)
+    HDU_FIELD(mode,HDU_TYPE_ENUM(InvitationPublishMode),4)
+    HDU_FIELD(reuse,HDU_TYPE_ENUM(InvitationReuseMode),5,false,InvitationReuseMode::Unlimited)
 )
 
 HDU_UNIT_WITH(server_invitation_db,(HDU_BASE(HATN_DB_NAMESPACE::object),
