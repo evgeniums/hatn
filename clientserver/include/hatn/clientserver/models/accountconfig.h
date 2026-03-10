@@ -41,6 +41,7 @@ HDU_UNIT(account_config,
     HDU_FIELD(token_tag,TYPE_STRING,12)
     HDU_FIELD(topic,TYPE_STRING,13)
     HDU_FIELD(title,TYPE_STRING,14)
+    HDU_FIELD(mock,TYPE_BOOL,15)
 )
 
 HDU_UNIT(account_config_token,
