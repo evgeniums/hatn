@@ -114,7 +114,7 @@ class WithStdSharedValue
 
         bool isNull() const noexcept
         {
-            return m_value.isNull();
+            return !m_value;
         }
 
         operator bool() const noexcept
