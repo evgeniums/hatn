@@ -41,6 +41,11 @@ class Method
             return m_name;
         }
 
+        void setName(lib::string_view name)
+        {
+            m_name=name;
+        }
+
     private:
 
         NameType m_name;
