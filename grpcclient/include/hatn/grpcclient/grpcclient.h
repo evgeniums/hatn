@@ -21,13 +21,9 @@
 
 #include <hatn/api/client/client.h>
 #include <hatn/grpcclient/grpctransport.h>
+#include <hatn/grpcclient/grpcclienttraits.h>
 
 HATN_GRPCCLIENT_NAMESPACE_BEGIN
-
-struct DefaultGrpcClientTraits : public HATN_API_NAMESPACE::client::DefaultClientTraits
-{
-    using MessageType=HATN_API_NAMESPACE::Message<hana::false_,HATN_DATAUNIT_NAMESPACE::WireData>;
-};
 
 template <typename Router, typename Traits>
 using GrpcTransportWrapper=GrpcTransport;
