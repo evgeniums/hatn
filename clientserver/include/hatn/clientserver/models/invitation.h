@@ -161,6 +161,7 @@ HDU_UNIT_WITH(server_invitation_register_response,(HDU_BASE(at_server),HDU_BASE(
 
 HDU_UNIT_WITH(server_invitation_publish_request,(HDU_BASE(at_server)),
     HDU_FIELD(content,TYPE_BYTES,1)
+    HDU_FIELD(mode,TYPE_INT32,2)
 )
 
 HDU_UNIT_WITH(invitation_code,(HDU_BASE(username_reference),HDU_BASE(HATN_DB_NAMESPACE::with_expire)),)
@@ -170,6 +171,10 @@ constexpr const char* USER_REFERENCE_SCHEMA_LINK="link";
 
 HDU_UNIT_WITH(find_user_reference,(HDU_BASE(with_username),HDU_BASE(with_user_character)),
     HDU_FIELD(schema,TYPE_STRING,1,false,USER_REFERENCE_SCHEMA_USERNAME)
+)
+
+HDU_UNIT(find_user_reference_response,
+    HDU_FIELD(invitation,TYPE_BYTES,1)
 )
 
 HDU_UNIT(ivitation_info,
