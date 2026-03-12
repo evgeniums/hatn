@@ -813,7 +813,7 @@ ObjectsCache<Traits,Derived>::get(
         CacheOptions opt,
         bool postFetching,
         FetchCb fetchCallback,
-        Uid bySubject
+        const std::string& bySubject
     )
 {
     HATN_CTX_SCOPE("objectscache::get")
@@ -903,18 +903,18 @@ void ObjectsCache<Traits,Derived>::fetch(
         FetchCb callback,
         lib::string_view topic,
         Uid uid,
-        Uid bySubject,
+        std::string bySubject,
         CacheOptions opt
     )
 {
-    auto r=get(ctx,topic,uid,opt);
+    auto r=get(ctx,topic,uid,opt,false,{},bySubject);
     if (r.isNull() && r.missed)
     {
         HATN_NAMESPACE::postAsync(
             "objectscache::fetch",
             Traits::taskThread(pimpl->derived,ctx),
             ctx,
-            [guard=Traits::asyncGuard(pimpl->derived),this,topic,callback,opt,uid,bySubject](auto ctx)
+            [guard=Traits::asyncGuard(pimpl->derived),this,topic,callback,opt,uid,bySubject=std::move(bySubject)](auto ctx)
             {
                 invokeFetch(std::move(ctx),std::move(callback),topic,std::move(uid),std::move(bySubject),opt);
             }
@@ -934,7 +934,7 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
         FetchCb callback,
         lib::string_view topic,
         Uid uid,
-        Uid bySubject,
+        std::string bySubject,
         CacheOptions opt
     )
 {
@@ -996,20 +996,20 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
                       FetchCb callback,
                       lib::string_view topic,
                       Uid uid,
-                      Uid bySubject,
+                      std::string bySubject,
                       CacheOptions opt
                     )
     {
         auto db=Traits::db(pimpl->derived,ctx,topic);
         if (!opt.cacheInDb() || !db)
         {
-            getAppDb(std::move(ctx),callback,topic,std::move(uid),bySubject,opt,false);
+            getAppDb(std::move(ctx),callback,topic,std::move(uid),bySubject=std::move(bySubject),opt,false);
             return;
         }
 
         HATN_CTX_STACK_BARRIER_ON("[readlocal]")
 
-        auto cb=[getAppDb=std::move(getAppDb),asynGuard,this,topic,callback,uid,bySubject,opt,updateInmem](auto ctx, auto dbResult) mutable
+        auto cb=[getAppDb=std::move(getAppDb),asynGuard,this,topic,callback,uid,bySubject=std::move(bySubject),opt,updateInmem](auto ctx, auto dbResult) mutable
         {
             // if null then not found, try to get from app database by traits
             if (dbResult || dbResult->isNull())
@@ -1020,7 +1020,7 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
                 HATN_CTX_DEBUG(10,"cache object not found in db cache")
                 HATN_CTX_STACK_BARRIER_OFF("[readlocal]")
 
-                getAppDb(std::move(ctx),callback,topic,std::move(uid),bySubject,opt,false);
+                getAppDb(std::move(ctx),callback,topic,std::move(uid),std::move(bySubject),opt,false);
                 return;
             }
 
@@ -1046,7 +1046,7 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
                     std::cout << "ObjectsCache::invokeFetch local uid not set, trying to read from db by full uid" << std::endl;
 #endif
                     HATN_CTX_DEBUG(10,"local uid not set")
-                    getAppDb(std::move(ctx),callback,topic,std::move(uid),bySubject,opt,false);
+                    getAppDb(std::move(ctx),callback,topic,std::move(uid),std::move(bySubject),opt,false);
                     return;
                 }
 
@@ -1055,13 +1055,13 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
 
                 // if cache item does not contain data object then get it from app db by traits
                 auto getDbCb=[updateInmem,cacheItem,callback,ctx,
-                                uid,topic,getAppDb,bySubject,opt](const common::Error& ec, Value item) mutable
+                                uid,topic,getAppDb,bySubject=std::move(bySubject),opt](const common::Error& ec, Value item) mutable
                 {
                     if (ec)
                     {
                         //! @todo skip error if object not found, i.e. keep in cache but without data
                         HATN_CTX_STACK_BARRIER_OFF("objectscache::fetch")
-                        getAppDb(std::move(ctx),callback,topic,std::move(uid),bySubject,opt,true);
+                        getAppDb(std::move(ctx),callback,topic,std::move(uid),std::move(bySubject),opt,true);
                         return;
                     }
 
@@ -1127,26 +1127,26 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
                         FetchCb callback,
                         lib::string_view topic,
                         Uid uid,
-                        Uid bySubject,
+                        std::string bySubject,
                         CacheOptions opt,
                         bool skipTraitsDb
                     )
     {
         if (skipTraitsDb)
         {
-            farFetch(std::move(ctx),callback,topic,std::move(uid),bySubject,opt);
+            farFetch(std::move(ctx),callback,topic,std::move(uid),bySubject=std::move(bySubject),opt);
             return;
         }
 
         HATN_CTX_STACK_BARRIER_ON("[getAppDb]")
         auto cb=[farFetch=std::move(farFetch),callback,uid,
-                 topic,this,ctx,bySubject,opt](const common::Error& ec, Value object) mutable
+                 topic,this,ctx,bySubject=std::move(bySubject),opt](const common::Error& ec, Value object) mutable
         {
             if (ec || !object)
             {
                 HATN_CTX_DEBUG(10,"cache object data not found in traits db")
                 HATN_CTX_STACK_BARRIER_OFF("[getAppDb]")
-                farFetch(std::move(ctx),callback,topic,std::move(uid),bySubject,opt);
+                farFetch(std::move(ctx),callback,topic,std::move(uid),std::move(bySubject),opt);
                 return;
             }
 
@@ -1174,7 +1174,7 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
                          FetchCb callback,
                          lib::string_view topic,
                          Uid uid,
-                         Uid bySubject,
+                         std::string bySubject,
                          CacheOptions opt
                   )
     {
@@ -1242,7 +1242,7 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
         std::move(getAppDb),
         std::move(farFetch)
     );
-    chain(std::move(ctx),callback,topic,std::move(uid),bySubject,opt);
+    chain(std::move(ctx),callback,topic,std::move(uid),std::move(bySubject),opt);
 }
 
 //--------------------------------------------------------------------------

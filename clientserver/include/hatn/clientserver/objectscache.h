@@ -118,7 +118,7 @@ class ObjectsCache : public AbstractCache
             CacheOptions opt={},
             bool postFetching=false,
             FetchCb fetchCallback={},
-            Uid bySubject={}
+            const std::string& bySubject={}
         );
 
         void fetch(
@@ -126,7 +126,7 @@ class ObjectsCache : public AbstractCache
             FetchCb callback,
             lib::string_view topic,
             Uid uid,            
-            Uid bySubject={},
+            std::string bySubject={},
             CacheOptions opt={}
         );
 
@@ -180,7 +180,7 @@ class ObjectsCache : public AbstractCache
             FetchCb callback,
             lib::string_view topic,
             Uid uid,
-            Uid bySubject,
+            std::string bySubject,
             CacheOptions opt
         );
 
