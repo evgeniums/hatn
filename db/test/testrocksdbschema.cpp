@@ -123,15 +123,11 @@ BOOST_AUTO_TEST_CASE(ModelCollectionName)
     ModelRegistry::free();
     rdb::RocksdbModels::free();
 
-    auto idx1=makeIndex(IndexConfig<Unique>{},object::_id,"idx_id");
-    auto idx2=makeIndex(IndexConfig<NotUnique,NotDatePartition,HDB_TTL(3600)>{},object::created_at);
-    auto idx3=makeIndex(DefaultIndexConfig,object::updated_at);
-
-    auto mi2=makeModel<nu1::TYPE>(DefaultModelConfig,idx1,idx2,idx3);
+    auto mi2=makeModel<nu1::TYPE>(DefaultModelConfig);
     BOOST_CHECK_EQUAL(mi2->info->collection(),"nu1");
     BOOST_CHECK_EQUAL(mi2->info->modelId(),818672101);
 
-    auto mi3=makeModel<object::TYPE>(ModelConfig{"obj"},idx1,idx2,idx3);
+    auto mi3=makeModel<object::TYPE>(ModelConfig{"obj"});
     BOOST_CHECK_EQUAL(mi3->info->collection(),"obj");
     BOOST_CHECK_EQUAL(mi3->info->modelId(),3649981262);
 }
