@@ -409,7 +409,7 @@ BOOST_AUTO_TEST_CASE(TestDateTime)
     BOOST_REQUIRE(!dt2_1.isNull());
 
     // ctor
-    auto dt3=DateTime{Date{2024,03,31},Time{11,23,17,254},-5};
+    auto dt3=DateTime{Date{2024,03,31},Time{11,23,17,254},-5*60};
     BOOST_TEST_MESSAGE(fmt::format("fixed datetime 3: {}",dt3.toIsoString()));
     BOOST_REQUIRE(!dt3.isNull());
     BOOST_REQUIRE(dt3.isValid());
@@ -420,7 +420,7 @@ BOOST_AUTO_TEST_CASE(TestDateTime)
     BOOST_CHECK_EQUAL(dt3.time().minute(),23);
     BOOST_CHECK_EQUAL(dt3.time().second(),17);
     BOOST_CHECK_EQUAL(dt3.time().millisecond(),254);
-    BOOST_CHECK_EQUAL(dt3.tz(),-5);
+    BOOST_CHECK_EQUAL(dt3.timezone(),-5*60);
 
     // since epoch
     auto dt4=DateTime{Date{2024,03,31},Time{11,23,17,254},0};
@@ -440,7 +440,7 @@ BOOST_AUTO_TEST_CASE(TestDateTime)
 
     uint64_t ep3Ms=dt3.toEpochMs();
     BOOST_TEST_MESSAGE(fmt::format("fixed datetime 3 tz -05: {}, {}",dt3.toIsoString(),ep3Ms));
-    auto dt6=DateTime::fromEpochMs(ep3Ms,dt3.tz());
+    auto dt6=DateTime::fromEpochMs(ep3Ms,dt3.timezone());
     BOOST_REQUIRE(!dt6.isNull());
     BOOST_REQUIRE(dt6.isValid());
     BOOST_TEST_MESSAGE(fmt::format("fixed datetime 6: {}, {}",dt6.toIsoString(),dt6.toEpochMs()));
@@ -451,7 +451,7 @@ BOOST_AUTO_TEST_CASE(TestDateTime)
     BOOST_CHECK_EQUAL(dt6.time().minute(),23);
     BOOST_CHECK_EQUAL(dt6.time().second(),17);
     BOOST_CHECK_EQUAL(dt6.time().millisecond(),254);
-    BOOST_CHECK_EQUAL(dt6.tz(),-5);
+    BOOST_CHECK_EQUAL(dt6.timezone(),-5*60);
 
     // convert tz
     auto dt7Utc=dt6.toUtc();
@@ -471,7 +471,7 @@ BOOST_AUTO_TEST_CASE(TestDateTime)
     BOOST_CHECK_EQUAL(dt8LocalS.toEpoch(),localS);
 
     // set tz
-    std::ignore=dt3.setTz(-6);
+    std::ignore=dt3.setTimezone(-6,0);
     BOOST_TEST_MESSAGE(fmt::format("fixed datetime 3 with tz -06: {}, {}",dt3.toIsoString(),dt3.toEpochMs()));
     BOOST_CHECK_EQUAL(dt3.date().year(),2024);
     BOOST_CHECK_EQUAL(dt3.date().month(),3);
@@ -480,14 +480,14 @@ BOOST_AUTO_TEST_CASE(TestDateTime)
     BOOST_CHECK_EQUAL(dt3.time().minute(),23);
     BOOST_CHECK_EQUAL(dt3.time().second(),17);
     BOOST_CHECK_EQUAL(dt3.time().millisecond(),254);
-    BOOST_CHECK_EQUAL(dt3.tz(),-6);
+    BOOST_CHECK_EQUAL(dt3.timezone(),-6*60);
     BOOST_CHECK_EQUAL(dt3.toEpochMs(),1711905797254);
 
     // local tz
-    BOOST_TEST_MESSAGE(fmt::format("local tz: {}",DateTime::localTz()));
+    BOOST_TEST_MESSAGE(fmt::format("local tz: {}",DateTime::localTimezone()));
 
     // before/after
-    auto dt9=DateTime{Date{2024,03,31},Time{11,23,17,254},-5};
+    auto dt9=DateTime{Date{2024,03,31},Time{11,23,17,254},-5*60};
     auto dt10=dt9;
     BOOST_CHECK(dt9.equal(dt10));
     BOOST_CHECK(!dt9.after(dt10));
@@ -674,7 +674,7 @@ BOOST_AUTO_TEST_CASE(TestDateTime)
     BOOST_CHECK(p11);
 
     // to number / from number
-    auto dt11=DateTime{Date{2024,03,31},Time{11,23,17,254},7};
+    auto dt11=DateTime{Date{2024,03,31},Time{11,23,17,254},7*60};
     auto n11=dt11.toNumber();
     BOOST_TEST_MESSAGE(fmt::format("dt11 to number: {} -> {:#016x}",dt11.toIsoString(),n11));
     auto d12=DateTime::fromNumber(n11);
@@ -682,7 +682,7 @@ BOOST_AUTO_TEST_CASE(TestDateTime)
     BOOST_CHECK(d12.value()==dt11);
 
     // set number
-    auto dt13=DateTime{Date{2024,03,31},Time{11,23,17,254},-7};
+    auto dt13=DateTime{Date{2024,03,31},Time{11,23,17,254},-7*60};
     auto n13=dt13.toNumber();
     BOOST_TEST_MESSAGE(fmt::format("dt13 to number: {} -> {:#016x}",dt13.toIsoString(),n13));
     DateTime dt14;

@@ -23,6 +23,65 @@
 
 HATN_COMMON_NAMESPACE_BEGIN
 
+#include <cstdint>
+#include <cmath>
+
+class DateTime;
+
+class DateTimePacker
+{
+    // Flag sits at the 8th bit of the LSB (Bit 7 of the int64)
+    static constexpr int64_t VALID_FLAG = 1LL << 7;
+
+    public:
+
+        /**
+         * Packs milliseconds and timezone minutes into an int64.
+         * tzMinutes: Total minutes offset (e.g., +330 for India UTC+5:30)
+         */
+        static int64_t pack(int64_t millis, int16_t tzMinutes) {
+            // 1. Convert minutes to 15-min units to fit in 7 bits (-48 to +56)
+            int8_t tzUnits = static_cast<int8_t>(tzMinutes / 15);
+
+            // 2. Mask units to 7 bits (0x7F) and add the validity flag
+            uint8_t tzPart = static_cast<uint8_t>(tzUnits) & 0x7F;
+            uint8_t lsb = tzPart | static_cast<uint8_t>(VALID_FLAG);
+
+            // 3. Shift millis left by 8 and OR the LSB
+            return (millis << 8) | static_cast<int64_t>(lsb);
+        }
+
+        struct Unpacked { int64_t millis; int16_t tzMinutes; };
+
+        /**
+         * Unpacks the int64. Returns empty if the flag is missing.
+         */
+        static std::optional<Unpacked> unpack(int64_t packed) {
+            // Check if the validity flag (bit 7) is present
+            if (!(packed & VALID_FLAG)) {
+                return std::nullopt;
+            }
+
+            // 1. Extract Millis by shifting right 8 bits
+            int64_t millis = packed >> 8;
+
+            // 2. Extract 7-bit TZ units from LSB
+            uint8_t rawTz = static_cast<uint8_t>(packed & 0x7F);
+
+            // 3. Sign-extend 7-bit to 8-bit
+            if (rawTz & 0x40) { rawTz |= 0x80; }
+            int8_t tzUnits = static_cast<int8_t>(rawTz);
+
+            // 4. Convert back to minutes for the signature
+            int16_t tzMinutes = static_cast<int16_t>(tzUnits) * 15;
+
+            return Unpacked{millis, tzMinutes};
+        }
+
+        static inline int64_t packDatetime(const DateTime&);
+        static inline Result<DateTime> unpackDatetime(int64_t);
+};
+
 /**
  * @brief The DateTime class.
  */
@@ -52,7 +111,7 @@ class HATN_COMMON_EXPORT DateTime
          */
         template <typename TzT>
         DateTime(Date date, Time time, TzT tz, bool nothrow_=false)
-            :m_date(std::move(date)),m_time(std::move(time)),m_tz(static_cast<decltype(m_tz)>(tz))
+            :m_date(std::move(date)),m_time(std::move(time)),m_tz(static_cast<int16_t>(tz))
         {
             if (nothrow_)
             {
@@ -121,23 +180,19 @@ class HATN_COMMON_EXPORT DateTime
             return m_time;
         }
 
-        /**
-         * @brief Get timezone.
-         * @return Timezone.
-         */
-        int8_t tz() const noexcept
+        int32_t timezoneSeconds() const noexcept
+        {
+            return timezoneToSeconds(m_tz);
+        }
+
+        int16_t timezone() const noexcept
         {
             return m_tz;
         }
 
-        static inline int32_t tzToSeconds(int8_t tz)
+        static inline int32_t timezoneToSeconds(int16_t tz) noexcept
         {
-            return tz*4*3600;
-        }
-
-        int16_t tzSecs() const noexcept
-        {
-            return tzToSeconds(m_tz);
+            return tz*60;
         }
 
         /**
@@ -146,7 +201,7 @@ class HATN_COMMON_EXPORT DateTime
          */
         bool isValid() const noexcept
         {
-            return m_date.isValid() && m_time.isValid();
+            return m_date.isValid() && m_time.isValid() && isTimezoneValid(m_tz);
         }
 
         /**
@@ -160,17 +215,27 @@ class HATN_COMMON_EXPORT DateTime
 
         /**
          * @brief Set time zone.
-         * @param tz New timezone.
+         * @param hours Hours.
+         * @param Minutes minutes.
          * @return OK if tz is valid.
          *
          * This method changes timezone as is without updating time and date.
-         * To convert datetime to new timezone uset toTz() method.
+         * To convert datetime to new timezone uset toTimezone() method.
          */
-        template <typename T>
-        Error setTz(T tz) noexcept
+        template <typename T1, typename T2=int8_t>
+        Error setTimezone(T1 hours, T2 minutes) noexcept
         {
+            auto tz=hours*60 + minutes;
             HATN_CHECK_RETURN(validateTz(tz))
             m_tz=static_cast<decltype(m_tz)>(tz);
+            return OK;
+        }
+
+        template <typename T>
+        Error setTimezone(T minutes) noexcept
+        {
+            HATN_CHECK_RETURN(validateTz(minutes))
+            m_tz=static_cast<int16_t>(minutes);
             return OK;
         }
 
@@ -200,7 +265,7 @@ class HATN_COMMON_EXPORT DateTime
          */
         DateTime toUtc() const
         {
-            return toTz(*this).takeValue();
+            return toTimezone(*this).takeValue();
         }
 
         /**
@@ -209,7 +274,7 @@ class HATN_COMMON_EXPORT DateTime
          */
         DateTime toLocal() const
         {
-            return toTz(*this,localTz()).takeValue();
+            return toTimezone(*this,localTimezone()).takeValue();
         }
 
         /**
@@ -257,7 +322,7 @@ class HATN_COMMON_EXPORT DateTime
          * @brief Get current datetime for time zone.
          * @return Current datetime in specified time zone.
          */
-        static DateTime current(int8_t tz);
+        static DateTime current(int16_t tz);
 
         /**
          * @brief Get current datetime.
@@ -265,35 +330,35 @@ class HATN_COMMON_EXPORT DateTime
          */
         static DateTime current();
 
-        static void setDefaultTz(int8_t tz);
+        static void setDefaultTimezone(int16_t tz);
 
-        static int8_t defaultTz() noexcept;
+        static int16_t defaultTimezone() noexcept;
 
         void loadCurrentUtc();
 
         void loadCurrentLocal();
 
-        void loadCurrent(int8_t tz);
+        void loadCurrent(int16_t tz);
 
         void loadCurrent();
 
         /**
          * @brief Construct datetime from milliseconds since epoch.
          * @param milliseconds Milliseconds since epoch.
-         * @param tz Timezone.
+         * @param tz Timezone in minutes.
          * @return Constructed datetime or throws
          * @throws In case date time is invalid
          */
-        static DateTime fromEpochMs(int64_t milliseconds, int8_t tz=0);
+        static DateTime fromEpochMs(int64_t milliseconds, int16_t tz=0);
 
         /**
          * @brief Construct datetime from seconds since epoch.
          * @param seconds Seconds since epoch.
-         * @param tz Timezone.
+         * @param tz Timezone in minutes.
          * @return Constructed datetime or throws.
          * @throws In case date time is invalid
          */
-        static DateTime fromEpoch(int32_t seconds, int8_t tz=0);
+        static DateTime fromEpoch(int32_t seconds, int16_t tz=0);
 
         /**
          * @brief Construct UTC datetime from milliseconds since epoch.
@@ -314,7 +379,7 @@ class HATN_COMMON_EXPORT DateTime
          */
         static DateTime localFromEpochMs(int64_t milliseconds)
         {
-            return fromEpochMs(milliseconds,localTz());
+            return fromEpochMs(milliseconds,localTimezone());
         }
 
         /**
@@ -336,44 +401,44 @@ class HATN_COMMON_EXPORT DateTime
          */
         static DateTime localFromEpoch(int32_t seconds)
         {
-            return fromEpoch(seconds,localTz());
+            return fromEpoch(seconds,localTimezone());
         }
 
         /**
          * @brief Get local timezone.
          * @return Local timezone.
          */
-        static int8_t localTz();
+        static int16_t localTimezone();
 
         /**
          * @brief Convert datetime to datetime with given timezone.
          * @param from Original datetime.
-         * @param tz Timezone.
+         * @param tz Timezone in minutes.
          * @return Converted datetime or error.
          */
-        static Result<DateTime> toTz(const DateTime& from, int8_t tz=0);
+        static Result<DateTime> toTimezone(const DateTime& from, int16_t tz=0);
 
         /**
          * @brief Convert datetime to datetime with given timezone.
          * @param from Original datetime.
-         * @param tz Timezone.
+         * @param tz Timezone in minutes.
          * @return Converted datetime or error.
          */
         template <typename T>
-        static Result<DateTime> toTz(const DateTime& from, T tz=0)
+        static Result<DateTime> toTimezone(const DateTime& from, T tz=0)
         {
-            return toTz(from,static_cast<decltype(m_tz)>(tz));
+            return toTimezone(from,static_cast<int16_t>(tz));
         }
 
         /**
          * @brief Validate timezone.
-         * @param tz Timezone.
+         * @param tz Timezone in minutes.
          * @return Validation result.
          */
         template <typename T>
         static Error validateTz(T tz)
         {
-            if (tz<-48 || tz > 56)
+            if (!isTimezoneValid(tz))
             {
                 return CommonError::INVALID_DATETIME_FORMAT;
             }
@@ -647,8 +712,7 @@ class HATN_COMMON_EXPORT DateTime
                 return 0;
             }
 
-            auto ep=(toEpochMs()<<8) | static_cast<uint8_t>(m_tz);
-            return ep;
+            return DateTimePacker::packDatetime(*this);
         }
 
         /**
@@ -663,16 +727,7 @@ class HATN_COMMON_EXPORT DateTime
                 return DateTime{};
             }
 
-            auto tz=num&0xFF;
-            auto epochMs=num>>8;
-            try {
-                return fromEpochMs(epochMs,static_cast<int8_t>(tz));
-            }
-            catch (const ErrorException& e)
-            {
-                return e.error();
-            }
-            return DateTime{};
+            return DateTimePacker::unpackDatetime(num);
         }
 
         /**
@@ -711,12 +766,31 @@ class HATN_COMMON_EXPORT DateTime
             return m_time;
         }
 
-        Error validate(const Date& date, const Time& time, int8_t tz) const noexcept
+        Error validate(const Date& date, const Time& time, int16_t tz) const noexcept
         {
             HATN_CHECK_RETURN(date.validate())
             HATN_CHECK_RETURN(time.validate())
             HATN_CHECK_RETURN(validateTz(tz))
             return OK;
+        }
+
+        // Constants based on UTC-12:00 to UTC+14:00
+        static constexpr int16_t TZ_MIN_OFFSET_MINUTES = -720;
+        static constexpr int16_t TZ_MAX_OFFSET_MINUTES = 840;
+        static bool isTimezoneValid(int16_t offsetMinutes)
+        {
+            // 1. Range check
+            if (offsetMinutes < TZ_MIN_OFFSET_MINUTES || offsetMinutes > TZ_MAX_OFFSET_MINUTES)
+            {
+                return false;
+            }
+
+            // 2. Increment check (must be multiple of 15 for civil time)
+            if (offsetMinutes % 15 != 0) {
+                return false;
+            }
+
+            return true;
         }
 
     private:
@@ -728,9 +802,9 @@ class HATN_COMMON_EXPORT DateTime
 
         Date m_date;
         Time m_time;
-        int8_t m_tz;
+        int16_t m_tz;
 
-        static int8_t m_defaultTz;
+        static int16_t m_defaultTz;
 };
 
 template <typename BufT>
@@ -751,10 +825,25 @@ void DateTime::serialize(BufT &buf, bool withMilliseconds) const
     }
     else
     {
-        auto hours = m_tz / 4;
-        auto minutes = std::abs(m_tz % 4) * 15;
+        auto hours = m_tz/60;
+        auto minutes = std::abs(m_tz % 60);
         fmt::format_to(std::back_inserter(buf), "{:+03d}:{:02d}", hours, minutes);
     }
+}
+
+inline int64_t DateTimePacker::packDatetime(const DateTime& dt)
+{
+    return pack(dt.toEpochMs(),dt.timezone());
+}
+
+inline Result<DateTime> DateTimePacker::unpackDatetime(int64_t n)
+{
+    auto unpacked=unpack(n);
+    if (!unpacked)
+    {
+        return commonError(CommonError::INVALID_ARGUMENT);
+    }
+    return DateTime::fromEpochMs(unpacked.value().millis,unpacked.value().tzMinutes);
 }
 
 HATN_COMMON_NAMESPACE_END

@@ -652,9 +652,9 @@ BOOST_AUTO_TEST_CASE(NestedContext)
     BOOST_CHECK_EQUAL(sctx1->get().val1,std::string("Hello!"));
     BOOST_CHECK_EQUAL(sctx1->get<B1>().val1,100);
     BOOST_CHECK_EQUAL(std::string(sctx5->id()),std::string("ctx5"));
-    BOOST_CHECK_EQUAL(static_cast<int>(sctx5->tz()),static_cast<int>(3));
+    BOOST_CHECK_EQUAL(static_cast<int>(sctx5->timezone()),static_cast<int>(3));
     BOOST_CHECK_EQUAL(std::string(sctx6->id()),std::string("ctx6"));
-    BOOST_CHECK_EQUAL(static_cast<int>(sctx6->tz()),static_cast<int>(5));
+    BOOST_CHECK_EQUAL(static_cast<int>(sctx6->timezone()),static_cast<int>(5));
 
     pmr::polymorphic_allocator<TaskContextType<B2,B1Ctx>> alloc;
     auto actx1=allocateTaskContext<B2,B1Ctx>(

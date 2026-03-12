@@ -63,7 +63,7 @@ class HATN_COMMON_EXPORT TaskContext : public EnableSharedFromThis<TaskContext>
          * @brief Constructor.
          * @param tz Timezone to use for measuring task's times.
          */
-        TaskContext(int8_t tz=DateTime::defaultTz())
+        TaskContext(int16_t tz=DateTime::defaultTimezone())
                               : m_steadyStarted(nowSteady()),
                                 m_tz(tz)
         {
@@ -77,7 +77,7 @@ class HATN_COMMON_EXPORT TaskContext : public EnableSharedFromThis<TaskContext>
          * @param tz imezone to use for measuring task's times.
          *
          */
-        TaskContext(const lib::string_view& id, int8_t tz=DateTime::defaultTz())
+        TaskContext(const lib::string_view& id, int16_t tz=DateTime::defaultTimezone())
                                 : m_id(id),
                                   m_steadyStarted(nowSteady()),
                                   m_tz(tz)
@@ -116,25 +116,25 @@ class HATN_COMMON_EXPORT TaskContext : public EnableSharedFromThis<TaskContext>
         {
             if (m_tz!=0)
             {
-                return tp+std::chrono::hours(m_tz);
+                return tp+std::chrono::minutes(m_tz);
             }
             return tp;
         }
 
         /**
          * @brief Set task's timezone.
-         * @param tz Timezone.
+         * @param tz Timezone in minutes.
          */
-        void setTz(int8_t tz) noexcept
+        void setTimezone(int16_t tz) noexcept
         {
             m_tz=tz;
         }
 
         /**
          * @brief Get task's timezone.
-         * @return Timezone.
+         * @return Timezone in minutes.
          */
-        int8_t tz() const noexcept
+        int16_t timezone() const noexcept
         {
             return m_tz;
         }
@@ -395,7 +395,7 @@ class HATN_COMMON_EXPORT TaskContext : public EnableSharedFromThis<TaskContext>
         std::chrono::time_point<SteadyClock> m_steadyStarted;
         std::chrono::time_point<SteadyClock> m_steadyFinished;
 
-        int8_t m_tz;
+        int16_t m_tz;
 
         EmbeddedSharedPtr<TaskContext> m_parentCtx;
 };

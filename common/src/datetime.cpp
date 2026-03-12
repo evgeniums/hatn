@@ -43,17 +43,17 @@ namespace {
         return Time{dt.hours(),dt.minutes(),dt.seconds(),ms};
     }
 
-    DateTime makeDateTime(const boost::posix_time::ptime& pt, int8_t tz)
+    DateTime makeDateTime(const boost::posix_time::ptime& pt, int16_t tz)
     {
         return DateTime{makeDate(pt.date()),makeTime(pt),tz};
     }
 
-    std::pair<boost::posix_time::ptime,int8_t> utcToLocal(const boost::posix_time::ptime& utc)
+    std::pair<boost::posix_time::ptime,int16_t> utcToLocal(const boost::posix_time::ptime& utc)
     {
         boost::date_time::c_local_adjustor<boost::posix_time::ptime> adj;
         auto localDt=adj.utc_to_local(utc);
         auto tz=localDt-utc;
-        return std::make_pair(localDt,static_cast<int8_t>(tz.total_seconds()/3600));
+        return std::make_pair(localDt,static_cast<int16_t>(tz.total_seconds()/60));
     }
 
     boost::gregorian::date toBoostDate(const Date& dt)
@@ -495,11 +495,11 @@ Time Time::currentLocal()
 
 /**************************** DateTime ******************************/
 
-int8_t DateTime::m_defaultTz=0;
+int16_t DateTime::m_defaultTz=0;
 
 //---------------------------------------------------------------
 
-void DateTime::setDefaultTz(int8_t tz)
+void DateTime::setDefaultTimezone(int16_t tz)
 {
     HATN_CHECK_THROW(validateTz(tz))
     m_defaultTz=tz;
@@ -507,7 +507,7 @@ void DateTime::setDefaultTz(int8_t tz)
 
 //---------------------------------------------------------------
 
-int8_t DateTime::defaultTz() noexcept
+int16_t DateTime::defaultTimezone() noexcept
 {
     return m_defaultTz;
 }
@@ -572,10 +572,15 @@ Result<DateTime> DateTime::parseIsoString(const lib::string_view& str)
         }
         try
         {
+            bool negative=boost::starts_with(tzParts[0],"-");
             int8_t hours=std::stoi(tzParts[0]);
             int8_t minutes=std::stoi(tzParts[1]);
-            int8_t tz = (hours * 4) + (minutes / 15);
-            HATN_CHECK_RETURN(dt.setTz(tz))
+            if (hours==0 && negative)
+            {
+                minutes=-minutes;
+            }
+            int16_t tz = hours*60 + minutes;
+            HATN_CHECK_RETURN(dt.setTimezone(tz))
         }
         catch(...)
         {
@@ -627,11 +632,11 @@ void DateTime::loadCurrentLocal()
 
 //---------------------------------------------------------------
 
-DateTime DateTime::current(int8_t tz)
+DateTime DateTime::current(int16_t tz)
 {
     auto utc=boost::posix_time::microsec_clock::universal_time();
     DateTime dt{makeDate(utc.date()),makeTime(utc),tz};
-    dt.addHours(tz);
+    dt.addMinutes(tz);
     return dt;
 }
 
@@ -644,7 +649,7 @@ DateTime DateTime::current()
 
 //---------------------------------------------------------------
 
-void DateTime::loadCurrent(int8_t tz)
+void DateTime::loadCurrent(int16_t tz)
 {
     auto utc=boost::posix_time::microsec_clock::universal_time();
     m_date=makeDate(utc.date());
@@ -683,7 +688,7 @@ int32_t DateTime::secondsSinceEpoch()
 
 //---------------------------------------------------------------
 
-int8_t DateTime::localTz()
+int16_t DateTime::localTimezone()
 {
     auto utc=boost::posix_time::microsec_clock::universal_time();
     auto local=utcToLocal(utc);
@@ -692,11 +697,11 @@ int8_t DateTime::localTz()
 
 //---------------------------------------------------------------
 
-DateTime DateTime::fromEpochMs(int64_t value, int8_t tz)
+DateTime DateTime::fromEpochMs(int64_t value, int16_t tz)
 {
     auto seconds=value/1000;
     auto ms=value%1000;
-    seconds+=tzToSeconds(tz);
+    seconds+=timezoneToSeconds(tz);
 
     auto pt=boost::posix_time::from_time_t(seconds);
     auto date=pt.date();
@@ -711,14 +716,14 @@ DateTime DateTime::fromEpochMs(int64_t value, int8_t tz)
 
 //---------------------------------------------------------------
 
-DateTime DateTime::fromEpoch(int32_t value, int8_t tz)
+DateTime DateTime::fromEpoch(int32_t value, int16_t tz)
 {
     return fromEpochMs(static_cast<int64_t>(value)*1000,tz);
 }
 
 //---------------------------------------------------------------
 
-Result<DateTime> DateTime::toTz(const DateTime& from, int8_t tz)
+Result<DateTime> DateTime::toTimezone(const DateTime& from, int16_t tz)
 {
     HATN_CHECK_RETURN(validateTz(tz))
 
@@ -726,14 +731,14 @@ Result<DateTime> DateTime::toTz(const DateTime& from, int8_t tz)
     {
         return from;
     }
-    auto diff=tzToSeconds(tz)-tzToSeconds(from.m_tz);
+    auto diff=timezoneToSeconds(tz)-timezoneToSeconds(from.m_tz);
 
     auto pt=toBoostPtime(from);
     auto fromEpoch=boost::posix_time::to_time_t(pt)*1000+from.time().millisecond();
     fromEpoch += diff * 1000;
 
     auto dt=fromEpochMs(fromEpoch,0);
-    if (dt.setTz(tz))
+    if (dt.setTimezone(tz))
     {
         return Error{CommonError::INVALID_DATETIME_FORMAT};
     }
@@ -750,7 +755,7 @@ int64_t DateTime::toEpochMs() const
     }
 
     auto pt=toBoostPtime(*this);
-    return boost::posix_time::to_time_t(pt)*1000 + m_time.millisecond() - tzToSeconds(m_tz)*1000;
+    return boost::posix_time::to_time_t(pt)*1000 + m_time.millisecond() - timezoneToSeconds(m_tz)*1000;
 }
 
 //---------------------------------------------------------------
