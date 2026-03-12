@@ -151,7 +151,7 @@ class HATN_ROCKSDB_SCHEMA_EXPORT Keys
 
         static ROCKSDB_NAMESPACE::Slice objectIdFromIndexValue(const char* ptr, size_t size);
 
-        static uint32_t timestampFromIndexValue(const char* ptr, size_t size);
+        static int32_t timestampFromIndexValue(const char* ptr, size_t size);
 
     private:
 

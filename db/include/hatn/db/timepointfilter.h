@@ -51,7 +51,7 @@ class TimePointFilter
             return m_intervals;
         }
 
-        bool filterTimePoint(uint32_t timepoint) const noexcept
+        bool filterTimePoint(int32_t timepoint) const noexcept
         {
             if (m_intervals)
             {

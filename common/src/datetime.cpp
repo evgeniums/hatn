@@ -13,8 +13,6 @@
  *
  */
 
-#include <chrono>
-
 #if __cplusplus >= 201703L
 #include <charconv>
 #endif
@@ -574,7 +572,9 @@ Result<DateTime> DateTime::parseIsoString(const lib::string_view& str)
         }
         try
         {
-            auto tz=std::stoi(tzParts[0]);
+            int8_t hours=std::stoi(tzParts[0]);
+            int8_t minutes=std::stoi(tzParts[1]);
+            int8_t tz = (hours * 4) + (minutes / 15);
             HATN_CHECK_RETURN(dt.setTz(tz))
         }
         catch(...)
@@ -662,7 +662,7 @@ void DateTime::loadCurrent()
 
 //---------------------------------------------------------------
 
-uint64_t DateTime::millisecondsSinceEpoch()
+int64_t DateTime::millisecondsSinceEpoch()
 {
     auto pt=boost::posix_time::microsec_clock::universal_time();
     auto epoch=boost::posix_time::from_time_t(0);
@@ -672,11 +672,11 @@ uint64_t DateTime::millisecondsSinceEpoch()
 
 //---------------------------------------------------------------
 
-uint32_t DateTime::secondsSinceEpoch()
+int32_t DateTime::secondsSinceEpoch()
 {
     auto pt=boost::posix_time::microsec_clock::universal_time();
     auto epoch=boost::posix_time::from_time_t(0);
-    return static_cast<uint32_t>((pt-epoch).total_seconds());
+    return (pt-epoch).total_seconds();
 
     // return static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count());
 }
@@ -692,11 +692,11 @@ int8_t DateTime::localTz()
 
 //---------------------------------------------------------------
 
-DateTime DateTime::fromEpochMs(uint64_t value, int8_t tz)
+DateTime DateTime::fromEpochMs(int64_t value, int8_t tz)
 {
     auto seconds=value/1000;
     auto ms=value%1000;
-    seconds+=tz*3600;
+    seconds+=tzToSeconds(tz);
 
     auto pt=boost::posix_time::from_time_t(seconds);
     auto date=pt.date();
@@ -711,9 +711,9 @@ DateTime DateTime::fromEpochMs(uint64_t value, int8_t tz)
 
 //---------------------------------------------------------------
 
-DateTime DateTime::fromEpoch(uint32_t value, int8_t tz)
+DateTime DateTime::fromEpoch(int32_t value, int8_t tz)
 {
-    return fromEpochMs(static_cast<uint64_t>(value)*1000,tz);
+    return fromEpochMs(static_cast<int64_t>(value)*1000,tz);
 }
 
 //---------------------------------------------------------------
@@ -726,11 +726,11 @@ Result<DateTime> DateTime::toTz(const DateTime& from, int8_t tz)
     {
         return from;
     }
-    auto diff=tz-from.m_tz;
+    auto diff=tzToSeconds(tz)-tzToSeconds(from.m_tz);
 
     auto pt=toBoostPtime(from);
     auto fromEpoch=boost::posix_time::to_time_t(pt)*1000+from.time().millisecond();
-    fromEpoch+=diff*3600000;
+    fromEpoch += diff * 1000;
 
     auto dt=fromEpochMs(fromEpoch,0);
     if (dt.setTz(tz))
@@ -742,7 +742,7 @@ Result<DateTime> DateTime::toTz(const DateTime& from, int8_t tz)
 
 //---------------------------------------------------------------
 
-uint64_t DateTime::toEpochMs() const
+int64_t DateTime::toEpochMs() const
 {
     if (isNull())
     {
@@ -750,18 +750,18 @@ uint64_t DateTime::toEpochMs() const
     }
 
     auto pt=toBoostPtime(*this);
-    return boost::posix_time::to_time_t(pt)*1000 + m_time.millisecond() - m_tz*3600000;
+    return boost::posix_time::to_time_t(pt)*1000 + m_time.millisecond() - tzToSeconds(m_tz)*1000;
 }
 
 //---------------------------------------------------------------
 
-uint32_t DateTime::toEpoch() const
+int32_t DateTime::toEpoch() const
 {
     if (isNull())
     {
         return 0;
     }
-    return static_cast<uint32_t>(toEpochMs()/1000);
+    return static_cast<int32_t>(toEpochMs()/1000);
 }
 
 //---------------------------------------------------------------

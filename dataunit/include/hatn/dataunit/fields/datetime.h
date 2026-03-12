@@ -251,14 +251,14 @@ class DateTime : public Field
         template <typename BufferT>
         static bool serialize(const type& val, BufferT& wired)
         {
-            return VariableSer<uint64_t>::serialize(val.toNumber(),wired);
+            return VariableSer<int64_t>::serialize(val.toNumber(),wired);
         }
 
         template <typename BufferT>
         static bool deserialize(type& val, BufferT& wired, const AllocatorFactory* =nullptr)
         {
-            uint64_t num=0;
-            if (!VariableSer<uint64_t>::deserialize(num,wired))
+            int64_t num=0;
+            if (!VariableSer<int64_t>::deserialize(num,wired))
             {
                 return false;
             }

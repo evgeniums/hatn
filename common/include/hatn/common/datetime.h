@@ -23,8 +23,6 @@
 
 HATN_COMMON_NAMESPACE_BEGIN
 
-//! @todo critical: Fix timezone, it can be minute offsets, not only hours
-
 /**
  * @brief The DateTime class.
  */
@@ -132,9 +130,14 @@ class HATN_COMMON_EXPORT DateTime
             return m_tz;
         }
 
+        static inline int32_t tzToSeconds(int8_t tz)
+        {
+            return tz*4*3600;
+        }
+
         int16_t tzSecs() const noexcept
         {
-            return m_tz*3600;
+            return tzToSeconds(m_tz);
         }
 
         /**
@@ -213,13 +216,13 @@ class HATN_COMMON_EXPORT DateTime
          * @brief Get milliseconds since epoch.
          * @return Milliseconds since epoch.
          */
-        uint64_t toEpochMs() const;
+        int64_t toEpochMs() const;
 
         /**
          * @brief Get seconds since epoch.
          * @return Seconds since epoch.
          */
-        uint32_t toEpoch() const;
+        int32_t toEpoch() const;
 
         /**
          * @brief Parse datetime in ISO format.
@@ -281,7 +284,7 @@ class HATN_COMMON_EXPORT DateTime
          * @return Constructed datetime or throws
          * @throws In case date time is invalid
          */
-        static DateTime fromEpochMs(uint64_t milliseconds, int8_t tz=0);
+        static DateTime fromEpochMs(int64_t milliseconds, int8_t tz=0);
 
         /**
          * @brief Construct datetime from seconds since epoch.
@@ -290,7 +293,7 @@ class HATN_COMMON_EXPORT DateTime
          * @return Constructed datetime or throws.
          * @throws In case date time is invalid
          */
-        static DateTime fromEpoch(uint32_t seconds, int8_t tz=0);
+        static DateTime fromEpoch(int32_t seconds, int8_t tz=0);
 
         /**
          * @brief Construct UTC datetime from milliseconds since epoch.
@@ -298,7 +301,7 @@ class HATN_COMMON_EXPORT DateTime
          * @return Constructed datetime or throws.
          * @throws In case date time is invalid
          */
-        static DateTime utcFromEpochMs(uint64_t milliseconds)
+        static DateTime utcFromEpochMs(int64_t milliseconds)
         {
             return fromEpochMs(milliseconds,0);
         }
@@ -309,7 +312,7 @@ class HATN_COMMON_EXPORT DateTime
          * @return Constructed datetime or throws.
          * @throws In case date time is invalid
          */
-        static DateTime localFromEpochMs(uint64_t milliseconds)
+        static DateTime localFromEpochMs(int64_t milliseconds)
         {
             return fromEpochMs(milliseconds,localTz());
         }
@@ -320,7 +323,7 @@ class HATN_COMMON_EXPORT DateTime
          * @return Constructed datetime or throws.
          * @throws In case date time is invalid
          */
-        static DateTime utcFromEpoch(uint32_t seconds)
+        static DateTime utcFromEpoch(int32_t seconds)
         {
             return fromEpoch(seconds,0);
         }
@@ -331,7 +334,7 @@ class HATN_COMMON_EXPORT DateTime
          * @return Constructed datetime or throws.
          * @throws In case date time is invalid
          */
-        static DateTime localFromEpoch(uint32_t seconds)
+        static DateTime localFromEpoch(int32_t seconds)
         {
             return fromEpoch(seconds,localTz());
         }
@@ -370,7 +373,7 @@ class HATN_COMMON_EXPORT DateTime
         template <typename T>
         static Error validateTz(T tz)
         {
-            if (abs(tz)>12)
+            if (tz<-48 || tz > 56)
             {
                 return CommonError::INVALID_DATETIME_FORMAT;
             }
@@ -381,13 +384,13 @@ class HATN_COMMON_EXPORT DateTime
          * @brief Get current milliseconds since epoch.
          * @return Milliseconds since epoch till now.
          */
-        static uint64_t millisecondsSinceEpoch();
+        static int64_t millisecondsSinceEpoch();
 
         /**
          * @brief Get current seconds since epoch.
          * @return Seconds since epoch till now.
          */
-        static uint32_t secondsSinceEpoch();
+        static int32_t secondsSinceEpoch();
 
         /**
          * @brief Check if datetime is before other regardless of timezone.
@@ -637,7 +640,7 @@ class HATN_COMMON_EXPORT DateTime
          * @brief Convert datetime to single number.
          * @return Operation result.
          */
-        uint64_t toNumber() const
+        int64_t toNumber() const
         {
             if (isNull())
             {
@@ -653,7 +656,7 @@ class HATN_COMMON_EXPORT DateTime
          * @param num Number.
          * @return Operation result.
          */
-        static Result<DateTime> fromNumber(uint64_t num)
+        static Result<DateTime> fromNumber(int64_t num)
         {
             if (num==0)
             {
@@ -677,7 +680,7 @@ class HATN_COMMON_EXPORT DateTime
          * @param num Number.
          * @return Operation status.
          */
-        Error setNumber(uint64_t num)
+        Error setNumber(int64_t num)
         {
             auto r=fromNumber(num);
             if (r)
@@ -748,7 +751,9 @@ void DateTime::serialize(BufT &buf, bool withMilliseconds) const
     }
     else
     {
-        fmt::format_to(std::back_inserter(buf),"{:+03d}:00",m_tz);
+        auto hours = m_tz / 4;
+        auto minutes = std::abs(m_tz % 4) * 15;
+        fmt::format_to(std::back_inserter(buf), "{:+03d}:{:02d}", hours, minutes);
     }
 }
 

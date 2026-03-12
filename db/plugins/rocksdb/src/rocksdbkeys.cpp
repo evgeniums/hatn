@@ -96,18 +96,17 @@ ROCKSDB_NAMESPACE::Slice Keys::objectIdFromIndexValue(const char* ptr, size_t si
     return result;
 }
 
-uint32_t Keys::timestampFromIndexValue(const char* ptr, size_t size)
+int32_t Keys::timestampFromIndexValue(const char* ptr, size_t size)
 {
-    auto extraSize=TimestampSize
-                     + TtlMark::ttlMarkOffset(ptr,size);
+    auto extraSize=TimestampSize + TtlMark::ttlMarkOffset(ptr,size);
     if (size<extraSize)
     {
         return 0;
     }
 
     size_t offset=size-extraSize;
-    uint32_t timestamp{0};
-    memcpy(&timestamp,ptr+offset,sizeof(uint32_t));
+    int32_t timestamp{0};
+    memcpy(&timestamp,ptr+offset,sizeof(int32_t));
     boost::endian::little_to_native_inplace(timestamp);
     return timestamp;
 }
