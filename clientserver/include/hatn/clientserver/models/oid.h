@@ -150,8 +150,14 @@ HDU_UNIT(with_parent_idx,
 //! Globally accessible object
 HDU_UNIT_WITH(global_object,
 (
-  HDU_BASE(with_revision), //!< Inherits from object revision
-  HDU_BASE(with_uid)) //!< Inherits from object uid
+    HDU_BASE(with_revision), //!< Inherits from object revision
+    HDU_BASE(with_uid)) //!< Inherits from uid
+)
+
+HDU_UNIT_WITH(global_server_object,
+(
+    HDU_BASE(with_revision), //!< Inherits from object revision
+    HDU_BASE(with_guid)) //!< Inherits from guid
 )
 
 template <typename T>
