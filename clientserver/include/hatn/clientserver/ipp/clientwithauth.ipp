@@ -61,10 +61,11 @@ Error ClientWithAuthT<RouterT,TransportT,Traits,AuthProtocols...>::exec(
         lib::string_view topic,
         api::Priority priority,
         uint32_t timeoutMs,
-        clientapi::MethodAuth methodAuth
+        clientapi::MethodAuth methodAuth,
+        clientapi::RequestType requestType
     )
 {
-    return m_client->exec(std::move(ctx),std::move(callback),m_sessionWrapper,service,method,std::move(message),topic,priority,timeoutMs,std::move(methodAuth));
+    return m_client->exec(std::move(ctx),std::move(callback),m_sessionWrapper,service,method,std::move(message),topic,priority,timeoutMs,std::move(methodAuth),requestType);
 }
 
 //--------------------------------------------------------------------------
@@ -74,18 +75,19 @@ template <typename RouterT,
          typename Traits,
          typename ...AuthProtocols>
 Error ClientWithAuthT<RouterT,TransportT,Traits,AuthProtocols...>::execNoAuth(
-    common::SharedPtr<RequestContext> ctx,
-    Callback callback,
-    const api::Service& service,
-    const api::Method& method,
-    MessageType message,
-    lib::string_view topic,
-    api::Priority priority,
-    uint32_t timeoutMs,
-    clientapi::MethodAuth methodAuth
+        common::SharedPtr<RequestContext> ctx,
+        Callback callback,
+        const api::Service& service,
+        const api::Method& method,
+        MessageType message,
+        lib::string_view topic,
+        api::Priority priority,
+        uint32_t timeoutMs,
+        clientapi::MethodAuth methodAuth,
+        clientapi::RequestType requestType
     )
 {
-    return m_client->exec(std::move(ctx),std::move(callback),SessionWrapper{},service,method,std::move(message),topic,priority,timeoutMs,std::move(methodAuth));
+    return m_client->exec(std::move(ctx),std::move(callback),SessionWrapper{},service,method,std::move(message),topic,priority,timeoutMs,std::move(methodAuth),requestType);
 }
 
 //--------------------------------------------------------------------------

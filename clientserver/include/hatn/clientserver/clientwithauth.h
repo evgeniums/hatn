@@ -67,7 +67,8 @@ class ClientWithAuthT : public common::TaskSubcontext
                 lib::string_view topic={},
                 api::Priority priority=api::Priority::Normal,
                 uint32_t timeoutMs=0,
-                clientapi::MethodAuth methodAuth={}
+                clientapi::MethodAuth methodAuth={},
+                clientapi::RequestType requestType=clientapi::RequestType::Unary
             )
         {
             MessageType msg;
@@ -81,7 +82,8 @@ class ClientWithAuthT : public common::TaskSubcontext
                  topic,
                  priority,
                  timeoutMs,
-                 std::move(methodAuth)
+                 std::move(methodAuth),
+                 requestType
             );
         }
 
@@ -94,7 +96,8 @@ class ClientWithAuthT : public common::TaskSubcontext
             lib::string_view topic={},
             api::Priority priority=api::Priority::Normal,
             uint32_t timeoutMs=0,
-            clientapi::MethodAuth methodAuth={}
+            clientapi::MethodAuth methodAuth={},
+            clientapi::RequestType requestType=clientapi::RequestType::Unary
         );
 
         template <typename MessageUnitT>
@@ -107,7 +110,8 @@ class ClientWithAuthT : public common::TaskSubcontext
             lib::string_view topic={},
             api::Priority priority=api::Priority::Normal,
             uint32_t timeoutMs=0,
-            clientapi::MethodAuth methodAuth={}
+            clientapi::MethodAuth methodAuth={},
+            clientapi::RequestType requestType=clientapi::RequestType::Unary
         )
         {
             MessageType msg;
@@ -121,7 +125,8 @@ class ClientWithAuthT : public common::TaskSubcontext
                  topic,
                  priority,
                  timeoutMs,
-                 std::move(methodAuth)
+                 std::move(methodAuth),
+                 requestType
             );
         }
 
@@ -134,7 +139,8 @@ class ClientWithAuthT : public common::TaskSubcontext
             lib::string_view topic={},
             api::Priority priority=api::Priority::Normal,
             uint32_t timeoutMs=0,
-            clientapi::MethodAuth methodAuth={}
+            clientapi::MethodAuth methodAuth={},
+            clientapi::RequestType requestType=clientapi::RequestType::Unary
         );
 
         void setClient(Client* client)

@@ -46,6 +46,8 @@ SET (HEADERS
     include/hatn/api/client/sessionclient.h
     include/hatn/api/client/serviceclient.h
     include/hatn/api/client/tlsclientconfig.h
+
+    include/hatn/api/client/streamchannel.h
 )
 
 SET (HEADERS
@@ -105,6 +107,7 @@ SET (SOURCES
     src/serverenv.cpp
     src/clientsession.cpp
     src/autherror.cpp
+    src/clientstreamchannel.cpp
 )
 
 BUILD_HATN_MODULE()

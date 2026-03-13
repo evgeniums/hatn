@@ -43,12 +43,14 @@ auto Client<RouterT,Transport,SessionWrapperT,Traits>::prepare(
         const Method& method,
         MessageType message,
         lib::string_view topic,
-        MethodAuth methodAuth
+        MethodAuth methodAuth,
+        RequestType requestType
     )
 {
     HATN_CTX_SCOPE("apiclientprepare")
 
     auto req=common::allocateShared<ReqCtx>(m_allocatorFactory->objectAllocator<ReqCtx>(),m_thread,m_allocatorFactory,service,method,std::move(session),std::move(message),std::move(methodAuth));
+    req->setRequestType(requestType);
     //! @todo Fix tenancy
 #if 0
     const Tenancy& tenancy=Tenancy::contextTenancy(*ctx);
@@ -80,12 +82,14 @@ Error Client<RouterT,Transport,SessionWrapperT,Traits>::exec(
     lib::string_view  topic,
     Priority priority,
     uint32_t timeoutMs,
-    MethodAuth methodAuth
+    MethodAuth methodAuth,
+    RequestType requestType
     )
 {
     HATN_CTX_SCOPE("apiclientexec")
 
     auto req=common::allocateShared<ReqCtx>(m_allocatorFactory->objectAllocator<ReqCtx>(),m_thread,m_allocatorFactory,service,method,std::move(session),std::move(message),std::move(methodAuth),priority,timeoutMs);
+    req->setRequestType(requestType);
     //! @todo Fix tenancy
 #if 0
     const Tenancy& tenancy=Tenancy::contextTenancy(*ctx);

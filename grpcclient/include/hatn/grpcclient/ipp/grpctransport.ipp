@@ -31,6 +31,7 @@
 #include <hatn/api/client/clientresponse.h>
 #include <hatn/clientserver/protomessagemap.h>
 
+#include <hatn/grpcclient/grpcstream.h>
 #include <hatn/grpcclient/grpctransport.h>
 
 HATN_GRPCCLIENT_NAMESPACE_BEGIN
@@ -71,6 +72,8 @@ struct PriorityChannel
     common::MutexLock mutex;
 
     Requests pendingRequests;
+
+    std::set<std::shared_ptr<GrpcStream>> streams;
 
     PriorityChannel()
     {}
@@ -135,11 +138,19 @@ struct PriorityChannel
         auto& reqIndex = pendingRequests.get<by_address>();
         reqIndex.erase(reinterpret_cast<uintptr_t>(req.get()));
     }
+
+    void removeStream(std::shared_ptr<GrpcStream> stream)
+    {
+        common::MutexScopedLock l{mutex};
+        streams.erase(stream);
+    }
 };
 
 class GrpcTransport_p
 {
 public:
+
+    GrpcTransport* transport;
 
     std::string name;
 
@@ -169,9 +180,9 @@ public:
         const grpc::ClientContext* grpcCtx,
         std::string messageType,
         common::ByteArrayShared respData
-    );
+    ) const;
 
-    inline std::string findHeader(const std::multimap<grpc::string_ref,grpc::string_ref>& metadata, lib::string_view headerName)
+    inline std::string findHeader(const std::multimap<grpc::string_ref,grpc::string_ref>& metadata, lib::string_view headerName) const
     {
         auto it = metadata.find(grpc::string_ref{headerName.data(),headerName.size()});
         if (it != metadata.end())
@@ -190,6 +201,18 @@ public:
         }
         return HATN_CLIENT_SERVER_NAMESPACE::ProtoMessageMap::instance().findCppByProto(pb);
     }
+
+    Result<clientapi::Response> handleResponse(
+        std::shared_ptr<grpc::ClientContext> context,
+        grpc::Status status,
+        const grpc::ByteBuffer& respBuffer
+    ) const;
+
+    void removeStream(api::Priority p, std::shared_ptr<GrpcStream> stream)
+    {
+        auto ch=channel(p);
+        ch->removeStream(std::move(stream));
+    }
 };
 
 inline Error GrpcTransport_p::makeError(
@@ -199,7 +222,7 @@ inline Error GrpcTransport_p::makeError(
         const grpc::ClientContext* grpcCtx,
         std::string messageType,
         common::ByteArrayShared respData
-    )
+    ) const
 {
     int code=-grpcCode;
     const std::multimap<grpc::string_ref, grpc::string_ref>& metadata = grpcCtx->GetServerInitialMetadata();
@@ -311,6 +334,7 @@ void GrpcTransport::sendRequest(
     // prepare callback
     auto cb=[req,channel,responseBuf,callback,context,bufs,this](grpc::Status status)
     {
+#if 0
         const std::multimap<grpc::string_ref, grpc::string_ref>& metadata = context->GetServerInitialMetadata();
 
 #if 1
@@ -392,6 +416,25 @@ std::cout << "-----------------" << std::endl;
         channel->removeRequest(req);
         HATN_CTX_STACK_BARRIER_OFF("grpctransport::sendrequest")
         callback({});
+#else
+
+        auto response =  pimpl->handleResponse(
+                    context,
+                    status,
+                    *responseBuf
+                );
+        if (responseBuf)
+        {
+            channel->removeRequest(req);
+            callback(response.takeError());
+            return;
+        }
+
+        req->setResponse(response.takeValue());
+        channel->removeRequest(req);
+        HATN_CTX_STACK_BARRIER_OFF("grpctransport::sendrequest")
+        callback({});
+#endif
     };
 
     // invoke a call

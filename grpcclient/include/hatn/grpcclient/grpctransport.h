@@ -176,7 +176,7 @@ class HATN_GRPCCLIENT_EXPORT GrpcTransport : public base::ConfigObject<grpc_conf
         void initChannels();
         void closeChannels();
 
-        std::unique_ptr<detail::GrpcTransport_p> pimpl;
+        std::shared_ptr<detail::GrpcTransport_p> pimpl;
 };
 
 HATN_GRPCCLIENT_NAMESPACE_END

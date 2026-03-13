@@ -32,13 +32,15 @@ HATN_API_NAMESPACE_BEGIN
 namespace client
 {
 
+class StreamChannel;
+
 class Response
 {
     public:
 
         using IdType=std::string;
 
-        Response()=default;
+        Response()=default;        
 
         void setMessageData(common::ByteArrayShared value)
         {
@@ -120,6 +122,16 @@ class Response
             return m_error;
         }
 
+        void setStreamChannel(std::shared_ptr<StreamChannel> channel)
+        {
+            m_channel=std::move(channel);
+        }
+
+        std::shared_ptr<StreamChannel> streamChannel() const
+        {
+            return m_channel;
+        }
+
     private:
 
         IdType m_id;
@@ -128,6 +140,8 @@ class Response
         common::ByteArrayShared m_messageData;
 
         Error m_error;
+
+        std::shared_ptr<StreamChannel> m_channel;
 };
 
 } // namespace client
