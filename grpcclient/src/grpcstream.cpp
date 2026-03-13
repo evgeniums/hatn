@@ -12,6 +12,8 @@
   *
   */
 
+#include <hatn/api/apiliberror.h>
+
 #include <hatn/grpcclient/grpcstream.h>
 #include <hatn/grpcclient/ipp/grpctransport.ipp>
 
@@ -19,6 +21,11 @@
 #include <hatn/dataunit/ipp/wirebuf.ipp>
 
 HATN_GRPCCLIENT_NAMESPACE_BEGIN
+
+HDU_UNIT(stream_response,
+    HDU_FIELD(message_type,TYPE_STRING,1)
+    HDU_FIELD(message,TYPE_BYTES,2)
+)
 
 /*****************************GrpcStream*********************************/
 
@@ -31,7 +38,8 @@ GrpcStream::GrpcStream(
     ) : m_transport(std::move(transport)),
         m_channelPriority(channelPriority),
         m_context(std::move(context)),
-        m_closed(false)
+        m_closed(false),
+        m_initialResponse(true)
 {
 }
 
@@ -74,17 +82,25 @@ void GrpcStream::OnReadDone(bool ok)
         return;
     }
 
-    // hadnle response
-    auto resp=m_transport->handleResponse(
-        m_context,
-        grpc::Status::OK,
-        m_responseBuffer
-    );
+    auto resetCallback=[&]()
+    {
+        m_mutex.lock();
+        m_readCallback=ReadCb{};
+        m_mutex.unlock();
+    };
+    HATN_SCOPE_GUARD(resetCallback)
 
     m_mutex.lock();
     auto rcb=m_readCallback;
     m_mutex.unlock();
 
+    // hadnle response
+    auto resp=m_transport->handleResponse(
+        m_context,
+        grpc::Status::OK,
+        m_responseBuffer,
+        !m_initialResponse
+    );
     if (resp)
     {
         // inform on error
@@ -95,21 +111,83 @@ void GrpcStream::OnReadDone(bool ok)
         return;
     }
 
-    // parse wrapping message
-
-    // read next if it is heartbeat
-
-    if (!rcb)
+    // handle initial response
+    if (m_initialResponse)
     {
+        // initial response done
+        m_initialResponse=false;
+
+        // invoke callback on initial message
+        if (rcb)
+        {
+            resp->setStreamChannel(shared_from_this());
+            rcb({},resp.takeValue());
+        }
+
         return;
     }
 
-    // inform application if it is either error or normal message
+    // handle stream mesage
+    stream_response::type respWrapper;
+    respWrapper.setParseToSharedArrays(true);
+    resp->setMessageType(stream_response::conf().name);
+    auto ec=resp->parse(respWrapper);
+    if (ec)
+    {
+        if (rcb)
+        {
+            rcb(ec,{});
+        }
+        return;
+    }
 
-    // reset callback
-    m_mutex.lock();
-    m_readCallback=ReadCb{};
-    m_mutex.unlock();
+    // process response depending on message type
+    if (respWrapper.fieldValue(stream_response::message_type)
+        ==
+        m_transport->transport->config().fieldValue(grpc_config::heartbeat_response_type))
+    {
+        // skip heartbeat
+        m_responseBuffer.Clear();
+        StartRead(&m_responseBuffer);
+    }
+    else if (respWrapper.fieldValue(stream_response::message_type)
+             ==
+             m_transport->transport->config().fieldValue(grpc_config::error_response_type))
+    {
+        //! @todo Implement error handling
+        if (rcb)
+        {
+            ec=commonError(CommonError::SERVER_API_ERROR);
+            rcb(ec,{});
+        }
+    }
+    else
+    {
+        auto msgResp=m_transport->handleResponse(
+            m_context,
+            grpc::Status::OK,
+            m_responseBuffer,
+            true,
+            std::string{respWrapper.fieldValue(stream_response::message_type)},
+            respWrapper.field(stream_response::message).byteArrayShared()
+        );
+
+        if (msgResp)
+        {
+            // inform on error
+            if (rcb)
+            {
+                rcb(resp.error(),{});
+            }
+            return;
+        }
+
+        // normal message
+        if (rcb)
+        {
+            rcb({},msgResp.takeValue());
+        }
+    }
 }
 
 //--------------------------------------------------------------------------
@@ -198,7 +276,7 @@ void GrpcStream::readNext(ReadCb callback) {
 
 //--------------------------------------------------------------------------
 
-void GrpcStream::writeNext(common::ByteArrayShared message, std::string messageType, WriteCb callback)
+void GrpcStream::writeNext(common::ByteArrayShared message, std::string /*messageType*/, WriteCb callback)
 {
     if (m_closed)
     {
@@ -210,7 +288,11 @@ void GrpcStream::writeNext(common::ByteArrayShared message, std::string messageT
     m_writeCallback=callback;
     m_mutex.unlock();
 
-    //! @todo write to stream
+    m_writeBuffer.Clear();
+    grpc::Slice slice(message->data(), message->size());
+    m_writeBuffer=grpc::ByteBuffer(&slice, 1);
+
+    StartWrite(&m_writeBuffer);
 }
 
 //--------------------------------------------------------------------------
@@ -238,6 +320,17 @@ void GrpcStream::close(clientapi::StreamChannel::CloseCb callback)
     }
 
     m_context->TryCancel();
+}
+
+//--------------------------------------------------------------------------
+
+void GrpcStream::startStream(const grpc::ByteBuffer* initMsg, ReadCb callback)
+{
+    m_readCallback=callback;
+
+    StartWrite(initMsg);
+    StartRead(&m_responseBuffer);
+    StartCall();
 }
 
 //--------------------------------------------------------------------------

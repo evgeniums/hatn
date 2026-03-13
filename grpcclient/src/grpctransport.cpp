@@ -212,41 +212,54 @@ void detail::PriorityChannel::init(const std::string& address,
 Result<clientapi::Response> detail::GrpcTransport_p::handleResponse(
         std::shared_ptr<grpc::ClientContext> context,
         grpc::Status status,
-        const grpc::ByteBuffer& responseBuf
+        const grpc::ByteBuffer& responseBuf,
+        bool streamMessage,
+        std::string messageType,
+        common::ByteArrayShared messageData
     ) const
 {
-    const std::multimap<grpc::string_ref, grpc::string_ref>& metadata = context->GetServerInitialMetadata();
+    clientapi::Response resp;
+    std::string appStatus;
+    if (!streamMessage)
+    {
+        const std::multimap<grpc::string_ref, grpc::string_ref>& metadata = context->GetServerInitialMetadata();
+        auto respType=findHeader(metadata,transport->config().fieldValue(grpc_config::message_type_header));
+        auto mappedRespType=mapMessageType(respType);
+        resp.setMessageType(mappedRespType);
+        resp.setId(findHeader(metadata,transport->config().fieldValue(grpc_config::id_header)));
+
+        appStatus=findHeader(metadata,transport->config().fieldValue(grpc_config::status_header));
 
 #if 1
-    // dump response headers
-    std::cout << "------HEADERS-----" << std::endl;
-    for (auto it = metadata.begin(); it != metadata.end(); ++it) {
-        // Convert string_ref to std::string for printing
-        std::cout << std::string(it->first.data(), it->first.size()) << ": "
-                  << std::string(it->second.data(), it->second.size()) << std::endl;
-    }
-    std::cout << "-----------------" << std::endl;
-#endif
-
-    // copy response data
-    common::ByteArrayShared respData=common::makeShared<common::ByteArray>();
-    std::vector<grpc::Slice> slices;
-    if (responseBuf.Dump(&slices).ok())
-    {
-        for (const auto& slice : slices)
-        {
-            respData->append(reinterpret_cast<const char*>(slice.begin()),slice.size());
+        // dump response headers
+        std::cout << "------HEADERS-----" << std::endl;
+        for (auto it = metadata.begin(); it != metadata.end(); ++it) {
+            // Convert string_ref to std::string for printing
+            std::cout << std::string(it->first.data(), it->first.size()) << ": "
+                      << std::string(it->second.data(), it->second.size()) << std::endl;
         }
+        std::cout << "-----------------" << std::endl;
+        // copy response data
+        messageData=common::makeShared<common::ByteArray>();
+        std::vector<grpc::Slice> slices;
+        if (responseBuf.Dump(&slices).ok())
+        {
+            for (const auto& slice : slices)
+            {
+                messageData->append(reinterpret_cast<const char*>(slice.begin()),slice.size());
+            }
+        }
+        resp.setMessageData(messageData);
+#endif
+    }
+    else
+    {
+        resp.setMessageType(std::move(messageType));
+        resp.setMessageData(messageData);
     }
 
-    // parse response
-    clientapi::Response resp;
-    resp.setStatus(api::protocol::ResponseStatus::Success);
-    resp.setMessageData(respData);
-    auto respType=findHeader(metadata,transport->config().fieldValue(grpc_config::message_type_header));
-    auto mappedRespType=mapMessageType(respType);
-    resp.setMessageType(mappedRespType);
-    resp.setId(findHeader(metadata,transport->config().fieldValue(grpc_config::id_header)));
+    // set response
+    resp.setStatus(api::protocol::ResponseStatus::Success);    
 
     // check status
     if (!status.ok())
@@ -261,7 +274,6 @@ Result<clientapi::Response> detail::GrpcTransport_p::handleResponse(
             resp.setStatus(api::protocol::ResponseStatus::Generic);
         }
 
-        auto appStatus=findHeader(metadata,transport->config().fieldValue(grpc_config::status_header));
         if (appStatus.empty())
         {
             // possibly network errors
@@ -284,8 +296,8 @@ Result<clientapi::Response> detail::GrpcTransport_p::handleResponse(
             transport->config(),
             context.get(),
             resp.messageType(),
-            respData
-            );
+            messageData
+        );
         resp.setErrror(std::move(apiError));
     }
 

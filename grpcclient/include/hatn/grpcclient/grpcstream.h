@@ -61,10 +61,17 @@ class HATN_GRPCCLIENT_EXPORT GrpcStream : public grpc::ClientBidiReactor<grpc::B
 
         void OnDone(const grpc::Status& s) override;
 
+        void startStream(const grpc::ByteBuffer* initMsg, ReadCb callback);
+
         void readNext(ReadCb callback) override;
         void writeNext(common::ByteArrayShared message, std::string messageType, WriteCb callback) override;
 
         void close(clientapi::StreamChannel::CloseCb callback={}) override;
+
+        std::shared_ptr<grpc::ClientContext> context() const
+        {
+            return m_context;
+        }
 
     private:
 
@@ -78,6 +85,8 @@ class HATN_GRPCCLIENT_EXPORT GrpcStream : public grpc::ClientBidiReactor<grpc::B
 
         grpc::ByteBuffer m_responseBuffer;
         std::atomic<bool> m_closed;
+        std::atomic<bool> m_initialResponse;
+        grpc::ByteBuffer m_writeBuffer;
 
         common::MutexLock m_mutex;
 };

@@ -29,6 +29,7 @@
 #include <hatn/logcontext/contextlogger.h>
 #include <hatn/api/apiliberror.h>
 #include <hatn/api/client/clientresponse.h>
+#include <hatn/api/client/clientrequest.h>
 #include <hatn/clientserver/protomessagemap.h>
 
 #include <hatn/grpcclient/grpcstream.h>
@@ -49,6 +50,15 @@ struct RequestEntry {
     {}
 };
 
+struct StreamEntry {
+    uintptr_t reqRawAddr;
+    std::shared_ptr<GrpcStream> stream;
+
+    StreamEntry(uintptr_t addr, std::shared_ptr<GrpcStream> stream)
+        : reqRawAddr(addr), stream(std::move(stream))
+    {}
+};
+
 using Requests = boost::multi_index::multi_index_container<
     RequestEntry,
     boost::multi_index::indexed_by<
@@ -65,6 +75,22 @@ using Requests = boost::multi_index::multi_index_container<
         >
     >;
 
+using Streams = boost::multi_index::multi_index_container<
+    StreamEntry,
+    boost::multi_index::indexed_by<
+        // First Index: Unique uintptr_t
+        boost::multi_index::ordered_unique<
+            boost::multi_index::tag<struct by_address>,
+            boost::multi_index::member<StreamEntry, uintptr_t, &StreamEntry::reqRawAddr>
+            >,
+        // Second Index: Unique std::shared_ptr
+        boost::multi_index::ordered_unique<
+            boost::multi_index::tag<struct by_shared_ptr>,
+            boost::multi_index::member<StreamEntry, std::shared_ptr<GrpcStream>, &StreamEntry::stream>
+            >
+        >
+    >;
+
 struct PriorityChannel
 {
     std::shared_ptr<grpc::Channel> channel;
@@ -72,8 +98,7 @@ struct PriorityChannel
     common::MutexLock mutex;
 
     Requests pendingRequests;
-
-    std::set<std::shared_ptr<GrpcStream>> streams;
+    Streams streams;
 
     PriorityChannel()
     {}
@@ -86,17 +111,28 @@ struct PriorityChannel
 
     void close()
     {
-        common::MutexScopedLock l{mutex};
-
+        mutex.lock();
+        std::vector<std::shared_ptr<grpc::ClientContext>> contexts;
         auto& ctxIdx = pendingRequests.get<by_shared_ptr>();
         for (const auto& entry : ctxIdx)
         {
-            entry.grpcContext->TryCancel();
+            contexts.emplace_back(entry.grpcContext);
+        }
+        mutex.unlock();
+
+        for (const auto& ctx : contexts)
+        {
+            ctx->TryCancel();
         }
 
-        stub.reset();
-        channel.reset();
-        pendingRequests.clear();
+        closeAllStreams();
+
+        {
+            common::MutexScopedLock l{mutex};
+            stub.reset();
+            channel.reset();
+            pendingRequests.clear();
+        }
     }
 
     template <typename RequestT>
@@ -112,15 +148,55 @@ struct PriorityChannel
         return ctx;
     }
 
+    template <typename RequestT>
+    std::shared_ptr<GrpcStream> addStream(
+                                    common::SharedPtr<RequestT> req,
+                                    std::shared_ptr<detail::GrpcTransport_p> transport
+                                )
+    {
+        auto ctx=std::make_shared<grpc::ClientContext>();
+        auto stream=std::make_shared<GrpcStream>(transport,req->priority(),std::move(ctx));
+
+        {
+            common::MutexScopedLock l{mutex};
+            streams.emplace(reinterpret_cast<uintptr_t>(req.get()),std::move(stream));
+        }
+
+        return stream;
+    }
+
     void cancelRequest(uintptr_t ptr)
     {
-        common::MutexScopedLock l{mutex};
-
-        auto& reqIndex = pendingRequests.get<by_address>();
-        auto it = reqIndex.find(ptr);
-        if(it != reqIndex.end())
+        std::shared_ptr<grpc::ClientContext> ctx;
         {
-            (*(it->grpcContext)).TryCancel();
+            common::MutexScopedLock l{mutex};
+
+            auto& reqIndex = pendingRequests.get<by_address>();
+            auto it = reqIndex.find(ptr);
+            if(it != reqIndex.end())
+            {
+                ctx=it->grpcContext;
+            }
+        }
+        if (ctx)
+        {
+            ctx->TryCancel();
+        }
+
+        std::shared_ptr<GrpcStream> stream;
+        {
+            common::MutexScopedLock l{mutex};
+
+            auto& streamIndex = streams.get<by_address>();
+            auto it = streamIndex.find(ptr);
+            if(it != streamIndex.end())
+            {
+                stream=it->stream;
+            }
+        }
+        if (stream)
+        {
+            stream->close();
         }
     }
 
@@ -135,14 +211,36 @@ struct PriorityChannel
     {
         common::MutexScopedLock l{mutex};
 
+        auto reqPtr=reinterpret_cast<uintptr_t>(req.get());
+
         auto& reqIndex = pendingRequests.get<by_address>();
-        reqIndex.erase(reinterpret_cast<uintptr_t>(req.get()));
+        reqIndex.erase(reqPtr);
+
+        auto& streamIndex = streams.get<by_address>();
+        streamIndex.erase(reqPtr);
     }
 
     void removeStream(std::shared_ptr<GrpcStream> stream)
     {
         common::MutexScopedLock l{mutex};
-        streams.erase(stream);
+        auto& streamIndex = streams.get<by_shared_ptr>();
+        streamIndex.erase(stream);
+    }
+
+    void closeAllStreams()
+    {
+        mutex.lock();
+        auto& st=streams.get<by_shared_ptr>();
+        mutex.lock();
+
+        for (auto& it : st)
+        {
+            it.stream->close();
+        }
+
+        mutex.lock();
+        streams.clear();
+        mutex.unlock();
     }
 };
 
@@ -205,7 +303,10 @@ public:
     Result<clientapi::Response> handleResponse(
         std::shared_ptr<grpc::ClientContext> context,
         grpc::Status status,
-        const grpc::ByteBuffer& respBuffer
+        const grpc::ByteBuffer& respBuffer,
+        bool streamMessage=false,
+        std::string messageType={},
+        common::ByteArrayShared messageBuf={}
     ) const;
 
     void removeStream(api::Priority p, std::shared_ptr<GrpcStream> stream)
@@ -261,7 +362,20 @@ void GrpcTransport::sendRequest(
     auto channel=pimpl->channel(req->priority());
 
     // create context
-    auto context = channel->addRequest(req);
+    std::shared_ptr<grpc::ClientContext> context;
+    std::shared_ptr<GrpcStream> stream;
+    if (req->requestType()==clientapi::RequestType::Unary)
+    {
+        context = channel->addRequest(req);
+    }
+    else
+    {
+        // create stream for non-unary calls
+        stream=channel->addStream(req,pimpl);
+        context=stream->context();
+    }
+
+    // setup deadline
     if (config().fieldValue(grpc_config::deadline_timeout)!=0)
     {
         context->set_wait_for_ready(true);
@@ -331,123 +445,65 @@ void GrpcTransport::sendRequest(
     grpc::ByteBuffer requestBuf(slices.data(),slices.size());
     auto responseBuf=std::make_shared<grpc::ByteBuffer>();
 
-    // prepare callback
-    auto cb=[req,channel,responseBuf,callback,context,bufs,this](grpc::Status status)
+    grpc::GenericStub* stub=channel->stub.get();
+    grpc::StubOptions opt;
+    if (req->requestType()==clientapi::RequestType::Unary)
     {
-#if 0
-        const std::multimap<grpc::string_ref, grpc::string_ref>& metadata = context->GetServerInitialMetadata();
+        HATN_CTX_DEBUG(1,"unary call")
 
-#if 1
-        // dump response headers
-        std::cout << "------HEADERS-----" << std::endl;
-        for (auto it = metadata.begin(); it != metadata.end(); ++it) {
-            // Convert string_ref to std::string for printing
-            std::cout << std::string(it->first.data(), it->first.size()) << ": "
-                      << std::string(it->second.data(), it->second.size()) << std::endl;
-        }
-std::cout << "-----------------" << std::endl;
-#endif
-
-        // copy response data
-        common::ByteArrayShared respData=common::makeShared<common::ByteArray>();
-        std::vector<grpc::Slice> slices;
-        if (responseBuf->Dump(&slices).ok())
+        // prepare callback
+        auto cb=[req,channel,responseBuf,callback,context,bufs,this](grpc::Status status)
         {
-            for (const auto& slice : slices)
+            auto response =  pimpl->handleResponse(
+                context,
+                status,
+                *responseBuf
+                );
+            if (responseBuf)
             {
-                respData->append(reinterpret_cast<const char*>(slice.begin()),slice.size());
-            }
-        }
-
-        // parse response
-        clientapi::Response resp;
-        resp.setStatus(api::protocol::ResponseStatus::Success);
-        resp.setMessageData(respData);
-        auto respType=pimpl->findHeader(metadata,config().fieldValue(grpc_config::message_type_header));
-        auto mappedRespType=pimpl->mapMessageType(respType);
-        resp.setMessageType(mappedRespType);
-        resp.setId(pimpl->findHeader(metadata,config().fieldValue(grpc_config::id_header)));
-
-        // check status
-        if (!status.ok())
-        {
-            if (status.error_code()==grpc::StatusCode::UNAUTHENTICATED)
-            {
-                resp.setStatus(api::protocol::ResponseStatus::AuthError);
-            }
-            else
-            {
-                //! @todo maybe map appStatus to response status
-                resp.setStatus(api::protocol::ResponseStatus::Generic);
-            }
-
-            auto appStatus=pimpl->findHeader(metadata,config().fieldValue(grpc_config::status_header));
-            if (appStatus.empty())
-            {
-                // possibly network errors
-                auto nativeErr=std::make_shared<common::NativeError>(
-                    status.error_message(),
-                    -status.error_code(),
-                    &api::ApiLibErrorCategory::getCategory()
-                    );
-                Error ec{
-                    api::ApiLibError::TRANSPORT_REQUEST_FAILED,
-                    std::move(nativeErr)
-                };
-
                 channel->removeRequest(req);
-                callback(std::move(ec));
+                callback(response.takeError());
                 return;
             }
 
-            auto apiError=pimpl->makeError(
-                    status.error_code(),
-                    std::move(appStatus),
-                    config(),
-                    context.get(),
-                    resp.messageType(),
-                    respData
-                );
-            resp.setErrror(std::move(apiError));
-        }
-
-        // done                
-        req->setResponse(std::move(resp));
-        channel->removeRequest(req);
-        HATN_CTX_STACK_BARRIER_OFF("grpctransport::sendrequest")
-        callback({});
-#else
-
-        auto response =  pimpl->handleResponse(
-                    context,
-                    status,
-                    *responseBuf
-                );
-        if (responseBuf)
-        {
+            req->setResponse(response.takeValue());
             channel->removeRequest(req);
-            callback(response.takeError());
-            return;
-        }
+            HATN_CTX_STACK_BARRIER_OFF("grpctransport::sendrequest")
+            callback({});
+        };
 
-        req->setResponse(response.takeValue());
-        channel->removeRequest(req);
-        HATN_CTX_STACK_BARRIER_OFF("grpctransport::sendrequest")
-        callback({});
-#endif
-    };
+        // invoke a call
+        stub->UnaryCall(
+            context.get(),
+            method,
+            opt,
+            &requestBuf,
+            responseBuf.get(),
+            cb
+        );
+    }
+    else
+    {
+        HATN_CTX_DEBUG(1,"stream call")
 
-    // invoke a call
-    grpc::StubOptions opt;
-    grpc::GenericStub* stub=channel->stub.get();
-    stub->UnaryCall(
-        context.get(),
-        method,
-        opt,
-        &requestBuf,
-        responseBuf.get(),
-        cb
-    );
+        auto cb=[req,channel,callback,context,bufs,stream,this](const Error& ec, clientapi::Response response)
+        {
+            if (ec)
+            {
+                channel->removeRequest(req);
+                callback(ec);
+                return;
+            }
+
+            req->setResponse(std::move(response));
+
+            HATN_CTX_STACK_BARRIER_OFF("grpctransport::sendrequest")
+            callback({});
+        };
+
+        stub->PrepareBidiStreamingCall(context.get(), method, opt, stream.get());
+        stream->startStream(&requestBuf,cb);
+    }
 }
 
 //--------------------------------------------------------------------------
