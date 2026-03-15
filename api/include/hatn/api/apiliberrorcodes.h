@@ -55,6 +55,7 @@
     Do(ApiLibError,UNSUPPORTED_AUTH_PROTOCOL,_TR("unsupported authentication protocol","api")) \
     Do(ApiLibError,MISMATCHED_RESPONSE_MESSAGE_TYPE,_TR("mismatched type of message in response","api")) \
     Do(ApiLibError,TRANSPORT_REQUEST_FAILED,_TR("network transport failed to deliver request","api")) \
+    Do(ApiLibError,INVALID_RESPONSE_FORMAT,_TR("network transport returned invalid result","api")) \
 
 HATN_API_NAMESPACE_BEGIN
 

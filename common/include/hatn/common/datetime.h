@@ -31,7 +31,7 @@ class DateTime;
 class DateTimePacker
 {
     // Flag sits at the 8th bit of the LSB (Bit 7 of the int64)
-    static constexpr int64_t VALID_FLAG = 1LL << 7;
+    static constexpr int64_t EPOCH_FLAG = 1LL << 7;
 
     public:
 
@@ -39,13 +39,19 @@ class DateTimePacker
          * Packs milliseconds and timezone minutes into an int64.
          * tzMinutes: Total minutes offset (e.g., +330 for India UTC+5:30)
          */
-        static int64_t pack(int64_t millis, int16_t tzMinutes) {
+        static int64_t pack(int64_t millis, int16_t tzMinutes)
+        {
+            if (millis==0 && tzMinutes==0)
+            {
+                return EPOCH_FLAG;
+            }
+
             // 1. Convert minutes to 15-min units to fit in 7 bits (-48 to +56)
             int8_t tzUnits = static_cast<int8_t>(tzMinutes / 15);
 
             // 2. Mask units to 7 bits (0x7F) and add the validity flag
             uint8_t tzPart = static_cast<uint8_t>(tzUnits) & 0x7F;
-            uint8_t lsb = tzPart | static_cast<uint8_t>(VALID_FLAG);
+            uint8_t lsb = tzPart;
 
             // 3. Shift millis left by 8 and OR the LSB
             return (millis << 8) | static_cast<int64_t>(lsb);
@@ -56,9 +62,10 @@ class DateTimePacker
         /**
          * Unpacks the int64. Returns empty if the flag is missing.
          */
-        static std::optional<Unpacked> unpack(int64_t packed) {
-            // Check if the validity flag (bit 7) is present
-            if (!(packed & VALID_FLAG)) {
+        static std::optional<Unpacked> unpack(int64_t packed)
+        {
+            if (packed==0)
+            {
                 return std::nullopt;
             }
 

@@ -77,6 +77,8 @@ HDU_UNIT(grpc_config,
     HDU_FIELD(auth_tag_header,TYPE_STRING,11,false,"x-hatn-atag")
     HDU_FIELD(config_json,TYPE_STRING,12,false,DefaultConfigJson)
     HDU_FIELD(deadline_timeout,TYPE_UINT32,13,false,0)
+    HDU_FIELD(heartbeat_response_type,TYPE_STRING,14,false,"grpc_api_server.HeartBeat")
+    HDU_FIELD(error_response_type,TYPE_STRING,15,false,"grpc_api_server.Error")
 )
 
 namespace detail {
@@ -176,7 +178,7 @@ class HATN_GRPCCLIENT_EXPORT GrpcTransport : public base::ConfigObject<grpc_conf
         void initChannels();
         void closeChannels();
 
-        std::unique_ptr<detail::GrpcTransport_p> pimpl;
+        std::shared_ptr<detail::GrpcTransport_p> pimpl;
 };
 
 HATN_GRPCCLIENT_NAMESPACE_END

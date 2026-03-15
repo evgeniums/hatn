@@ -127,7 +127,8 @@ class Client : public common::TaskSubcontext,
             lib::string_view topic={},
             Priority priority=Priority::Normal,
             uint32_t timeoutMs=0,
-            MethodAuth methodAuth={}
+            MethodAuth methodAuth={},
+            RequestType requestType=RequestType::Unary
         );
 
         auto prepare(
@@ -137,7 +138,8 @@ class Client : public common::TaskSubcontext,
             const Method& method,
             MessageType message,
             lib::string_view topic={},
-            MethodAuth methodAuth={}
+            MethodAuth methodAuth={},
+            RequestType requestType=RequestType::Unary
         );
 
         Error exec(
@@ -149,10 +151,11 @@ class Client : public common::TaskSubcontext,
             lib::string_view topic={},
             Priority priority=Priority::Normal,
             uint32_t timeoutMs=0,
-            MethodAuth methodAuth={}
+            MethodAuth methodAuth={},
+            RequestType requestType=RequestType::Unary
         )
         {
-            return exec(std::move(ctx),std::move(callback),SessionWrapperT{},service,method,std::move(message),topic,priority,timeoutMs,std::move(methodAuth));
+            return exec(std::move(ctx),std::move(callback),SessionWrapperT{},service,method,std::move(message),topic,priority,timeoutMs,std::move(methodAuth),requestType);
         }
 
         auto prepare(
@@ -161,10 +164,11 @@ class Client : public common::TaskSubcontext,
             const Method& method,
             MessageType message,
             lib::string_view topic={},
-            MethodAuth methodAuth={}
+            MethodAuth methodAuth={},
+            RequestType requestType=RequestType::Unary
         )
         {
-            return prepare(ctx,{},service,method,std::move(message),topic,std::move(methodAuth));
+            return prepare(ctx,{},service,method,std::move(message),topic,std::move(methodAuth),requestType);
         }
 
         void exec(

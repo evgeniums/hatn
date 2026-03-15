@@ -42,6 +42,14 @@ HATN_API_NAMESPACE_BEGIN
 
 namespace client {
 
+enum class RequestType : uint8_t
+{
+    Unary=0,
+    ServerStream=1,
+    ClientStream=2,
+    BidirectionalStream=ServerStream | ClientStream
+};
+
 template <typename ContextT>
 using RequestCb=std::function<void (common::SharedPtr<ContextT> ctx, const Error& ec, Response response)>;
 
@@ -73,7 +81,8 @@ struct Request
                 m_methodAuth(std::move(methodAuth)),
                 responseData(factory),
                 m_service(&service),
-                m_method(&method)
+                m_method(&method),
+                m_requestType(RequestType::Unary)
         {
             responseData.setUseInlineBuffers(true);
         }
@@ -192,6 +201,16 @@ struct Request
             return std::move(m_response);
         }
 
+        RequestType requestType() const noexcept
+        {
+            return m_requestType;
+        }
+
+        void setRequestType(RequestType type) noexcept
+        {
+            m_requestType=type;
+        }
+
         void regenId();
         common::SharedPtr<RequestUnitT> m_unit;
 
@@ -211,6 +230,8 @@ struct Request
 
         const Service* m_service;
         const Method* m_method;
+
+        RequestType m_requestType;
 };
 
 template <typename RequestT, typename TaskContextT>
