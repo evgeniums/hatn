@@ -58,7 +58,7 @@ class HATN_CLIENTAPP_EXPORT LockingController : public std::enable_shared_from_t
         constexpr static const uint32_t DefaultPassphraseThrottleDelay=5;
         constexpr static const uint32_t DefaultPassphraseThrottleTolerateTries=3;
 
-        constexpr static const uint32_t DefaultPassphraseCheckPeriod=60; // 1 minute
+        constexpr static const uint32_t DefaultPassphraseCheckPeriod=900; // 15 minutes
 
         LockingController(ClientApp* app);
 
