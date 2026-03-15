@@ -220,6 +220,21 @@ Result<clientapi::Response> detail::GrpcTransport_p::handleResponse(
 {
     clientapi::Response resp;
     std::string appStatus;
+
+    if (messageData.isNull())
+    {
+        messageData=common::makeShared<common::ByteArray>();
+        std::vector<grpc::Slice> slices;
+        if (responseBuf.Dump(&slices).ok())
+        {
+            // copy response data
+            for (const auto& slice : slices)
+            {
+                messageData->append(reinterpret_cast<const char*>(slice.begin()),slice.size());
+            }
+        }
+    }
+
     if (!streamMessage)
     {
         const std::multimap<grpc::string_ref, grpc::string_ref>& metadata = context->GetServerInitialMetadata();
@@ -238,25 +253,14 @@ Result<clientapi::Response> detail::GrpcTransport_p::handleResponse(
             std::cout << std::string(it->first.data(), it->first.size()) << ": "
                       << std::string(it->second.data(), it->second.size()) << std::endl;
         }
-        std::cout << "-----------------" << std::endl;
-        // copy response data
-        messageData=common::makeShared<common::ByteArray>();
-        std::vector<grpc::Slice> slices;
-        if (responseBuf.Dump(&slices).ok())
-        {
-            for (const auto& slice : slices)
-            {
-                messageData->append(reinterpret_cast<const char*>(slice.begin()),slice.size());
-            }
-        }
-        resp.setMessageData(messageData);
+        std::cout << "-----------------" << std::endl;                
 #endif
     }
     else
     {
-        resp.setMessageType(std::move(messageType));
-        resp.setMessageData(messageData);
+        resp.setMessageType(std::move(messageType));        
     }
+    resp.setMessageData(messageData);
 
     // set response
     resp.setStatus(api::protocol::ResponseStatus::Success);    

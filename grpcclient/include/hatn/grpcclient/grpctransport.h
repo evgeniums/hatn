@@ -76,7 +76,7 @@ HDU_UNIT(grpc_config,
     HDU_FIELD(tenancy_header,TYPE_STRING,10,false,"x-hatn-tenancy")
     HDU_FIELD(auth_tag_header,TYPE_STRING,11,false,"x-hatn-atag")
     HDU_FIELD(config_json,TYPE_STRING,12,false,DefaultConfigJson)
-    HDU_FIELD(deadline_timeout,TYPE_UINT32,13,false,0)
+    HDU_FIELD(deadline_timeout,TYPE_UINT32,13,false,DefaultDeadlineTimeout)
     HDU_FIELD(heartbeat_response_type,TYPE_STRING,14,false,"grpc_api_server.HeartBeat")
     HDU_FIELD(error_response_type,TYPE_STRING,15,false,"grpc_api_server.Error")
 )

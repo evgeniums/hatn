@@ -159,7 +159,7 @@ struct PriorityChannel
 
         {
             common::MutexScopedLock l{mutex};
-            streams.emplace(reinterpret_cast<uintptr_t>(req.get()),std::move(stream));
+            streams.emplace(reinterpret_cast<uintptr_t>(req.get()),stream);
         }
 
         return stream;
@@ -231,7 +231,7 @@ struct PriorityChannel
     {
         mutex.lock();
         auto& st=streams.get<by_shared_ptr>();
-        mutex.lock();
+        mutex.unlock();
 
         for (auto& it : st)
         {
@@ -376,7 +376,7 @@ void GrpcTransport::sendRequest(
     }
 
     // setup deadline
-    if (config().fieldValue(grpc_config::deadline_timeout)!=0)
+    if (config().fieldValue(grpc_config::deadline_timeout)!=0 && req->requestType()==clientapi::RequestType::Unary)
     {
         context->set_wait_for_ready(true);
         std::chrono::system_clock::time_point deadline =
@@ -454,12 +454,12 @@ void GrpcTransport::sendRequest(
         // prepare callback
         auto cb=[req,channel,responseBuf,callback,context,bufs,this](grpc::Status status)
         {
-            auto response =  pimpl->handleResponse(
+            auto response = pimpl->handleResponse(
                 context,
                 status,
                 *responseBuf
                 );
-            if (responseBuf)
+            if (response)
             {
                 channel->removeRequest(req);
                 callback(response.takeError());

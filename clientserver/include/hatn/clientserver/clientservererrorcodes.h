@@ -36,6 +36,7 @@
     Do(ClientServerError,ACCOUNT_CONFIG_UNSUPPORTED_NETWORK_PROTOCOL,_TR("unsupported network protocol for server in account configuration","clientserver")) \
     Do(ClientServerError,ACCOUNT_CONFIG_UNSUPPORTED_AUTH_PROTOCOL,_TR("unsupported authentication protocol for server in account configuration","clientserver")) \
     Do(ClientServerError,ACCOUNT_CONFIG_UNKNOWN_HOST,_TR("unknown network address of server in account configuration","clientserver")) \
+    Do(ClientServerError,ACCOUNT_CONFIG_MOCK_DISABLED,_TR("mock accounts not allowed","clientserver")) \
     Do(ClientServerError,AUTH_TOKEN_TAG_INVALID,_TR("invalid authentication token tag","clientserver")) \
     Do(ClientServerError,AUTH_TOKEN_EXPIRED,_TR("authentication token expired","clientserver")) \
     Do(ClientServerError,AUTH_TOKEN_INVALID,_TR("invalid authentication token","clientserver")) \
