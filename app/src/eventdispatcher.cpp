@@ -35,6 +35,7 @@ size_t EventSubscriptions::doRemove(size_t index, EventSubscriptions* subscripti
         return removedCount;
     }
 
+    //! @todo optimization: keep path for the index rather than scanning all tree
     for (auto& it: subscriptions->keyHandlers)
     {
         size_t removedCount=doRemove(index,it.second.get());
@@ -106,6 +107,7 @@ void EventSubscriptions::doFind(const EventKey& key,std::vector<EventHandler>& r
         return;
     }
 
+    //! @todo Implement more generic wildcard lookup
     const auto* selector=key.selectors().at(selectorIndex);
     auto it=keyHandlers.find(*selector);
     if (it!=keyHandlers.end())
