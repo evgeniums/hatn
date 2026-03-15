@@ -103,10 +103,10 @@ struct PriorityChannel
     PriorityChannel()
     {}
 
-    void init(const std::string& address,
+    void init(const GrpcTransport* cfg,
+              const std::string& address,
               std::shared_ptr<grpc::ChannelCredentials> creds,
-              const std::string& userAgent,
-              const std::string& configJson
+              const std::string& userAgent
               );
 
     void close()
@@ -376,11 +376,11 @@ void GrpcTransport::sendRequest(
     }
 
     // setup deadline
-    if (config().fieldValue(grpc_config::deadline_timeout)!=0 && req->requestType()==clientapi::RequestType::Unary)
+    if (config().fieldValue(grpc_config::unary_deadline_timeout)!=0 && req->requestType()==clientapi::RequestType::Unary)
     {
         context->set_wait_for_ready(true);
         std::chrono::system_clock::time_point deadline =
-            std::chrono::system_clock::now() + std::chrono::seconds(config().fieldValue(grpc_config::deadline_timeout));
+            std::chrono::system_clock::now() + std::chrono::seconds(config().fieldValue(grpc_config::unary_deadline_timeout));
         context->set_deadline(deadline);
     }
 

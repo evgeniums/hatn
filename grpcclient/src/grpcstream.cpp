@@ -146,14 +146,6 @@ void GrpcStream::OnReadDone(bool ok)
 
     // process response depending on message type
     if (respWrapper.fieldValue(stream_response::message_type)
-        ==
-        m_transport->transport->config().fieldValue(grpc_config::heartbeat_response_type))
-    {
-        // skip heartbeat
-        m_responseBuffer.Clear();
-        StartRead(&m_responseBuffer);
-    }
-    else if (respWrapper.fieldValue(stream_response::message_type)
              ==
              m_transport->transport->config().fieldValue(grpc_config::error_response_type))
     {

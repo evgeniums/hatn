@@ -44,8 +44,10 @@ HATN_GRPCCLIENT_NAMESPACE_BEGIN
 
 namespace common=HATN_COMMON_NAMESPACE;
 
-#if 1
-constexpr const uint32_t DefaultDeadlineTimeout=15;
+constexpr const uint32_t DefaultUnaryDeadlineTimeout=90;
+constexpr const uint32_t DefaultKeepAlivePeriod=60; // 60 seconds
+constexpr const uint32_t DefaultKeepAliveTimeout=20; // 20 seconds
+
 constexpr const char* DefaultConfigJson = R"({
   "methodConfig": [{
     "name": [{"service": ""}],
@@ -58,10 +60,6 @@ constexpr const char* DefaultConfigJson = R"({
     }
   }]
 })";
-#else
-constexpr const char* DefaultConfigJson ="";
-constexpr const uint32_t DefaultDeadlineTimeout=0;
-#endif
 
 HDU_UNIT(grpc_config,
     HDU_FIELD(maximum_concurrent_calls,TYPE_UINT32,1,false,100)
@@ -76,9 +74,11 @@ HDU_UNIT(grpc_config,
     HDU_FIELD(tenancy_header,TYPE_STRING,10,false,"x-hatn-tenancy")
     HDU_FIELD(auth_tag_header,TYPE_STRING,11,false,"x-hatn-atag")
     HDU_FIELD(config_json,TYPE_STRING,12,false,DefaultConfigJson)
-    HDU_FIELD(deadline_timeout,TYPE_UINT32,13,false,DefaultDeadlineTimeout)
-    HDU_FIELD(heartbeat_response_type,TYPE_STRING,14,false,"grpc_api_server.HeartBeat")
+    HDU_FIELD(unary_deadline_timeout,TYPE_UINT32,13,false,DefaultUnaryDeadlineTimeout)
     HDU_FIELD(error_response_type,TYPE_STRING,15,false,"grpc_api_server.Error")
+    HDU_FIELD(keep_alive_period,TYPE_UINT32,16,false,DefaultKeepAlivePeriod)
+    HDU_FIELD(keep_alive_timeout,TYPE_UINT32,17,false,DefaultKeepAliveTimeout)
+    HDU_FIELD(keep_alive_without_calls,TYPE_BOOL,18,false,true)
 )
 
 namespace detail {

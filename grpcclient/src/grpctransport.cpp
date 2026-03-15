@@ -157,9 +157,7 @@ void GrpcTransport::initChannels()
         }
 
         creds=grpc::SslCredentials(sslOpts);
-    }
-
-    std::string configJson{config().fieldValue(grpc_config::config_json)};
+    }    
 
     // init priority channels
     auto maxPriotity=static_cast<uint8_t>(api::Priority::Highest);
@@ -171,12 +169,12 @@ void GrpcTransport::initChannels()
             auto priority=static_cast<api::Priority>(p);
             auto it=pimpl->channels.emplace(std::piecewise_construct,std::forward_as_tuple(priority),
                                     std::forward_as_tuple());
-            it.first->second.init(address,creds,name(),configJson);
+            it.first->second.init(this,address,creds,name());
         }
     }
 
     // init default priority channel
-    pimpl->defaultChannel.init(address,creds,name(),configJson);
+    pimpl->defaultChannel.init(this,address,creds,name());
 }
 
 //--------------------------------------------------------------------------
@@ -191,17 +189,25 @@ void GrpcTransport::addMessageTypeMap(
 
 //--------------------------------------------------------------------------
 
-void detail::PriorityChannel::init(const std::string& address,
+void detail::PriorityChannel::init(const GrpcTransport* cfg,
+                                   const std::string& address,
                                    std::shared_ptr<grpc::ChannelCredentials> creds,
-                                   const std::string& userAgent,
-                                   const std::string& configJson)
+                                   const std::string& userAgent)
 {
+    std::string configJson{cfg->config().fieldValue(grpc_config::config_json)};
+
     grpc::ChannelArguments args;
     args.SetUserAgentPrefix(userAgent);
     if (!configJson.empty())
     {
         args.SetServiceConfigJSON(configJson);
     }
+    // Time between pings (e.g., 60 seconds)
+    args.SetInt(GRPC_ARG_KEEPALIVE_TIME_MS, cfg->config().fieldValue(grpc_config::keep_alive_period) * 1000);
+    // Time to wait for a response before closing the connection
+    args.SetInt(GRPC_ARG_KEEPALIVE_TIMEOUT_MS, cfg->config().fieldValue(grpc_config::keep_alive_timeout) * 1000);
+    // Allow pings even when there are no active calls
+    args.SetInt(GRPC_ARG_KEEPALIVE_PERMIT_WITHOUT_CALLS, cfg->config().fieldValue(grpc_config::keep_alive_without_calls));
 
     channel = grpc::CreateCustomChannel(address,creds,args);
     stub= std::make_shared<grpc::GenericStub>(channel);
