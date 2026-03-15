@@ -172,6 +172,12 @@ HDU_UNIT(embedded,
     HDU_REPEATED_FIELD(f3,basic::TYPE,3)
 )
 
+HDU_MAP(MapItem,TYPE_STRING,TYPE_STRING)
+
+HDU_UNIT(with_map,
+    HDU_MAP_FIELD(f1,MapItem::TYPE,1)
+)
+
 /********************** Client **************************/
 
 using ClientType=grpcclient::GrpcClient<grpcclient::Router,client::SessionWrapper<client::SessionNoAuth,client::SessionNoAuthContext>>;
@@ -376,8 +382,8 @@ BOOST_FIXTURE_TEST_CASE(Basic,TestEnv)
 
     clientThread->start();
 
-    api::Method basicTypesMethod{"Basic"};
-    auto invokeEcho=[serviceClient,app,&basicTypesMethod]()
+    api::Method method{"Basic"};
+    auto invokeEcho=[serviceClient,app,&method]()
     {
         auto msg=common::makeShared<basic::managed>();
         msg->setFieldValue(basic::vsint32, -1234);
@@ -428,7 +434,7 @@ BOOST_FIXTURE_TEST_CASE(Basic,TestEnv)
         auto ec=serviceClient->exec(
             ctx,
             cb,
-            basicTypesMethod,
+            method,
             *msg,
             "topic1"
         );
@@ -461,8 +467,8 @@ BOOST_FIXTURE_TEST_CASE(Repeated,TestEnv)
 
     clientThread->start();
 
-    api::Method basicTypesMethod{"Repeated"};
-    auto invokeEcho=[serviceClient,app,&basicTypesMethod]()
+    api::Method method{"Repeated"};
+    auto invokeEcho=[serviceClient,app,&method]()
     {
         auto msg=common::makeShared<repeated::managed>();
         msg->field(repeated::vsint32).append(-1234);
@@ -515,7 +521,7 @@ BOOST_FIXTURE_TEST_CASE(Repeated,TestEnv)
         auto ec=serviceClient->exec(
             ctx,
             cb,
-            basicTypesMethod,
+            method,
             *msg,
             "topic1"
         );
@@ -548,8 +554,8 @@ BOOST_FIXTURE_TEST_CASE(Embedded,TestEnv)
 
     clientThread->start();
 
-    api::Method basicTypesMethod{"Embedded"};
-    auto invokeEcho=[serviceClient,app,&basicTypesMethod]()
+    api::Method method{"Embedded"};
+    auto invokeEcho=[serviceClient,app,&method]()
     {
         auto msg=common::makeShared<embedded::managed>();
         auto f1=msg->mutableMember(embedded::f1)->createShared();
@@ -643,7 +649,70 @@ BOOST_FIXTURE_TEST_CASE(Embedded,TestEnv)
         auto ec=serviceClient->exec(
             ctx,
             cb,
-            basicTypesMethod,
+            method,
+            *msg,
+            "topic1"
+        );
+        HATN_TEST_EC(ec)
+    };
+
+    clientThread->execAsync(invokeEcho);
+
+    int secs=TEST_DURATION;
+    BOOST_TEST_MESSAGE(fmt::format("Running test for {} seconds",secs));
+    exec(secs);
+
+    clientThread->stop();
+
+    BOOST_CHECK(true);
+}
+
+BOOST_FIXTURE_TEST_CASE(Map,TestEnv)
+{
+    createThreads(1);
+    auto clientThread=threadWithContextTask(0);
+
+    auto app=createClientApp("grpcclient.jsonc");
+    auto client=createClient(app);
+    auto session=client::makeSessionNoAuthContext();
+    auto clientWithAuth=createClientWithAuth(client,session);
+    session.setSerializedHeaderNeeded(false);
+    auto serviceClient=makeShared<client::ServiceClient<ClientWithAuthCtxType,ClientWithAuthType>>("GrpcTest",clientWithAuth);
+    serviceClient->setPackage("grpc_api");
+
+    clientThread->start();
+
+    api::Method method{"Map"};
+    auto invokeEcho=[serviceClient,app,&method]()
+    {
+        auto msg=common::makeShared<with_map::managed>();
+        msg->field(with_map::f1).setValue("key1","value1");
+        msg->field(with_map::f1).setValue("key2","value2");
+        msg->field(with_map::f1).setValue("key3","value3");
+
+        auto cb=[msg](auto ctx, const Error& ec, api::client::Response response)
+        {
+            HATN_TEST_MESSAGE_TS(fmt::format("invokeMap cb, ec: {}/{}",ec.value(),ec.message()));
+            BOOST_REQUIRE(!ec);
+
+            auto msg1=common::makeShared<with_map::managed>();
+            HATN_DATAUNIT_NAMESPACE::WireBufSolidShared buf{response.messageData()};
+            auto ok=HATN_DATAUNIT_NAMESPACE::io::deserialize(*msg1,buf);
+            BOOST_CHECK(ok);
+
+            HATN_TEST_MESSAGE_TS(fmt::format("Response received: {}",msg1->toString(true)));
+
+            // BOOST_CHECK_EQUAL()
+        };
+
+        auto ctx=makeLogCtx();
+        auto& logCtx=ctx->get<LogContext>();
+        logCtx.setLogger(app->logger().logger());
+        HATN_TEST_MESSAGE_TS(fmt::format("Command to send: {}",msg->toString(true)));
+        auto ec=serviceClient->exec(
+            ctx,
+            cb,
+            method,
             *msg,
             "topic1"
         );
