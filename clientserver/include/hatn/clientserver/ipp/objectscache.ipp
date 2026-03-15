@@ -1003,7 +1003,7 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
         auto db=Traits::db(pimpl->derived,ctx,topic);
         if (!opt.cacheInDb() || !db)
         {
-            getAppDb(std::move(ctx),callback,topic,std::move(uid),bySubject=std::move(bySubject),opt,false);
+            getAppDb(std::move(ctx),callback,topic,std::move(uid),bySubject,opt,false);
             return;
         }
 
