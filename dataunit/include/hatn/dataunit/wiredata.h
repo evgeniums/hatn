@@ -46,7 +46,8 @@ public:
     // WireData& operator=(WireData&&)=default;
 
     virtual common::DataBuf nextBuffer() const noexcept=0;
-    virtual common::ByteArray* mainContainer() const noexcept=0;
+    virtual const common::ByteArray* mainContainer() const noexcept=0;
+    virtual common::ByteArray* mainContainer() noexcept=0;
     virtual void appendBuffer(common::SpanBuffer&& buf)=0;
     virtual void appendBuffer(const common::SpanBuffer& buf)=0;
     virtual void appendBuffer(common::DataBuf buf)=0;
@@ -133,7 +134,12 @@ public:
         return this->impl().nextBuffer();
     }
 
-    virtual common::ByteArray* mainContainer() const noexcept override
+    virtual const common::ByteArray* mainContainer() const noexcept override
+    {
+        return this->impl().mainContainer();
+    }
+
+    virtual common::ByteArray* mainContainer() noexcept override
     {
         return this->impl().mainContainer();
     }

@@ -176,9 +176,14 @@ struct ContainerShared
         return m_container;
     }
 
-    common::ByteArrayManaged* managedMainContainer() const noexcept
+    const common::ByteArrayManaged* managedMainContainer() const noexcept
     {
-        return const_cast<ContainerShared*>(this)->m_container.get();
+        return m_container.get();
+    }
+
+    common::ByteArrayManaged* managedMainContainer() noexcept
+    {
+        return m_container.get();
     }
 
     common::ByteArrayShared m_container;
@@ -340,9 +345,9 @@ class HATN_DATAUNIT_EXPORT WireBufSolidShared : public WireBuf<WireBufSolidShare
         ) noexcept
             : WireBuf<WireBufSolidSharedTraits>(WireBufSolidSharedTraits{std::move(container)},0,factory)
         {
-            if (sharedMainContainer())
+            if (traits().managedMainContainer()!=nullptr)
             {
-                setSize(sharedMainContainer()->size());
+                setSize(traits().managedMainContainer()->size());
             }
         }
 

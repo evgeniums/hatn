@@ -293,7 +293,12 @@ class WireBuf : public common::WithTraits<TraitsT>,
             return this->traits().nextBuffer();
         }
 
-        common::ByteArray* mainContainer() const noexcept
+        common::ByteArray* mainContainer() noexcept
+        {
+            return this->traits().mainContainer();
+        }
+
+        const common::ByteArray* mainContainer() const noexcept
         {
             return this->traits().mainContainer();
         }
