@@ -44,7 +44,7 @@ HATN_GRPCCLIENT_NAMESPACE_BEGIN
 
 namespace common=HATN_COMMON_NAMESPACE;
 
-constexpr const uint32_t DefaultUnaryDeadlineTimeout=90;
+constexpr const uint32_t DefaultUnaryDeadlineTimeout=25;
 constexpr const uint32_t DefaultKeepAlivePeriod=60; // 60 seconds
 constexpr const uint32_t DefaultKeepAliveTimeout=20; // 20 seconds
 
