@@ -237,7 +237,12 @@ struct Request : public common::TaskSubcontext
         return requestBuf.sharedMainContainer();
     }
 
-    common::ByteArray* rawData() const
+    const common::ByteArray* rawData() const
+    {
+        return requestBuf.mainContainer();
+    }
+
+    common::ByteArray* rawData()
     {
         return requestBuf.mainContainer();
     }
