@@ -228,6 +228,11 @@ class HATN_APP_EXPORT App
             return m_appThread;
         }
 
+        common::ThreadQWithTaskContext* networkThread() const noexcept
+        {
+            return m_networkThread;
+        }
+
         const AppName& appName() const
         {
             return m_appName;
@@ -295,6 +300,7 @@ class HATN_APP_EXPORT App
 
         std::vector<std::shared_ptr<common::ThreadQWithTaskContext>> m_threads;
         common::ThreadQWithTaskContext* m_appThread;
+        common::ThreadQWithTaskContext* m_networkThread;
 
         common::SharedPtr<AppEnv> m_env;
 

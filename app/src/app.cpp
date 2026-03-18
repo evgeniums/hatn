@@ -120,13 +120,13 @@ class LogAppConfig : public HATN_LOGCONTEXT_NAMESPACE::AppConfig
 #ifdef HATN_APP_THREADS_NUMBER
 constexpr static const uint8_t DefaultThreadCountr=HATN_APP_THREADS_NUMBER;
 #else
-constexpr static const uint8_t DefaultThreadCount=1;
+constexpr static const uint8_t DefaultThreadCount=2;
 #endif
 
 #if defined (BUILD_ANDROID) || defined (BUILD_IOS)
 constexpr static const uint8_t ReserveThreadCount=2;
 #else
-constexpr static const uint8_t ReserveThreadCount=1;
+constexpr static const uint8_t ReserveThreadCount=2;
 #endif
 
 #ifdef HATN_APP_CONFIG_ROOT
@@ -164,6 +164,7 @@ constexpr static const char* CryptPluginsFolder="crypt";
 constexpr static const char* DbPluginsFolder="db";
 
 constexpr static const char* ThreadTagAppThread="app_default";
+constexpr static const char* ThreadTagNetworkThread="network_default";
 constexpr static const char* ThreadTagNotMappedThread="not_mapped";
 
 //---------------------------------------------------------------
@@ -286,6 +287,7 @@ App::App(AppName appName) :
         m_configTree(std::make_shared<HATN_BASE_NAMESPACE::ConfigTree>()),
         m_configTreeLoader(std::make_shared<HATN_BASE_NAMESPACE::ConfigTreeLoader>()),
         m_appThread(nullptr),
+        m_networkThread(nullptr),
         d(std::make_unique<App_p>(this)),
         m_appConfigRoot(AppConfigRoot),
         m_defaultThreadCount(DefaultThreadCount)
@@ -564,6 +566,10 @@ Error App::initThreads()
                 {
                     m_appThread=thread.get();
                 }
+                else if (tag==ThreadTagNetworkThread)
+                {
+                    m_networkThread=thread.get();
+                }
                 thread->setTag(std::move(tag));
             }
 
@@ -589,6 +595,17 @@ Error App::initThreads()
     if (m_appThread==nullptr)
     {
         m_appThread=m_threads.back().get();
+    }
+    if (m_networkThread==nullptr)
+    {
+        if (m_threads.size()>1)
+        {
+            m_networkThread=m_threads.at(m_threads.size()-2).get();
+        }
+        else
+        {
+            m_networkThread=m_appThread;
+        }
     }
 
     // done
