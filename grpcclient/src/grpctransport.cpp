@@ -209,6 +209,12 @@ void detail::PriorityChannel::init(const GrpcTransport* cfg,
     // Allow pings even when there are no active calls
     args.SetInt(GRPC_ARG_KEEPALIVE_PERMIT_WITHOUT_CALLS, cfg->config().fieldValue(grpc_config::keep_alive_without_calls));
 
+    auto serverName=cfg->router()->serverName();
+    if (!serverName.empty())
+    {
+        args.SetSslTargetNameOverride(serverName);
+    }
+
     channel = grpc::CreateCustomChannel(address,creds,args);
     stub= std::make_shared<grpc::GenericStub>(channel);
 }
