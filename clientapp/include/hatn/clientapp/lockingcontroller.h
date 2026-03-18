@@ -50,7 +50,7 @@ class HATN_CLIENTAPP_EXPORT LockingController : public std::enable_shared_from_t
 
         constexpr static const uint32_t ActivityTimerPeriod=1;
 
-        constexpr static const uint32_t DefaultAutoLockPeriod=60;
+        constexpr static const uint32_t DefaultAutoLockPeriod=900;
         constexpr static const uint32_t DefaultPincodeTolerateTries=3;
         constexpr static const uint32_t DefaultPincodeResetErrorPeriod=900;
 
