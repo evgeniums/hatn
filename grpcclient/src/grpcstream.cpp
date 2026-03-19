@@ -144,6 +144,8 @@ void GrpcStream::OnReadDone(bool ok)
         return;
     }
 
+    std::cerr << "GrpcStream::OnReadDone respWrapper: " << respWrapper.toString(true) << std::endl;
+
     // process response depending on message type
     if (respWrapper.fieldValue(stream_response::message_type)
              ==
