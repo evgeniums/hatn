@@ -35,11 +35,11 @@ HDU_UNIT(public_key,
     HDU_FIELD(content_format,TYPE_STRING,6)
 )
 
-HDU_UNIT_WITH(private_key,(HDU_BASE(public_key)),
-    HDU_FIELD(passphrase,TYPE_STRING,10)
+HDU_UNIT_WITH(encryption_key,(HDU_BASE(public_key)),
+    HDU_FIELD(secret,TYPE_BYTES,7)
 )
 
-HDU_UNIT_WITH(private_key_db,(HDU_BASE(HATN_DB_NAMESPACE::object),HDU_BASE(private_key)),
+HDU_UNIT_WITH(private_key_db,(HDU_BASE(HATN_DB_NAMESPACE::object),HDU_BASE(encryption_key)),
 )
 
 HDU_UNIT(encrypted,
@@ -58,6 +58,12 @@ HDU_UNIT(encryptable_string,
 HDU_UNIT(encryptable_object,
     HDU_FIELD(encrypted,encrypted::TYPE,1)
     HDU_FIELD(plain,TYPE_DATAUNIT,2)
+)
+
+HDU_UNIT(encryptable_string_asym,
+    HDU_FIELD(encrypted,encrypted::TYPE,1)
+    HDU_FIELD(plain,with_string::TYPE,2)
+    HDU_FIELD(dh_pub_key,TYPE_STRING,3)
 )
 
 template <typename T1, typename T2>

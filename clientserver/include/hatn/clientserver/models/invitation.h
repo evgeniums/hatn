@@ -129,7 +129,6 @@ HDU_UNIT(invitation_state,
 )
 
 HDU_UNIT_WITH(client_invitation,(HDU_BASE(HATN_DB_NAMESPACE::object),HDU_BASE(invitation_state),HDU_BASE(at_server)),
-    HDU_FIELD(invitation_id,TYPE_OBJECT_ID,1)
     HDU_FIELD(name,TYPE_STRING,2)
     HDU_FIELD(invitation,invitation::TYPE,3)
     HDU_FIELD(mode,HDU_TYPE_ENUM(InvitationPublishMode),4)
