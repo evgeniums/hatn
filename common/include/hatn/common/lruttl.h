@@ -223,7 +223,9 @@ class LruTtl
                 {
                     if (status!=AsioDeadlineTimer::Status::Timeout)
                     {
+#if 0 //! @todo crash: Fix crash on application closing
                         p->clear();
+#endif
                         p->timer.reset();
                         return;
                     }
