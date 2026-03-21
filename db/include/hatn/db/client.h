@@ -780,7 +780,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             )
         {
             auto range=datePartition(partitionDate,model->model);
-            return listModelTopics(model->model,range,onlyDefaultPartition);
+            return listModelTopics(*model->info,range,onlyDefaultPartition);
         }
 
         template <typename ModelT>
@@ -794,7 +794,7 @@ class HATN_DB_EXPORT Client : public common::WithID
             HATN_CTX_SCOPE("listmodeltopics")
             if (m_open)
             {
-                return doListModelTopics(model->model,partitionDateRange,onlyDefaultPartition);
+                return doListModelTopics(*model->info,partitionDateRange,onlyDefaultPartition);
             }
 
             HATN_CTX_SCOPE_LOCK()
