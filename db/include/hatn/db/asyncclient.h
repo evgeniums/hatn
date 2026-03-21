@@ -791,8 +791,7 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
         }
 
         template <typename ModelT,typename ContextT, typename CallbackT>
-        Result<std::pmr::set<Topic>>
-        listModelTopics(
+        void listModelTopics(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
             const std::shared_ptr<ModelT>& model,
@@ -812,8 +811,7 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
         }
 
         template <typename ModelT,typename ContextT, typename CallbackT>
-        Result<std::pmr::set<Topic>>
-        listModelTopics(
+        void listModelTopics(
             common::SharedPtr<ContextT> ctx,
             CallbackT cb,
             const std::shared_ptr<ModelT>& model,
