@@ -17,14 +17,13 @@
 #define HATNCLIENTSERVERMODELEXPIRE_H
 
 #include <hatn/db/object.h>
+#include <hatn/db/expire.h>
 
 #include <hatn/clientserver/clientserver.h>
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
-HDU_UNIT(with_expire,
-    HDU_FIELD(expire_at,TYPE_DATETIME,77)
-)
+namespace with_expire=HATN_DB_NAMESPACE::with_expire;
 
 HATN_CLIENT_SERVER_NAMESPACE_END
 

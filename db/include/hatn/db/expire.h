@@ -25,10 +25,10 @@
 HATN_DB_NAMESPACE_BEGIN
 
 HDU_UNIT(with_expire,
-    HDU_FIELD(expiration,TYPE_DATETIME,190)
+    HDU_FIELD(expire_at,TYPE_DATETIME,77)
 )
 
-HATN_DB_TTL_INDEX(expireIdx,1,with_expire::expiration)
+HATN_DB_TTL_INDEX(expireIdx,1,with_expire::expire_at)
 
 HATN_DB_NAMESPACE_END
 
