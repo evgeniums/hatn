@@ -191,6 +191,12 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
             const ModelIndexQuery& query
         ) override;
 
+        Result<DbObject> doFindOneForUpdate(
+            const ModelInfo& model,
+            const ModelIndexQuery& query,
+            Transaction* tx
+        ) override;
+
         Result<std::pmr::set<Topic>>
         doListModelTopics(
             const ModelInfo& model,

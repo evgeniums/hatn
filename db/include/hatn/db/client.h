@@ -584,6 +584,26 @@ class HATN_DB_EXPORT Client : public common::WithID
             return dbError(DbError::DB_NOT_OPEN);
         }
 
+        template <typename ModelT, typename IndexT>
+        Result<DbObjectT<typename ModelT::ManagedType>> findOneForUpdate(
+                const std::shared_ptr<ModelT>& model,
+                const Query<IndexT>& query,
+                Transaction* tx=nullptr
+            )
+        {
+            HATN_CTX_SCOPE("db::findone")
+            if (m_open)
+            {
+                ModelIndexQuery q{query,model->model.indexId(query.indexT())};
+                auto r=doFindOneForUpdate(*model->info,q,tx);
+                HATN_CHECK_RESULT(r)
+                return DbObjectT<typename ModelT::ManagedType>{r.takeValue()};
+            }
+
+            HATN_CTX_SCOPE_LOCK()
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
         template <typename ModelT, typename QueryT>
         Result<size_t> count(
             const std::shared_ptr<ModelT>& model,
@@ -896,6 +916,12 @@ class HATN_DB_EXPORT Client : public common::WithID
         virtual Result<DbObject> doFindOne(
             const ModelInfo& model,
             const ModelIndexQuery& query
+        )=0;
+
+        virtual Result<DbObject> doFindOneForUpdate(
+            const ModelInfo& model,
+            const ModelIndexQuery& query,
+            Transaction* tx
         )=0;
 
         virtual Result<size_t> doCount(
