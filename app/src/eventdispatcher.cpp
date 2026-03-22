@@ -21,7 +21,8 @@ HATN_APP_NAMESPACE_BEGIN
 
 namespace {
 
-constexpr const int DebugVerbosity=3;
+constexpr const int DebugVerbosityPublish=10;
+constexpr const int DebugVerbosity=30;
 
 }
 
@@ -107,20 +108,20 @@ void EventSubscriptions::doFind(const EventKey& key,std::vector<EventHandler>& r
         return;
     }
 
-    //! @todo Implement more generic wildcard lookup
     const auto* selector=key.selectors().at(selectorIndex);
+
+    // search specific selector
     auto it=keyHandlers.find(*selector);
     if (it!=keyHandlers.end())
     {
         it->second->doFind(key,result,selectorIndex+1);
     }
-    else
+
+    // search wildcard selector
+    it=keyHandlers.find(lib::string_view{});
+    if (it!=keyHandlers.end())
     {
-        it=keyHandlers.find(lib::string_view{});
-        if (it!=keyHandlers.end())
-        {
-            it->second->doFind(key,result,selectorIndex+1);
-        }
+        it->second->doFind(key,result,selectorIndex+1);
     }
 }
 
@@ -141,7 +142,7 @@ void EventDispatcher::publish(
 {
     HATN_CTX_SCOPE("eventdispatcher::publish")
     HATN_CTX_SCOPE_PUSH("event_category",event->category);
-    HATN_CTX_SCOPE_PUSH("event",event->event);
+    HATN_CTX_SCOPE_PUSH("event_name",event->event);
 
     EventKey key{
         event->category,
@@ -162,6 +163,11 @@ void EventDispatcher::publish(
         HATN_CTX_SCOPE_PUSH("event_oid",event->oid);
     }
     key.setSubject(event->subject);
+
+    HATN_CTX_DEBUG_RECORDS(DebugVerbosityPublish,"publish event",
+                           {"event_subject",event->subject},
+                           {"event_oid",event->oid},
+                           )
 
     std::vector<EventHandler> handlers;
     {
