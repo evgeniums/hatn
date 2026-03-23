@@ -168,6 +168,11 @@ class DbObject : public du::UnitWrapper
             return m_topic;
         }
 
+        Topic& topic() noexcept
+        {
+            return m_topic;
+        }
+
     private:
 
         Topic m_topic;
