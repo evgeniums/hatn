@@ -1172,11 +1172,17 @@ RocksdbClient::doFindOneForUpdate(
         }
 
         obj=foundObj;
+        obj.topic().load(foundObj.topic());
+
         return false;
     };
 
     auto ec=rdbModel->findCb(*d->handler,query,cb,tx,true);
     HATN_CHECK_EC(ec)
+    if (obj.isNull())
+    {
+        return dbError(DbError::NOT_FOUND);
+    }
 
     return obj;
 }
