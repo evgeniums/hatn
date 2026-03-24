@@ -26,7 +26,7 @@
 HATN_COMMON_NAMESPACE_BEGIN
 
 template <typename KeyT, typename ItemT>
-class LruItem : public ItemT, public boost::intrusive::list_base_hook<boost::intrusive::link_mode<boost::intrusive::normal_link>>
+class LruItem : public ItemT, public boost::intrusive::list_base_hook<boost::intrusive::link_mode<boost::intrusive::safe_link>>
 {
     public:
 
@@ -141,11 +141,14 @@ class Lru
          */
         void touchItem(Item& item)
         {
-            if (&item!=&m_queue.back())
+            if (item.is_linked())
             {
-                m_queue.erase(m_queue.iterator_to(item));
-                m_queue.push_back(item);
+                if (&item!=&m_queue.back())
+                {
+                    m_queue.erase(m_queue.iterator_to(item));
+                }
             }
+            m_queue.push_back(item);
         }
 
         /**
@@ -268,12 +271,14 @@ class Lru
         template <typename KeyT1>
         void removeItem(const KeyT1& key, Item& item)
         {
-            if (item.displaceHandler())
+            if (item.is_linked())
             {
-                item.displaceHandler()(&item);
+                m_queue.erase(m_queue.iterator_to(item));
+                if (item.displaceHandler())
+                {
+                    item.displaceHandler()(&item);
+                }
             }
-
-            m_queue.erase(m_queue.iterator_to(item));
             m_storage.doRemove(key);
         }
 
