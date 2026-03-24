@@ -229,6 +229,10 @@ Error CryptFile::doOpen(Mode mode, bool headerOnly)
                         auto restPackedChunksSize=m_ciphertextSize-firstPackedChunkSize;
                         auto packedChunkSize=m_proc.maxPackedChunkSize(1);
                         auto dv=std::div(long(restPackedChunksSize),long(packedChunkSize));
+                        if (dv.rem==0)
+                        {
+                            dv.rem=prefixSize;
+                        }
                         if (size_t(dv.rem)<prefixSize)
                         {
                             throw ErrorException(cryptError(CryptError::INVALID_CRYPTFILE_FORMAT));
