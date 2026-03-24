@@ -232,6 +232,7 @@ Result<clientapi::Response> detail::GrpcTransport_p::handleResponse(
 {
     clientapi::Response resp;
     std::string appStatus;
+    std::string grpcCode;
 
     if (messageData.isNull())
     {
@@ -249,45 +250,74 @@ Result<clientapi::Response> detail::GrpcTransport_p::handleResponse(
 
     if (!streamMessage)
     {
-        const std::multimap<grpc::string_ref, grpc::string_ref>& metadata = context->GetServerInitialMetadata();
-        auto respType=findHeader(metadata,transport->config().fieldValue(grpc_config::message_type_header));
-        auto mappedRespType=mapMessageType(respType);
-        resp.setMessageType(mappedRespType);
-        resp.setId(findHeader(metadata,transport->config().fieldValue(grpc_config::id_header)));
-
-        appStatus=findHeader(metadata,transport->config().fieldValue(grpc_config::status_header));
-
+        auto handleHeaders=[&,this](const std::multimap<grpc::string_ref, grpc::string_ref>& metadata, std::string type)
+        {
+            auto respType=findHeader(metadata,transport->config().fieldValue(grpc_config::message_type_header));
+            if (!respType.empty())
+            {
+                auto mappedRespType=mapMessageType(respType);
+                resp.setMessageType(mappedRespType);
+            }
+            auto id=findHeader(metadata,transport->config().fieldValue(grpc_config::id_header));
+            if (!id.empty())
+            {
+                resp.setId(id);
+            }
+            auto status=findHeader(metadata,transport->config().fieldValue(grpc_config::status_header));
+            if (!status.empty())
+            {
+                appStatus=status;
+            }
+            auto code=findHeader(metadata,transport->config().fieldValue(grpc_config::grpc_code_header));
+            if (!code.empty())
+            {
+                grpcCode=code;
+            }
 #if 1
-        // dump response headers
-        std::cout << "------HEADERS-----" << std::endl;
-        for (auto it = metadata.begin(); it != metadata.end(); ++it) {
-            // Convert string_ref to std::string for printing
-            std::cout << std::string(it->first.data(), it->first.size()) << ": "
-                      << std::string(it->second.data(), it->second.size()) << std::endl;
-        }
-        std::cout << "-----------------" << std::endl;                
+            // dump response headers
+            std::cout << "------HEADERS " << type << "---------" << std::endl;
+            for (auto it = metadata.begin(); it != metadata.end(); ++it) {
+                // Convert string_ref to std::string for printing
+                std::cout << std::string(it->first.data(), it->first.size()) << ": "
+                          << std::string(it->second.data(), it->second.size()) << std::endl;
+            }
+            std::cout << "-----------------" << std::endl;
 #endif
+        };
+
+        handleHeaders(context->GetServerInitialMetadata(),"initial");
+        handleHeaders(context->GetServerTrailingMetadata(),"trailing");
     }
     else
     {
-        resp.setMessageType(std::move(messageType));        
+        resp.setMessageType(std::move(messageType));
     }
     resp.setMessageData(messageData);
 
-    // set response
-    resp.setStatus(api::protocol::ResponseStatus::Success);    
-
     // check status
-    if (!status.ok())
+    if (status.ok())
     {
-        if (status.error_code()==grpc::StatusCode::UNAUTHENTICATED)
+        resp.setStatus(api::protocol::ResponseStatus::Success);
+    }
+    else
+    {
+        auto code=status.error_code();
+        if (!grpcCode.empty())
         {
-            resp.setStatus(api::protocol::ResponseStatus::AuthError);
+            int tmp = 0;
+            auto [ptr, ec] = std::from_chars(grpcCode.data(), grpcCode.data() + grpcCode.size(), tmp);
+            if (ec == std::errc())
+            {
+                code=static_cast<grpc::StatusCode>(tmp);
+            }
         }
-        else
+
+        resp.setStatus(apiStatus(code));
+
+        if (resp.status()==HATN_API_NAMESPACE::ApiResponseStatus::AuthError)
         {
-            //! @todo maybe map appStatus to response status
-            resp.setStatus(api::protocol::ResponseStatus::Generic);
+            // auth error not API error, it can be processed by client session
+            return resp;
         }
 
         if (appStatus.empty())
@@ -307,14 +337,14 @@ Result<clientapi::Response> detail::GrpcTransport_p::handleResponse(
         }
 
         auto apiError=makeError(
-            status.error_code(),
+            code,
             std::move(appStatus),
             transport->config(),
             context.get(),
             resp.messageType(),
             messageData
         );
-        resp.setErrror(std::move(apiError));
+        resp.setError(std::move(apiError));
     }
 
     return resp;

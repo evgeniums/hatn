@@ -312,12 +312,14 @@ void Client<RouterT,Transport,SessionWrapperT,Traits>::sendRequest(common::Share
             bool invokeCallback=true;
             ec=m_transport.parseResponse(req);
             auto resp=req->takeResponse();
-            if (!ec)
+            if (!ec) // parsed without error
             {                
                 if (!resp.isSuccess())
                 {
                     if (resp.status()==protocol::ResponseStatus::AuthError && !req->session().isNull())
                     {
+                        HATN_CTX_DEBUG(1,"authentication error, forward to session manager")
+
                         // process auth error in session
                         if (!m_closed)
                         {

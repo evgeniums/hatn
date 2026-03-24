@@ -230,7 +230,15 @@ void GrpcStream::OnDone(const grpc::Status& status)
             }
             if (rcb)
             {
-                rcb(ec,{});
+                if (resp->status() == HATN_API_NAMESPACE::protocol::ResponseStatus::AuthError)
+                {
+                    //! @todo handle API errors more gracefully
+                    rcb({},resp.takeValue());
+                }
+                else
+                {
+                    rcb(ec,{});
+                }
             }
             if (ccb)
             {

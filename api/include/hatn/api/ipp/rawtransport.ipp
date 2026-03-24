@@ -167,7 +167,7 @@ Error RawTransport<RouterT,Traits>::parseResponse(
 
     if (!resp.isSuccess())
     {
-        resp.setErrror(parseError());
+        resp.setError(parseError());
     }
 
     return OK;

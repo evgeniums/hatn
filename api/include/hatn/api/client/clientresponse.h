@@ -112,7 +112,7 @@ class Response
             return OK;
         }
 
-        void setErrror(Error ec)
+        void setError(Error ec)
         {
             m_error=std::move(ec);
         }
@@ -135,7 +135,7 @@ class Response
     private:
 
         IdType m_id;
-        protocol::ResponseStatus m_status;
+        protocol::ResponseStatus m_status=protocol::ResponseStatus::Success;
         std::string m_messageType;
         common::ByteArrayShared m_messageData;
 
