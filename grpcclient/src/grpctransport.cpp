@@ -143,10 +143,13 @@ void GrpcTransport::initChannels()
     std::shared_ptr<grpc::ChannelCredentials> creds;
     if (pimpl->router->isInsecure())
     {
+        HATN_CTX_DEBUG(1,"use insecure channel for gRPC transport")
         creds=grpc::InsecureChannelCredentials();
     }
     else
     {
+        HATN_CTX_DEBUG(1,"use TLS channel for gRPC transport")
+
         grpc::SslCredentialsOptions sslOpts;
         sslOpts.pem_root_certs = pimpl->router->serverCerts();
 
