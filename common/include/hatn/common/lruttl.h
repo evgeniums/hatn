@@ -223,9 +223,8 @@ class LruTtl
                 {
                     if (status!=AsioDeadlineTimer::Status::Timeout)
                     {
-#if 0 //! @todo crash: Fix crash on application closing
+                        MutexScopedLock l{p->mutex};
                         p->clear();
-#endif
                         p->timer.reset();
                         return;
                     }
@@ -434,12 +433,14 @@ class LruTtl
          */
         void setCapacity(size_t capacity)
         {
+            MutexScopedLock l{pimpl->mutex};
             pimpl->lru.setCapacity(capacity);
         }
 
         //! Get cache capacity
         size_t capacity() const noexcept
         {
+            MutexScopedLock l{pimpl->mutex};
             return pimpl->lru.capacity();
         }
 

@@ -146,9 +146,13 @@ class Lru
                 if (&item!=&m_queue.back())
                 {
                     m_queue.erase(m_queue.iterator_to(item));
+                    m_queue.push_back(item);
                 }
             }
-            m_queue.push_back(item);
+            else
+            {
+                m_queue.push_back(item);
+            }
         }
 
         /**
