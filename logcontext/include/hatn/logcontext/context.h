@@ -175,7 +175,9 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
                 }
                 if (m_currentScopeIdx>config::ScopeDepth)
                 {
-                    std::cerr << "Mismatched number of enter/leave scope calls" << std::endl;
+                    std::cerr << "Mismatched number of enter/leave scope calls: currentScopeIdx=" << m_currentScopeIdx
+                              << " ctx="<<mainCtx().id()
+                              << std::endl;
                 }
 
                 if (!m_lockStack)
