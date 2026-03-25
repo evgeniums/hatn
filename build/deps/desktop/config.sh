@@ -1,5 +1,5 @@
 if [ -z "$dep_libs" ]; then
-export dep_libs="openssl boost c-ares lz4 gflags rapidjson rocksdb"
+export dep_libs="openssl boost c-ares lz4 gflags rapidjson rocksdb utf8proc"
 fi
 
 if [ -z "$openssl_version" ]; then

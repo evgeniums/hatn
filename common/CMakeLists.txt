@@ -15,6 +15,13 @@ if(HAVE_FULLFSYNC)
   SET (COMMON_CONFIG_H_TEXT "${COMMON_CONFIG_H_TEXT}\n#ifndef HATN_HAVE_FULLFSYNC \n    #define HATN_HAVE_FULLFSYNC\n#endif")
 endif()
 
+FIND_PACKAGE(utf8proc)
+
+IF(utf8proc_FOUND)
+    SET (COMMON_CONFIG_H_TEXT "${COMMON_CONFIG_H_TEXT}\n#ifndef HATN_USE_UTF8PROC \n    #define HATN_USE_UTF8PROC 1\n#endif")
+ENDIF()
+
+
 ADD_SUBDIRECTORY(thirdparty)
 INCLUDE(thirdparty/sha1/sha1.cmake)
 INCLUDE(thirdparty/crc32/crc32.cmake)
@@ -190,6 +197,8 @@ SET (HEADERS
     include/hatn/common/beastfilewinwrapper.h
 
     include/hatn/common/withsharedvalue.h
+
+    include/hatn/common/utf8_tokenize.h
 )
 
 SET (HEADERS
@@ -262,6 +271,8 @@ SET (SOURCES
     src/datetime.cpp
 
     src/taskcontext.cpp
+
+    src/utf8_tokenize.cpp
 )
 
 SET (SOURCES
@@ -302,6 +313,15 @@ IF (NOT SYSTEM_FMTLIB)
 ENDIF()
 
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} PUBLIC function2)
+
+FIND_PACKAGE(utf8proc)
+
+IF(utf8proc_FOUND)
+    MESSAGE(STATUS "utf8proc found, enabling UTF-8 proc")
+    TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE utf8proc::utf8proc)
+ELSE()
+    MESSAGE(WARNING "utf8proc NOT found, disabling UTF-8 proc")
+ENDIF()
 
 IF (INSTALL_DEV)
     INCLUDE(hatn/Install)
