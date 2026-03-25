@@ -61,6 +61,7 @@ void GrpcTransport::setRouter(common::SharedPtr<Router> router)
     pimpl->router=std::move(router);
     if (pimpl->router)
     {
+        HATN_CTX_DEBUG_RECORDS(1,"GrpcTransport::setRouter",{"insecure",pimpl->router->isInsecure()})
         initChannels();
     }
     else
