@@ -103,10 +103,10 @@ struct PriorityChannel
     PriorityChannel()
     {}
 
-    void init(const std::string& address,
+    void init(const GrpcTransport* cfg,
+              const std::string& address,
               std::shared_ptr<grpc::ChannelCredentials> creds,
-              const std::string& userAgent,
-              const std::string& configJson
+              const std::string& userAgent
               );
 
     void close()
@@ -159,7 +159,7 @@ struct PriorityChannel
 
         {
             common::MutexScopedLock l{mutex};
-            streams.emplace(reinterpret_cast<uintptr_t>(req.get()),std::move(stream));
+            streams.emplace(reinterpret_cast<uintptr_t>(req.get()),stream);
         }
 
         return stream;
@@ -231,7 +231,7 @@ struct PriorityChannel
     {
         mutex.lock();
         auto& st=streams.get<by_shared_ptr>();
-        mutex.lock();
+        mutex.unlock();
 
         for (auto& it : st)
         {
@@ -280,6 +280,8 @@ public:
         common::ByteArrayShared respData
     ) const;
 
+    static inline HATN_API_NAMESPACE::ApiResponseStatus apiStatus(grpc::StatusCode grpcCode);
+
     inline std::string findHeader(const std::multimap<grpc::string_ref,grpc::string_ref>& metadata, lib::string_view headerName) const
     {
         auto it = metadata.find(grpc::string_ref{headerName.data(),headerName.size()});
@@ -315,6 +317,34 @@ public:
         ch->removeStream(std::move(stream));
     }
 };
+
+inline HATN_API_NAMESPACE::ApiResponseStatus GrpcTransport_p::apiStatus(grpc::StatusCode grpcCode)
+{
+    switch (grpcCode)
+    {
+    case grpc::OK: return HATN_API_NAMESPACE::ApiResponseStatus::Success;
+    case grpc::CANCELLED:
+    case grpc::UNKNOWN:
+    case grpc::INVALID_ARGUMENT: return HATN_API_NAMESPACE::ApiResponseStatus::FormatError;
+    case grpc::DEADLINE_EXCEEDED:
+    case grpc::NOT_FOUND:
+    case grpc::ALREADY_EXISTS:
+    case grpc::PERMISSION_DENIED: return HATN_API_NAMESPACE::ApiResponseStatus::Forbidden;
+    case grpc::UNAUTHENTICATED: return HATN_API_NAMESPACE::ApiResponseStatus::AuthError;
+    case grpc::RESOURCE_EXHAUSTED: return HATN_API_NAMESPACE::ApiResponseStatus::RetryLater;
+    case grpc::FAILED_PRECONDITION:
+    case grpc::ABORTED:
+    case grpc::OUT_OF_RANGE:
+    case grpc::UNIMPLEMENTED: return HATN_API_NAMESPACE::ApiResponseStatus::UnknownMethod;
+    case grpc::INTERNAL: return HATN_API_NAMESPACE::ApiResponseStatus::InternalServerError;
+    case grpc::UNAVAILABLE:
+    case grpc::DATA_LOSS:
+    case grpc::DO_NOT_USE:
+        break;
+    }
+
+    return HATN_API_NAMESPACE::ApiResponseStatus::Generic;
+}
 
 inline Error GrpcTransport_p::makeError(
         int grpcCode,
@@ -376,11 +406,11 @@ void GrpcTransport::sendRequest(
     }
 
     // setup deadline
-    if (config().fieldValue(grpc_config::deadline_timeout)!=0)
+    if (config().fieldValue(grpc_config::unary_deadline_timeout)!=0 && req->requestType()==clientapi::RequestType::Unary)
     {
         context->set_wait_for_ready(true);
         std::chrono::system_clock::time_point deadline =
-            std::chrono::system_clock::now() + std::chrono::seconds(config().fieldValue(grpc_config::deadline_timeout));
+            std::chrono::system_clock::now() + std::chrono::seconds(config().fieldValue(grpc_config::unary_deadline_timeout));
         context->set_deadline(deadline);
     }
 
@@ -394,9 +424,7 @@ void GrpcTransport::sendRequest(
             common::ContainerUtils::rawToBase64(*token,tokenBase64);
 
             auto bearer=fmt::format("Bearer {}",tokenBase64);
-#if 0
-            std::cout << "GrpcTransport::sendRequest bearer: " << bearer << std::endl;
-#endif
+
             //! @todo optimization: store tag names in strings
             context->AddMetadata("authorization", bearer);
             context->AddMetadata(std::string{config().fieldValue(grpc_config::auth_tag_header)}, req->session().tokenTag());
@@ -454,12 +482,12 @@ void GrpcTransport::sendRequest(
         // prepare callback
         auto cb=[req,channel,responseBuf,callback,context,bufs,this](grpc::Status status)
         {
-            auto response =  pimpl->handleResponse(
+            auto response = pimpl->handleResponse(
                 context,
                 status,
                 *responseBuf
                 );
-            if (responseBuf)
+            if (response)
             {
                 channel->removeRequest(req);
                 callback(response.takeError());

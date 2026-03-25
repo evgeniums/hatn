@@ -31,7 +31,7 @@ inline auto makeCacheModel(std::string collection)
     cfg.setCollection(std::move(collection));
     auto m=HATN_DB_NAMESPACE::makeModel<cache_object::TYPE>(cfg,
                                                               uidIdx(),
-                                                              expireIdx(),
+                                                              HATN_DB_NAMESPACE::expireIdx(),
                                                               revisionIdx());
     return m;
 }

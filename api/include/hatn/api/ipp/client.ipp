@@ -312,12 +312,14 @@ void Client<RouterT,Transport,SessionWrapperT,Traits>::sendRequest(common::Share
             bool invokeCallback=true;
             ec=m_transport.parseResponse(req);
             auto resp=req->takeResponse();
-            if (!ec)
+            if (!ec) // parsed without error
             {                
                 if (!resp.isSuccess())
                 {
                     if (resp.status()==protocol::ResponseStatus::AuthError && !req->session().isNull())
                     {
+                        HATN_CTX_DEBUG(1,"authentication error, forward to session manager")
+
                         // process auth error in session
                         if (!m_closed)
                         {
@@ -377,11 +379,10 @@ void Client<RouterT,Transport,SessionWrapperT,Traits>::close(
 {
     m_closed.store(true);
 
-    postAsync(
-        "apiclientclose",
-        m_thread,
-        std::move(ctx),
-        [this,callbackRequests,clientCtx=sharedMainCtx()](auto ctx, auto cb)
+    HATN_CTX_SCOPE_WITH_BARRIER("networkclient.close")
+
+    m_thread->execAsync(
+        [this,callbackRequests,clientCtx=sharedMainCtx(),callback,ctx]()
         {
             auto abortRequest=[](auto req)
             {
@@ -430,14 +431,15 @@ void Client<RouterT,Transport,SessionWrapperT,Traits>::close(
 
             // close transport
             m_transport.close(ctx,
-                                   [ctx,clientCtx{std::move(clientCtx)},cb{std::move(cb)}](const Error& ec) mutable
-                                   {
-                                       std::ignore=clientCtx;
-                                       cb(std::move(ctx),ec);
-                                   }
+                [ctx,clientCtx{std::move(clientCtx)},callback](const Error& ec) mutable
+                {
+                  HATN_CTX_STACK_BARRIER_OFF("networkclient.close")
+
+                  std::ignore=clientCtx;
+                  callback(std::move(ctx),ec);
+                }
             );
-        },
-        std::move(callback)
+        }
     );
 }
 

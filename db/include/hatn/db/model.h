@@ -590,6 +590,7 @@ constexpr makeModelWithInfoT makeModelWithInfo{};
 HATN_DB_UNIQUE_IN_PARTITION_INDEX(oidIdx,object::_id)
 HATN_DB_PARTITION_INDEX(oidPartitionIdx,object::_id)
 HATN_DB_INDEX(createdAtIdx,object::created_at)
+HATN_DB_PARTITION_INDEX(datePartitionIdx,object::created_at)
 HATN_DB_INDEX(updatedAtIdx,object::updated_at)
 
 inline auto objectIndexes()
@@ -600,6 +601,11 @@ inline auto objectIndexes()
 inline auto partitionObjectIndexes()
 {
     return hana::make_tuple(oidPartitionIdx(),oidIdx(),createdAtIdx(),updatedAtIdx());
+}
+
+inline auto partitionDateIndexes()
+{
+    return hana::make_tuple(datePartitionIdx(),oidIdx(),createdAtIdx(),updatedAtIdx());
 }
 
 template <typename UnitType>
@@ -625,6 +631,18 @@ struct makeOidPartitionModelT
     }
 };
 template <typename UnitType> constexpr makeOidPartitionModelT<UnitType> makeOidPartitionModel{};
+
+template <typename UnitType>
+struct makeDatePartitionModelT
+{
+    template <typename ConfigT, typename ...Indexes>
+    auto operator()(ConfigT&& config, Indexes ...indexes) const
+    {
+        auto m=unitModel<UnitType>.make(std::forward<ConfigT>(config),hana::concat(partitionDateIndexes(),hana::make_tuple(indexes...)));
+        return makeModelWithInfo(std::move(m));
+    }
+};
+template <typename UnitType> constexpr makeDatePartitionModelT<UnitType> makeDatePartitionModel{};
 
 template <typename UnitType>
 struct makeModelWithIdxT
@@ -711,6 +729,16 @@ struct _model_##m { \
                 return mm; \
         } \
     }; \
+    constexpr _model_##m m{};
+
+#define HATN_DB_DATE_PARTITION_MODEL(m,type,...) \
+struct _model_##m { \
+    const auto& operator()() const \
+    { \
+            static auto mm=HATN_DB_NAMESPACE::makeDatePartitionModel< type ::TYPE>(HATN_DB_NAMESPACE::DefaultModelConfig,__VA_ARGS__); \
+            return mm; \
+    } \
+}; \
     constexpr _model_##m m{};
 
 #define HATN_DB_MODEL_WITH_CFG(m,type,cfg,...) \

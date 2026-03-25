@@ -22,6 +22,7 @@
 #include <boost/asio/high_resolution_timer.hpp>
 
 #include <hatn/common/common.h>
+#include <hatn/common/thread.h>
 #include <hatn/common/timer.h>
 #include <hatn/common/sharedptr.h>
 

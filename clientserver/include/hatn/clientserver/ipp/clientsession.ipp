@@ -56,40 +56,37 @@ ClientSessionTraits<AuthProtocols...>::ClientSessionTraits(SessionType* session,
 
 template <typename ...AuthProtocols>
 template <typename ContextT, typename CallbackT, typename ClientT>
-void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> ctx, CallbackT callback, ClientT* client, clientapi::Response)
+void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> ctx, CallbackT callback, ClientT* client, clientapi::Response resp)
 {
     HATN_CTX_SCOPE("clientsession::refresh")
 
     // if auth header is not ready then try to use session token
-    if (!m_session->isAuthHeaderValid())
+    if (!m_session->isAuthHeaderValid() && m_sessionTokenContainer && resp.isSuccess())
     {
-        if (m_sessionTokenContainer)
+        // check if token expired
+        if (!isAuthTokenExpired(m_sessionTokenContainer.get()))
         {
-            // check if token expired
-            if (!isAuthTokenExpired(m_sessionTokenContainer.get()))
+            if (m_session->isSerializedHeaderNeeded())
             {
-                if (m_session->isSerializedHeaderNeeded())
+                auto ec=m_session->serializeAuthHeader(api::AuthProtocol::name(),api::AuthProtocol::version(),m_sessionTokenContainer);
+                if (ec)
                 {
-                    auto ec=m_session->serializeAuthHeader(api::AuthProtocol::name(),api::AuthProtocol::version(),m_sessionTokenContainer);
-                    if (ec)
-                    {
-                        HATN_CTX_ERROR(ec,"failed to serialize session token")
-                    }
-                    else
-                    {
-                        callback(std::move(ctx),{});
-                        return;
-                    }
+                    HATN_CTX_ERROR(ec,"failed to serialize session token")
                 }
                 else
                 {
-                    m_session->setSessionToken(
-                        m_sessionTokenContainer->field(auth_with_token::token).byteArrayShared(),
-                        std::string{m_sessionTokenContainer->field(auth_with_token::tag).value()}
-                    );
                     callback(std::move(ctx),{});
                     return;
                 }
+            }
+            else
+            {
+                m_session->setSessionToken(
+                    m_sessionTokenContainer->field(auth_with_token::token).byteArrayShared(),
+                    std::string{m_sessionTokenContainer->field(auth_with_token::tag).value()}
+                );
+                callback(std::move(ctx),{});
+                return;
             }
         }
     }

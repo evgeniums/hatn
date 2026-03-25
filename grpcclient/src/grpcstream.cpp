@@ -58,6 +58,9 @@ void GrpcStream::OnWriteDone(bool ok)
         return;
     }
 
+    //! @todo Fix for outgoing/bidirectional streams
+    StartWritesDone();
+
     m_mutex.lock();
     auto wcb=m_writeCallback;
     m_mutex.unlock();
@@ -141,16 +144,10 @@ void GrpcStream::OnReadDone(bool ok)
         return;
     }
 
+    std::cerr << "GrpcStream::OnReadDone respWrapper: " << respWrapper.toString(true) << std::endl;
+
     // process response depending on message type
     if (respWrapper.fieldValue(stream_response::message_type)
-        ==
-        m_transport->transport->config().fieldValue(grpc_config::heartbeat_response_type))
-    {
-        // skip heartbeat
-        m_responseBuffer.Clear();
-        StartRead(&m_responseBuffer);
-    }
-    else if (respWrapper.fieldValue(stream_response::message_type)
              ==
              m_transport->transport->config().fieldValue(grpc_config::error_response_type))
     {
@@ -166,7 +163,7 @@ void GrpcStream::OnReadDone(bool ok)
         auto msgResp=m_transport->handleResponse(
             m_context,
             grpc::Status::OK,
-            m_responseBuffer,
+            grpc::ByteBuffer{},
             true,
             std::string{respWrapper.fieldValue(stream_response::message_type)},
             respWrapper.field(stream_response::message).byteArrayShared()
@@ -233,7 +230,15 @@ void GrpcStream::OnDone(const grpc::Status& status)
             }
             if (rcb)
             {
-                rcb(ec,{});
+                if (resp->status() == HATN_API_NAMESPACE::protocol::ResponseStatus::AuthError)
+                {
+                    //! @todo handle API errors more gracefully
+                    rcb({},resp.takeValue());
+                }
+                else
+                {
+                    rcb(ec,{});
+                }
             }
             if (ccb)
             {
@@ -315,7 +320,7 @@ void GrpcStream::close(clientapi::StreamChannel::CloseCb callback)
     if (callback)
     {
         m_mutex.lock();
-        m_writeCallback=callback;
+        m_closeCallback=callback;
         m_mutex.unlock();
     }
 

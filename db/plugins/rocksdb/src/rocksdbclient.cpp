@@ -1148,6 +1148,47 @@ RocksdbClient::doFindOne(
 
 //---------------------------------------------------------------
 
+Result<DbObject>
+RocksdbClient::doFindOneForUpdate(
+        const ModelInfo& model,
+        const ModelIndexQuery& query,
+        Transaction* tx
+    )
+{
+    HATN_CTX_SCOPE("rdb::findoneforupdate")
+
+    ENSURE_MODEL_SCHEMA
+
+    auto rdbModel=model.nativeModel<RocksdbModel>();
+    Assert(rdbModel,"Model not registered");
+
+    DbObject obj;
+
+    auto cb=[&obj](DbObject foundObj, Error& ec)
+    {
+        if (ec)
+        {
+            return false;
+        }
+
+        obj=foundObj;
+        obj.topic().load(foundObj.topic());
+
+        return false;
+    };
+
+    auto ec=rdbModel->findCb(*d->handler,query,cb,tx,true);
+    HATN_CHECK_EC(ec)
+    if (obj.isNull())
+    {
+        return dbError(DbError::NOT_FOUND);
+    }
+
+    return obj;
+}
+
+//---------------------------------------------------------------
+
 Error RocksdbClient::doFindCb(
         const ModelInfo& model,
         const ModelIndexQuery& query,

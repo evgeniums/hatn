@@ -124,6 +124,16 @@ class TlsClientConfig : public TcpClientConfig
             m_insecure=enable;
         }
 
+        void setServerName(std::string name)
+        {
+            m_serverName=std::move(name);
+        }
+
+        std::string serverName() const
+        {
+            return m_serverName;
+        }
+
     private:
 
         static void concat(std::string& bundle, const std::string& cert)
@@ -145,6 +155,7 @@ class TlsClientConfig : public TcpClientConfig
         mutable std::string m_concatenatedClientCertChains;
 
         std::string m_clientPrivKey;
+        std::string m_serverName;
 
         bool m_insecure=false;
 };

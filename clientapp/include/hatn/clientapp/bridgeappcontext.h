@@ -10,7 +10,7 @@
 /*
     
 */
-/** @file clientapp/bridgeappcontextappcontext.h
+/** @file clientapp/bridgeappcontext.h
   */
 
 /****************************************************************************/

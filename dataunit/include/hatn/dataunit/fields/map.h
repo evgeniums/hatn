@@ -580,6 +580,19 @@ struct MapFieldTmpl : public Field, public MapType
         return fieldSize();
     }
 
+    template <typename HandlerT>
+    bool each(HandlerT handler) const
+    {
+        for (const auto& it: m_map)
+        {
+            if (!handler(it.first,it.second))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
     size_t fieldSize() const noexcept
     {
         size_t result=0;

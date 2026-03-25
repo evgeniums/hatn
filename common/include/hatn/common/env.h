@@ -69,7 +69,7 @@ class HATN_COMMON_EXPORT BaseEnv : public common::ClassUid<BaseEnv>,
 
 struct EnvContextTag{};
 
-class EnvContext : public EnableSharedFromThis<EnvContext>
+class EnvContext
 {
     public:
 

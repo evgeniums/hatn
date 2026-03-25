@@ -36,9 +36,9 @@ class MapStorage
         using Type=MapStorage<KeyT,ItemT,CompT>;
 
         explicit MapStorage(
-                const pmr::AllocatorFactory* factory=pmr::AllocatorFactory::getDefault(),
+                const pmr::AllocatorFactory* =pmr::AllocatorFactory::getDefault(),
                 const CompT& comp=CompT{}
-            ) : m_map(comp,factory->objectAllocator<typename mapT::value_type>())
+            ) : m_map(comp)
         {}
 
         //! Get current cache size
@@ -163,7 +163,7 @@ class MapStorage
     private:
 
         //! @todo optimization: use std::set instead of map
-        using mapT=pmr::map<KeyT,ItemT,CompT>;
+        using mapT=std::map<KeyT,ItemT,CompT>;
         mapT m_map;
 };
 

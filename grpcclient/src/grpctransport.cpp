@@ -61,6 +61,7 @@ void GrpcTransport::setRouter(common::SharedPtr<Router> router)
     pimpl->router=std::move(router);
     if (pimpl->router)
     {
+        HATN_CTX_DEBUG_RECORDS(1,"GrpcTransport::setRouter",{"insecure",pimpl->router->isInsecure()})
         initChannels();
     }
     else
@@ -143,10 +144,13 @@ void GrpcTransport::initChannels()
     std::shared_ptr<grpc::ChannelCredentials> creds;
     if (pimpl->router->isInsecure())
     {
+        HATN_CTX_DEBUG(1,"use insecure channel for gRPC transport")
         creds=grpc::InsecureChannelCredentials();
     }
     else
     {
+        HATN_CTX_DEBUG(1,"use TLS channel for gRPC transport")
+
         grpc::SslCredentialsOptions sslOpts;
         sslOpts.pem_root_certs = pimpl->router->serverCerts();
 
@@ -157,9 +161,7 @@ void GrpcTransport::initChannels()
         }
 
         creds=grpc::SslCredentials(sslOpts);
-    }
-
-    std::string configJson{config().fieldValue(grpc_config::config_json)};
+    }    
 
     // init priority channels
     auto maxPriotity=static_cast<uint8_t>(api::Priority::Highest);
@@ -171,12 +173,12 @@ void GrpcTransport::initChannels()
             auto priority=static_cast<api::Priority>(p);
             auto it=pimpl->channels.emplace(std::piecewise_construct,std::forward_as_tuple(priority),
                                     std::forward_as_tuple());
-            it.first->second.init(address,creds,name(),configJson);
+            it.first->second.init(this,address,creds,name());
         }
     }
 
     // init default priority channel
-    pimpl->defaultChannel.init(address,creds,name(),configJson);
+    pimpl->defaultChannel.init(this,address,creds,name());
 }
 
 //--------------------------------------------------------------------------
@@ -191,16 +193,30 @@ void GrpcTransport::addMessageTypeMap(
 
 //--------------------------------------------------------------------------
 
-void detail::PriorityChannel::init(const std::string& address,
+void detail::PriorityChannel::init(const GrpcTransport* cfg,
+                                   const std::string& address,
                                    std::shared_ptr<grpc::ChannelCredentials> creds,
-                                   const std::string& userAgent,
-                                   const std::string& configJson)
+                                   const std::string& userAgent)
 {
+    std::string configJson{cfg->config().fieldValue(grpc_config::config_json)};
+
     grpc::ChannelArguments args;
     args.SetUserAgentPrefix(userAgent);
     if (!configJson.empty())
     {
         args.SetServiceConfigJSON(configJson);
+    }
+    // Time between pings (e.g., 60 seconds)
+    args.SetInt(GRPC_ARG_KEEPALIVE_TIME_MS, cfg->config().fieldValue(grpc_config::keep_alive_period) * 1000);
+    // Time to wait for a response before closing the connection
+    args.SetInt(GRPC_ARG_KEEPALIVE_TIMEOUT_MS, cfg->config().fieldValue(grpc_config::keep_alive_timeout) * 1000);
+    // Allow pings even when there are no active calls
+    args.SetInt(GRPC_ARG_KEEPALIVE_PERMIT_WITHOUT_CALLS, cfg->config().fieldValue(grpc_config::keep_alive_without_calls));
+
+    auto serverName=cfg->router()->serverName();
+    if (!serverName.empty())
+    {
+        args.SetSslTargetNameOverride(serverName);
     }
 
     channel = grpc::CreateCustomChannel(address,creds,args);
@@ -220,58 +236,92 @@ Result<clientapi::Response> detail::GrpcTransport_p::handleResponse(
 {
     clientapi::Response resp;
     std::string appStatus;
-    if (!streamMessage)
+    std::string grpcCode;
+
+    if (messageData.isNull())
     {
-        const std::multimap<grpc::string_ref, grpc::string_ref>& metadata = context->GetServerInitialMetadata();
-        auto respType=findHeader(metadata,transport->config().fieldValue(grpc_config::message_type_header));
-        auto mappedRespType=mapMessageType(respType);
-        resp.setMessageType(mappedRespType);
-        resp.setId(findHeader(metadata,transport->config().fieldValue(grpc_config::id_header)));
-
-        appStatus=findHeader(metadata,transport->config().fieldValue(grpc_config::status_header));
-
-#if 1
-        // dump response headers
-        std::cout << "------HEADERS-----" << std::endl;
-        for (auto it = metadata.begin(); it != metadata.end(); ++it) {
-            // Convert string_ref to std::string for printing
-            std::cout << std::string(it->first.data(), it->first.size()) << ": "
-                      << std::string(it->second.data(), it->second.size()) << std::endl;
-        }
-        std::cout << "-----------------" << std::endl;
-        // copy response data
         messageData=common::makeShared<common::ByteArray>();
         std::vector<grpc::Slice> slices;
         if (responseBuf.Dump(&slices).ok())
         {
+            // copy response data
             for (const auto& slice : slices)
             {
                 messageData->append(reinterpret_cast<const char*>(slice.begin()),slice.size());
             }
         }
-        resp.setMessageData(messageData);
+    }
+
+    if (!streamMessage)
+    {
+        auto handleHeaders=[&,this](const std::multimap<grpc::string_ref, grpc::string_ref>& metadata, std::string type)
+        {
+            auto respType=findHeader(metadata,transport->config().fieldValue(grpc_config::message_type_header));
+            if (!respType.empty())
+            {
+                auto mappedRespType=mapMessageType(respType);
+                resp.setMessageType(mappedRespType);
+            }
+            auto id=findHeader(metadata,transport->config().fieldValue(grpc_config::id_header));
+            if (!id.empty())
+            {
+                resp.setId(id);
+            }
+            auto status=findHeader(metadata,transport->config().fieldValue(grpc_config::status_header));
+            if (!status.empty())
+            {
+                appStatus=status;
+            }
+            auto code=findHeader(metadata,transport->config().fieldValue(grpc_config::grpc_code_header));
+            if (!code.empty())
+            {
+                grpcCode=code;
+            }
+#if 1
+            // dump response headers
+            std::cout << "------HEADERS " << type << "---------" << std::endl;
+            for (auto it = metadata.begin(); it != metadata.end(); ++it) {
+                // Convert string_ref to std::string for printing
+                std::cout << std::string(it->first.data(), it->first.size()) << ": "
+                          << std::string(it->second.data(), it->second.size()) << std::endl;
+            }
+            std::cout << "-----------------" << std::endl;
 #endif
+        };
+
+        handleHeaders(context->GetServerInitialMetadata(),"initial");
+        handleHeaders(context->GetServerTrailingMetadata(),"trailing");
     }
     else
     {
         resp.setMessageType(std::move(messageType));
-        resp.setMessageData(messageData);
     }
-
-    // set response
-    resp.setStatus(api::protocol::ResponseStatus::Success);    
+    resp.setMessageData(messageData);
 
     // check status
-    if (!status.ok())
+    if (status.ok())
     {
-        if (status.error_code()==grpc::StatusCode::UNAUTHENTICATED)
+        resp.setStatus(api::protocol::ResponseStatus::Success);
+    }
+    else
+    {
+        auto code=status.error_code();
+        if (!grpcCode.empty())
         {
-            resp.setStatus(api::protocol::ResponseStatus::AuthError);
+            int tmp = 0;
+            auto [ptr, ec] = std::from_chars(grpcCode.data(), grpcCode.data() + grpcCode.size(), tmp);
+            if (ec == std::errc())
+            {
+                code=static_cast<grpc::StatusCode>(tmp);
+            }
         }
-        else
+
+        resp.setStatus(apiStatus(code));
+
+        if (resp.status()==HATN_API_NAMESPACE::ApiResponseStatus::AuthError)
         {
-            //! @todo maybe map appStatus to response status
-            resp.setStatus(api::protocol::ResponseStatus::Generic);
+            // auth error not API error, it can be processed by client session
+            return resp;
         }
 
         if (appStatus.empty())
@@ -291,14 +341,14 @@ Result<clientapi::Response> detail::GrpcTransport_p::handleResponse(
         }
 
         auto apiError=makeError(
-            status.error_code(),
+            code,
             std::move(appStatus),
             transport->config(),
             context.get(),
             resp.messageType(),
             messageData
         );
-        resp.setErrror(std::move(apiError));
+        resp.setError(std::move(apiError));
     }
 
     return resp;

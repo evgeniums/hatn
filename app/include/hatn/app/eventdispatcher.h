@@ -241,6 +241,9 @@ struct Event
 
     std::string messageTypeName;
     std::string genericParameter;
+
+    std::map<std::string,std::string> parameters;
+
     du::UnitWrapper message;
     std::vector<common::ByteArrayShared> buffers;
 };

@@ -78,6 +78,8 @@ class ObjectsCache_p
         HATN_APP_NAMESPACE::EventDispatcher* eventDispatcher;
         std::set<size_t> subscriprionIds;
 
+#if 1
+    //! @todo critical: Fix cache!
     ObjectsCache_p(
                 Derived* derived,
                 common::Thread* thread,
@@ -100,7 +102,32 @@ class ObjectsCache_p
               factory(factory),
               dbModelName(Traits::DbModel)
     {}
+#else
 
+        ObjectsCache_p(
+            Derived* derived,
+            common::Thread* thread,
+            size_t ttlSeconds,
+            const common::pmr::AllocatorFactory* factory
+            )
+            : derived(derived),
+            localCache(ttlSeconds*100000,
+                       factory,
+                       thread
+                       ),
+            serverCache(ttlSeconds*100000,
+                        factory,
+                        thread
+                        ),
+            guidCache(ttlSeconds*100000,
+                      factory,
+                      thread
+                      ),
+            factory(factory),
+            dbModelName(Traits::DbModel)
+        {}
+
+#endif
     common::MutexLock locker;
     bool stopped=true;
     Derived* derived;
@@ -125,9 +152,9 @@ class ObjectsCache_p
 
     void unlock()
     {
-        localCache.unlock();
-        serverCache.unlock();
         guidCache.unlock();
+        serverCache.unlock();
+        localCache.unlock();
         locker.unlock();
     }
 
@@ -195,7 +222,7 @@ class ObjectsCache_p
         return q;
     }
 };
-#if 1
+
 //--------------------------------------------------------------------------
 
 template <typename Traits, typename Derived>
@@ -760,11 +787,6 @@ void ObjectsCache<Traits,Derived>::put(
             );
             HATN_DB_NAMESPACE::update::field(with_uid::uid,db::update::set,uid.sharedValue().template staticCast<HATN_DATAUNIT_NAMESPACE::Unit>());
 
-#if 0
-            std::cout << "ObjectsCache::put in cache db " << pimpl->dbModelName
-                      << " " << obj->toString(true)
-                      <<std::endl;
-#endif
             // update or create cache object
             db->findUpdateCreate(
                 std::move(ctx),
@@ -823,7 +845,7 @@ ObjectsCache<Traits,Derived>::get(
         pimpl->lock();
 
         bool found=false;
-        auto ifFound=[&found,this,ctx,topic,uid,opt]()
+        auto onExit=[&found,this,ctx,topic,uid,opt]()
         {
             pimpl->unlock();
             if (found)
@@ -836,7 +858,7 @@ ObjectsCache<Traits,Derived>::get(
                                    topic,uid,opt);
             }
         };
-        HATN_SCOPE_GUARD(ifFound)
+        HATN_SCOPE_GUARD(onExit)
 
         // try to find in local IDs cache
         auto localUid=uid.local();
@@ -938,7 +960,7 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
         CacheOptions opt
     )
 {
-    HATN_CTX_SCOPE_WITH_BARRIER("[invokefetch]")
+    HATN_CTX_SCOPE_WITH_BARRIER("objectscache::invokefetch")
 
     auto asynGuard=Traits::asyncGuard(pimpl->derived);
 
@@ -966,12 +988,7 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
             callback(r.error(),{});
             return;
         }
-#if 0
-        else
-        {
-            std::cout << "ObjectsCache::invokeFetch updateinmem parse data ok" << std::endl;
-        }
-#endif
+
         HATN_CTX_DEBUG(10,"put object to inmem cache")
 
         // put item to in-memory cache
@@ -979,8 +996,7 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
         put(std::move(ctx),
             [callback,result]()
             {
-                HATN_CTX_STACK_BARRIER_OFF("[updateinmem]")
-                HATN_CTX_STACK_BARRIER_OFF("objectscache::fetch")
+                HATN_CTX_STACK_BARRIER_OFF("objectscache::invokefetch")
                 callback({},std::move(result));
             },
             result,
@@ -1003,7 +1019,7 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
         auto db=Traits::db(pimpl->derived,ctx,topic);
         if (!opt.cacheInDb() || !db)
         {
-            getAppDb(std::move(ctx),callback,topic,std::move(uid),bySubject=std::move(bySubject),opt,false);
+            getAppDb(std::move(ctx),callback,topic,std::move(uid),bySubject,opt,false);
             return;
         }
 
@@ -1014,9 +1030,6 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
             // if null then not found, try to get from app database by traits
             if (dbResult || dbResult->isNull())
             {
-#if 0
-                std::cout << "ObjectsCache::invokeFetch not found in cache db " << pimpl->dbModelName << std::endl;
-#endif
                 HATN_CTX_DEBUG(10,"cache object not found in db cache")
                 HATN_CTX_STACK_BARRIER_OFF("[readlocal]")
 
@@ -1027,11 +1040,6 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
             HATN_CTX_DEBUG(10,"cache object found in db cache")
 
             auto cacheItem=dbResult->shared();
-#if 0
-            std::cout << "ObjectsCache::invokeFetch found in cache db " << pimpl->dbModelName
-                        << " " << cacheItem->toString(true)
-                        <<std::endl;
-#endif
             if (
                 !cacheItem->field(cache_object::data).isSet()
                 &&
@@ -1042,15 +1050,12 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
 
                 if (!uid.local())
                 {
-#if 0
-                    std::cout << "ObjectsCache::invokeFetch local uid not set, trying to read from db by full uid" << std::endl;
-#endif
                     HATN_CTX_DEBUG(10,"local uid not set")
                     getAppDb(std::move(ctx),callback,topic,std::move(uid),std::move(bySubject),opt,false);
                     return;
                 }
 
-                HATN_CTX_SCOPE_WITH_BARRIER("[getdbitem]")
+                HATN_CTX_STACK_BARRIER_ON("[getdbitem]")
                 HATN_CTX_DEBUG(10,"read reference data for cache object from app")
 
                 // if cache item does not contain data object then get it from app db by traits
@@ -1060,7 +1065,7 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
                     if (ec)
                     {
                         //! @todo skip error if object not found, i.e. keep in cache but without data
-                        HATN_CTX_STACK_BARRIER_OFF("objectscache::fetch")
+                        HATN_CTX_STACK_BARRIER_OFF("objectscache::invokefetch")
                         getAppDb(std::move(ctx),callback,topic,std::move(uid),std::move(bySubject),opt,true);
                         return;
                     }
@@ -1134,7 +1139,7 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
     {
         if (skipTraitsDb)
         {
-            farFetch(std::move(ctx),callback,topic,std::move(uid),bySubject=std::move(bySubject),opt);
+            farFetch(std::move(ctx),callback,topic,std::move(uid),std::move(bySubject),opt);
             return;
         }
 
@@ -1219,7 +1224,7 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
                     std::move(ctx),
                     [callback,object]()
                     {
-                        HATN_CTX_STACK_BARRIER_OFF("[invokefetch]")
+                        HATN_CTX_STACK_BARRIER_OFF("objectscache::invokefetch")
                         if (callback)
                         {
                             callback({},std::move(object));
@@ -1254,7 +1259,7 @@ void ObjectsCache<Traits,Derived>::setDbModelProvider(CacheDbModelsProvider* pro
 }
 
 //--------------------------------------------------------------------------
-#endif
+
 HATN_CLIENT_SERVER_NAMESPACE_END
 
 #endif // HATNOBJECTSCACHE_IPP

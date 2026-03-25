@@ -196,7 +196,12 @@ struct WireBufChainedTraits : public WireBufSolidSharedTraits
         return common::DataBuf{};
     }
 
-    common::ByteArray* mainContainer() const noexcept
+    const common::ByteArray* mainContainer() const noexcept
+    {
+        return (m_currentMainContainer==nullptr)?this->managedMainContainer():m_currentMainContainer;
+    }
+
+    common::ByteArray* mainContainer() noexcept
     {
         return (m_currentMainContainer==nullptr)?this->managedMainContainer():m_currentMainContainer;
     }

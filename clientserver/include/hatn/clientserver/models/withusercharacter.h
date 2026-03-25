@@ -26,8 +26,6 @@ HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 HDU_UNIT(with_user_character,
     HDU_FIELD(user_character,TYPE_OBJECT_ID,1101)
     HDU_FIELD(user_character_topic,TYPE_STRING,1102)
-
-    HDU_FIELD(character_uid,uid::TYPE,1100)
 )
 
 HATN_CLIENT_SERVER_NAMESPACE_END

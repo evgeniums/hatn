@@ -85,6 +85,7 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
     public:
 
         using config=Config;
+        using self=ContextT<Config>;
 
         using LoggerHandler=LoggerHandlerT<ContextT<Config>>;
         using Logger=LoggerWithHandler<ContextT<Config>>;
@@ -145,7 +146,8 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
             auto* scopeCursor=currentScope();
             if (scopeCursor==nullptr)
             {
-                Assert(false,"describeScopeError() forbidden in empty scope stack");
+                std::cerr << "describeScopeError() forbidden in empty scope stack" << std::endl;
+                return;
             }
             scopeCursor->second.error=err;
         }
@@ -153,16 +155,12 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
         void leaveScope()
         {
             const auto* scopeCursor=currentScope();
-#if 0
-            Assert(scopeCursor!=nullptr,"leaveScope() forbidden in empty scope stack");
-#else
             if (scopeCursor==nullptr)
             {
                 // scope cursor can be nullptr only after resetting/closing API, ensure context's reset
                 reset();
                 return;
             }
-#endif
             bool freeScope=true;
 
             if (!m_barrierStack.empty())
@@ -171,8 +169,16 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
             }
             if (freeScope)
             {
-                m_currentScopeIdx--;
-                Assert(m_currentScopeIdx<=config::ScopeDepth,"Mismatched number of enter/leave scope calls");
+                if (m_currentScopeIdx>0)
+                {
+                    m_currentScopeIdx--;
+                }
+                if (m_currentScopeIdx>config::ScopeDepth)
+                {
+                    std::cerr << "Mismatched number of enter/leave scope calls: currentScopeIdx=" << m_currentScopeIdx
+                              << " ctx="<<mainCtx().id()
+                              << std::endl;
+                }
 
                 if (!m_lockStack)
                 {
@@ -383,20 +389,21 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
 
         const scopeCursorT* currentScope() const
         {
-            if (m_currentScopeIdx==0)
-            {
-                return nullptr;
-            }
-            return &m_scopeStack.at(m_currentScopeIdx-1);
+            return const_cast<self*>(this)->currentScope();
         }
 
         scopeCursorT* currentScope()
         {
-            if (m_currentScopeIdx==0)
+            auto idx=m_currentScopeIdx;
+            if (idx>m_scopeStack.size())
+            {
+                idx=m_scopeStack.size();
+            }
+            if (idx==0)
             {
                 return nullptr;
             }
-            return &m_scopeStack.at(m_currentScopeIdx-1);
+            return &m_scopeStack.at(idx-1);
         }
 
         void resetStacks()

@@ -48,6 +48,10 @@ class Message
 
         common::SpanBuffers chainBuffers(const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()) const
         {
+            if (!m_content)
+            {
+                return common::SpanBuffers{};
+            }
             return m_content->chainBuffers(factory);
         }
 
