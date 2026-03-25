@@ -55,6 +55,7 @@ cmake -G "Unix Makefiles" \
 				-DgRPC_DIR=$deps/lib/cmake/grpc \
 				-Dre2_DIR=$deps/lib/cmake/grpc \
 				-Dc-ares_DIR=$deps/lib/cmake/c-ares \
+				-Dutf8proc_DIR=$deps/lib/cmake/utf8proc \
 			    $project_src
 make -j$build_workers install
 cd -
