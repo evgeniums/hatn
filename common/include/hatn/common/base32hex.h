@@ -19,6 +19,7 @@
 #define HATNBASE32HEX_H
 
 #include <cppcodec/base32_hex.hpp>
+#include <cppcodec/hex_lower.hpp>
 
 #include <hatn/common/common.h>
 
@@ -39,7 +40,7 @@ class base32_hex_unpadded_traits : public cppcodec::detail::base32_hex
 using base32_hex_unpadded = cppcodec::detail::codec<cppcodec::detail::base32<base32_hex_unpadded_traits>>;
 
 template <typename Codec>
-class base32_hex_append : public Codec
+class cppcodec_append : public Codec
 {
     public:
 
@@ -88,8 +89,10 @@ class base32_hex_append : public Codec
 
 }
 
-using Base32Hex = detail::base32_hex_append<cppcodec::base32_hex>;
-using Base32HexUnpadded = detail::base32_hex_append<detail::base32_hex_unpadded>;
+using Base32Hex = detail::cppcodec_append<cppcodec::base32_hex>;
+using Base32HexUnpadded = detail::cppcodec_append<detail::base32_hex_unpadded>;
+
+using Hex = detail::cppcodec_append<cppcodec::hex_lower>;
 
 HATN_COMMON_NAMESPACE_END
 
