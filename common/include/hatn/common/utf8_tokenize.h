@@ -39,10 +39,18 @@ class HATN_COMMON_EXPORT AbstractUtf8Proc
 
         virtual std::vector<std::string> tokenize(lib::string_view normalized) const =0;
 
+        virtual std::vector<std::string> tokenizeWithDomains(lib::string_view normalized) const =0;
+
         std::vector<std::string> tokenizeNormalized(lib::string_view input) const
         {
             auto normalized=normalize(input);
             return tokenize(normalized);
+        }
+
+        std::vector<std::string> tokenizeNormalizedWithDomains(lib::string_view input) const
+        {
+            auto normalized=normalize(input);
+            return tokenizeWithDomains(normalized);
         }
 };
 
@@ -52,8 +60,9 @@ class HATN_COMMON_EXPORT Utf8Proc : public AbstractUtf8Proc
 {
     public:
 
-        virtual std::string normalize(lib::string_view input) const override;
-        virtual std::vector<std::string> tokenize(lib::string_view normalized) const override;
+        std::string normalize(lib::string_view input) const override;
+        std::vector<std::string> tokenize(lib::string_view normalized) const override;
+        std::vector<std::string> tokenizeWithDomains(lib::string_view normalized) const override;
 };
 
 #endif
