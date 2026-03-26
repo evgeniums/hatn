@@ -81,6 +81,11 @@ struct formatUsernameT
         }
         return fmt::format("@{}@{}",obj.fieldValue(username::user),obj.fieldValue(username::domain));
     }
+
+    std::string operator()(const username::type& obj, bool forName) const
+    {
+        return formatUsernameT::operator()(obj,username::type{},forName);
+    }
 };
 constexpr formatUsernameT formatUsername{};
 
