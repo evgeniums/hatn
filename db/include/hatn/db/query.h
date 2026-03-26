@@ -160,7 +160,8 @@ enum class IntervalType : uint8_t
     Closed,
     Open,
     First,
-    Last
+    Last,
+    Next
 };
 
 inline IntervalType reverseIntervalType(IntervalType type) noexcept
@@ -176,6 +177,7 @@ inline const char* intervalTypeToString(IntervalType type) noexcept
         case (IntervalType::Open): return "open"; break;
         case (IntervalType::First): return "first"; break;
         case (IntervalType::Last): return "last"; break;
+        case (IntervalType::Next): return "next"; break;
     }
     return "";
 }
@@ -378,9 +380,10 @@ struct Interval
         T1&& from,
         IntervalType fromType,
         IntervalType toType
-        ) : Interval(std::forward<T1>(from),fromType,T{},toType)
+        ) : from(std::forward<T1>(from),fromType),
+            to(T{},toType)
     {
-        Assert(toType==IntervalType::Last,"This constructor can be used only for interval to Last");
+        Assert(toType==IntervalType::Last || toType==IntervalType::Next,"This constructor can be used only for interval to Last or to Next");
     }
 
     /**

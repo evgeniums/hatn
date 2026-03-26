@@ -43,46 +43,58 @@ struct valueVisitor
             {
                 switch (_(value).from.type)
                 {
-                case(query::IntervalType::Last):
-                {
-                    (*_(self))(query::Last);
-                }
-                break;
+                    case(query::IntervalType::Last):
+                    {
+                        (*_(self))(query::Last);
+                    }
+                    break;
 
-                case(query::IntervalType::First):
-                {
-                    (*_(self))(query::First);
-                }
-                break;
+                    case(query::IntervalType::First):
+                    {
+                        (*_(self))(query::First);
+                    }
+                    break;
 
-                default:
-                {
-                    fieldToStringBuf(_(self)->buf,_(value).from.value);
-                }
-                break;
+                    default:
+                    {
+                        fieldToStringBuf(_(self)->buf,_(value).from.value);
+                    }
+                    break;
                 }
             },
             [&](auto _)
             {
                 switch (_(value).to.type)
                 {
-                case(query::IntervalType::Last):
-                {
-                    (*_(self))(query::Last);
-                }
-                break;
+                    case(query::IntervalType::Last):
+                    {
+                        (*_(self))(query::Last);
+                    }
+                    break;
 
-                case(query::IntervalType::First):
-                {
-                    (*_(self))(query::First);
-                }
-                break;
+                    case(query::IntervalType::First):
+                    {
+                        (*_(self))(query::First);
+                    }
+                    break;
 
-                default:
-                {
-                    fieldToStringBuf(_(self)->buf,_(value).to.value);
-                }
-                break;
+                    case(query::IntervalType::Next):
+                    {
+                        auto prevSize=_(self)->buf.size();
+                        fieldToStringBuf(_(self)->buf,_(value).from.value);
+                        if (_(self)->buf.size()>prevSize)
+                        {
+                            char& last=_(self)->buf.back();
+                            last++;
+                        }
+                    }
+                    break;
+
+                    default:
+                    {
+                        fieldToStringBuf(_(self)->buf,_(value).to.value);
+                    }
+                    break;
                 }
             }
             );

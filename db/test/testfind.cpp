@@ -1175,6 +1175,94 @@ BOOST_AUTO_TEST_CASE(MultipleTopics)
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 }
 
+BOOST_AUTO_TEST_CASE(StringPrefix)
+{
+    init();
+
+    auto s1=initSchema(m1_str());
+
+    auto handler=[&s1](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
+    {
+        setSchemaToClient(client,s1);
+
+        Topic topic1{"topic1"};
+
+        // create object1
+        auto o1=makeInitObject<u1_str::type>();
+        o1.setFieldValue(u1_str::f1,"user1");
+        o1.setFieldValue(u1_str::f2,"u1-check");
+        auto ec=client->create(topic1,m1_str(),&o1);
+        if (ec)
+        {
+            BOOST_TEST_MESSAGE(ec.message());
+        }
+        BOOST_REQUIRE(!ec);
+
+        // create object2
+        auto o2=makeInitObject<u1_str::type>();
+        o2.setFieldValue(u1_str::f1,"user300");
+        o2.setFieldValue(u1_str::f2,"u2-check");
+        ec=client->create(topic1,m1_str(),&o2);
+        if (ec)
+        {
+            BOOST_TEST_MESSAGE(ec.message());
+        }
+        BOOST_REQUIRE(!ec);
+
+        // find by prefix both records
+        std::string qstr1{"user1"};
+        auto interval1=db::query::makeInterval(query::String{qstr1},query::String{qstr1});
+        interval1.from.type=query::IntervalType::Closed;
+        interval1.to.type=query::IntervalType::Closed;
+        auto q1=makeQuery(u1_str_f1_idx(),query::where(u1_str::f1,query::in,interval1),topic1);
+        auto r1=client->find(m1_str(),q1);
+        BOOST_REQUIRE(!r1);
+        BOOST_REQUIRE_EQUAL(r1.value().size(),1);
+        BOOST_CHECK_EQUAL(r1->at(0).as<u1_str::type>()->fieldValue(u1_str::f2),"u1-check");
+
+        std::string qstr2{"user"};
+        auto interval2=db::query::makeInterval(query::String{qstr2},query::IntervalType::Next);
+        auto q2=makeQuery(u1_str_f1_idx(),query::where(u1_str::f1,query::in,interval2),topic1);
+        // auto q2=makeQuery(u1_str_f1_idx(),query::where(u1_str::f1,query::lt,qstr3),topic1);
+        auto r2=client->find(m1_str(),q2);
+        BOOST_REQUIRE(!r2);
+        BOOST_REQUIRE_EQUAL(r2.value().size(),2);
+        BOOST_CHECK_EQUAL(r2->at(0).as<u1_str::type>()->fieldValue(u1_str::f2),"u1-check");
+        BOOST_CHECK_EQUAL(r2->at(1).as<u1_str::type>()->fieldValue(u1_str::f2),"u2-check");
+
+        std::string qstr3{"user1"};
+        auto interval3=db::query::makeInterval(query::String{qstr3},query::IntervalType::Next);
+        auto q3=makeQuery(u1_str_f1_idx(),query::where(u1_str::f1,query::in,interval3),topic1);
+        auto r3=client->find(m1_str(),q3);
+        BOOST_REQUIRE(!r3);
+        BOOST_REQUIRE_EQUAL(r3.value().size(),1);
+        BOOST_CHECK_EQUAL(r3->at(0).as<u1_str::type>()->fieldValue(u1_str::f2),"u1-check");
+
+        std::string qstr4{"user3"};
+        auto interval4=db::query::makeInterval(query::String{qstr4},query::IntervalType::Next);
+        auto q4=makeQuery(u1_str_f1_idx(),query::where(u1_str::f1,query::in,interval4),topic1);
+        auto r4=client->find(m1_str(),q4);
+        BOOST_REQUIRE(!r4);
+        BOOST_REQUIRE_EQUAL(r4.value().size(),1);
+        BOOST_CHECK_EQUAL(r4->at(0).as<u1_str::type>()->fieldValue(u1_str::f2),"u2-check");
+
+        std::string qstr5{"user5"};
+        auto interval5=db::query::makeInterval(query::String{qstr5},query::IntervalType::Next);
+        auto q5=makeQuery(u1_str_f1_idx(),query::where(u1_str::f1,query::in,interval5),topic1);
+        auto r5=client->find(m1_str(),q5);
+        BOOST_REQUIRE(!r5);
+        BOOST_CHECK_EQUAL(r5.value().size(),0);
+
+        std::string qstr6{"uses"};
+        auto interval6=db::query::makeInterval(query::String{qstr6},query::IntervalType::Next);
+        auto q6=makeQuery(u1_str_f1_idx(),query::where(u1_str::f1,query::in,interval6),topic1);
+        auto r6=client->find(m1_str(),q6);
+        BOOST_REQUIRE(!r6);
+        BOOST_CHECK_EQUAL(r6.value().size(),0);
+    };
+    PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
+}
+
 BOOST_AUTO_TEST_SUITE_END()
 
 /** @todo Test:

@@ -44,7 +44,8 @@ struct FieldToStringBufT
         }
         else
         {
-            common::Base32HexUnpadded::encodeAppend(buf,val);
+            // buf.append(val);
+            common::Hex::encodeAppend(buf,val);
         }
     }
 
@@ -187,7 +188,8 @@ struct FieldToStringBufT
     template <typename BufT>
     void operator ()(BufT& buf, const BufT& val) const
     {
-        buf.append(val.data(),val.size());
+        constexpr static FieldToStringBufT f{};
+        f(buf,lib::string_view{val.data(),val.size()});
     }
 
     template <typename BufT>
