@@ -442,6 +442,7 @@ void GrpcTransport::sendRequest(
     // add headers from method auth
     for (const auto& methodHeader : req->methodAuth().headers())
     {
+        HATN_CTX_DEBUG_RECORDS(20,"sending gRPC header",{"header_name",methodHeader.first},{"header_value",methodHeader.second})
         context->AddMetadata(methodHeader.first,methodHeader.second);
     }
 
