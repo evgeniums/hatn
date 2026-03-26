@@ -24,6 +24,7 @@
 #include <hatn/common/stdwrappers.h>
 #include <hatn/common/datetime.h>
 #include <hatn/common/daterange.h>
+#include <hatn/common/base32hex.h>
 
 #include <hatn/db/objectid.h>
 #include <hatn/db/query.h>
@@ -43,9 +44,7 @@ struct FieldToStringBufT
         }
         else
         {
-            //! @todo escape special symbols such as SeparatorCharC, SeparatorCharPlusC, EmptyCharC
-            //! replace them with ASCII pre-space symbols
-            buf.append(val);
+            common::Base32HexUnpadded::encodeAppend(buf,val);
         }
     }
 
@@ -152,21 +151,7 @@ struct FieldToStringBufT
     template <typename BufT>
     void bool_(BufT& buf, const bool& val) const
     {
-#if 0
-        constexpr static lib::string_view True{"1",1};
-        constexpr static lib::string_view False{"0",1};
-
-        if (val)
-        {
-            buf.append(True);
-        }
-        else
-        {
-            buf.append(False);
-        }
-#else
         uint64_(buf,static_cast<uint64_t>(val));
-#endif
     }
 
     template <typename BufT>
@@ -184,11 +169,7 @@ struct FieldToStringBufT
     template <typename BufT>
     void operator ()(BufT& buf, const query::NullT&) const
     {
-#if 0
-        buf.push_back(NullCharC);
-#else
         std::ignore=buf;
-#endif
     }
 
     template <typename BufT>
