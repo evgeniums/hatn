@@ -191,6 +191,7 @@ SET (HEADERS
     include/hatn/common/allocatoronstack.h
 
     include/hatn/common/crc32.h
+    include/hatn/common/base32hex.h
 
     include/hatn/common/env.h
 
@@ -313,6 +314,7 @@ IF (NOT SYSTEM_FMTLIB)
 ENDIF()
 
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} PUBLIC function2)
+TARGET_LINK_LIBRARIES(${PROJECT_NAME} PUBLIC cppcodec)
 
 FIND_PACKAGE(utf8proc)
 

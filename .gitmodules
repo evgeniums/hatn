@@ -13,3 +13,6 @@
 [submodule "thirdparty/function2"]
 	path = thirdparty/function2
 	url = https://github.com/Naios/function2
+[submodule "thirdparty/cppcodec"]
+	path = thirdparty/cppcodec
+	url = https://github.com/evgeniums/cppcodec
