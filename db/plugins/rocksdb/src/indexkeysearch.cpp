@@ -302,6 +302,8 @@ Error iterateFieldVariant(
                 if (field.value.toIntervalType()==query::IntervalType::Open
                     ||
                     field.value.toIntervalType()==query::IntervalType::Last
+                    ||
+                    field.value.toIntervalType()==query::IntervalType::Next
                     )
                 {
                     toValueToBuf(toBuf,field,SeparatorCharStr);
