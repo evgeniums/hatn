@@ -17,6 +17,9 @@
 #include <charconv>
 #endif
 
+#include <fmt/chrono.h>
+#include <fmt/format.h>
+
 #include <boost/date_time/gregorian/gregorian.hpp>
 #include <boost/date_time/local_time/local_time.hpp>
 #include <boost/date_time/c_local_time_adjustor.hpp>
@@ -815,6 +818,16 @@ void DateTime::addMilliseconds(int value)
     boost::posix_time::time_duration dd{0,0,0,1000*value};
     pt+=dd;
     *this=makeDateTime(pt,m_tz);
+}
+
+//---------------------------------------------------------------
+
+std::string DateTime::format(const std::locale& loc) const
+{
+    auto dt = std::chrono::system_clock::from_time_t(toEpoch());
+    auto dtsec = std::chrono::time_point_cast<std::chrono::seconds>(dt);
+    dtsec += std::chrono::seconds(localTimezone()*60);
+    return fmt::format(loc,"{:L%x %X}",dtsec);
 }
 
 /**************************** DateRange ******************************/

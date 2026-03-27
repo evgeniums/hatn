@@ -781,6 +781,8 @@ class HATN_COMMON_EXPORT DateTime
             return OK;
         }
 
+        std::string format(const std::locale& = {}) const;
+
         // Constants based on UTC-12:00 to UTC+14:00
         static constexpr int16_t TZ_MIN_OFFSET_MINUTES = -720;
         static constexpr int16_t TZ_MAX_OFFSET_MINUTES = 840;
