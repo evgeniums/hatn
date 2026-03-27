@@ -80,6 +80,7 @@ HDU_UNIT(grpc_config,
     HDU_FIELD(keep_alive_timeout,TYPE_UINT32,17,false,DefaultKeepAliveTimeout)
     HDU_FIELD(keep_alive_without_calls,TYPE_BOOL,18,false,true)
     HDU_FIELD(grpc_code_header,TYPE_STRING,19,false,"x-grpc-code")
+    HDU_FIELD(send_id_header,TYPE_BOOL,20,false,true)
 )
 
 namespace detail {

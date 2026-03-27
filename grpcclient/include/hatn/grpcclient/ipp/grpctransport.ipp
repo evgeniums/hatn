@@ -438,6 +438,10 @@ void GrpcTransport::sendRequest(
     {
         context->AddMetadata(std::string{config().fieldValue(grpc_config::tenancy_header)}, std::string{req->tenancy()->tenancyId()});
     }
+    if (config().fieldValue(grpc_config::send_id_header))
+    {
+        context->AddMetadata(std::string{config().fieldValue(grpc_config::id_header)}, du::ObjectId::generateId().toString());
+    }
 
     // add headers from method auth
     for (const auto& methodHeader : req->methodAuth().headers())
