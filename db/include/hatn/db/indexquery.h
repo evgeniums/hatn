@@ -170,6 +170,16 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
             return m_parseToSharedArrays;
         }
 
+        void setNotFoundIsError(bool enable) noexcept
+        {
+            m_notFoundIsError=enable;
+        }
+
+        bool notFoundIsError() const noexcept
+        {
+            return m_notFoundIsError;
+        }
+
     private:
 
         IndexQuery(
@@ -276,6 +286,7 @@ class HATN_DB_EXPORT IndexQuery : public TimePointFilter
         size_t m_limit;
         size_t m_offset;
         bool m_parseToSharedArrays=false;
+        bool m_notFoundIsError=true;
 
         query::Field m_partitions;
 };
