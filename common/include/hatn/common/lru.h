@@ -213,6 +213,10 @@ class Lru
                           std::forward_as_tuple(key,std::forward<Args>(args)...)
                           );
             auto& item=const_cast<Item&>(inserted);
+            if (item.is_linked())
+            {
+                m_queue.erase(m_queue.iterator_to(item));
+            }
             m_queue.push_back(item);
             return item;
         }
