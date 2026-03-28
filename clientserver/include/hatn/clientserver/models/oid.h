@@ -726,6 +726,22 @@ struct attachUidT
 };
 constexpr attachUidT attachUid{};
 
+struct memberUidT
+{
+    template <typename T, typename ...Path>
+    Uid operator()(T&& obj, const Path& ...path) const
+    {
+        auto member=obj->member(path...);
+        if (member==nullptr)
+        {
+            return Uid{};
+        }
+
+        return Uid{member->sharedValue()};
+    }
+};
+constexpr memberUidT memberUid{};
+
 struct setLocalUidT
 {
     template <typename T>
