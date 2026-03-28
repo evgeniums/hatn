@@ -895,20 +895,21 @@ ObjectsCache<Traits,Derived>::get(
     // fetch from controller
     if (postFetching)
     {
+        auto topicHolder=std::make_shared<std::string>(topic);
         HATN_NAMESPACE::postAsync(
             "ObjectsCache::postFetching",
             Traits::taskThread(pimpl->derived,ctx),
             ctx,
-            [guard=Traits::asyncGuard(pimpl->derived),this,topic,fetchCallback,opt,uid,bySubject](auto ctx)
+            [guard=Traits::asyncGuard(pimpl->derived),this,topicHolder,fetchCallback,opt,uid,bySubject](auto ctx)
             {
-                auto cb=[fetchCallback](const common::Error& ec, Result result)
+                auto cb=[fetchCallback,topicHolder](const common::Error& ec, Result result)
                 {
                     if (fetchCallback)
                     {
                         fetchCallback(ec,std::move(result));
                     }
                 };
-                invokeFetch(std::move(ctx),std::move(cb),topic,std::move(uid),std::move(bySubject),opt);
+                invokeFetch(std::move(ctx),std::move(cb),*topicHolder,std::move(uid),std::move(bySubject),opt);
             }
         );
     }

@@ -113,8 +113,8 @@ class ObjectsCache : public AbstractCache
 
         Result get(
             common::SharedPtr<Context> ctx,
-            lib::string_view topic={},
-            Uid uid={},
+            lib::string_view topic,
+            Uid uid,
             CacheOptions opt={},
             bool postFetching=false,
             FetchCb fetchCallback={},
