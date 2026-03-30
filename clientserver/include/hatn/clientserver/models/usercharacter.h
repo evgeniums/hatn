@@ -159,7 +159,7 @@ HDU_UNIT(characters,
          HDU_FIELD(default_character,TYPE_OBJECT_ID,2)
          )
 
-HDU_UNIT_WITH(update_character,(HDU_BASE(oid_key),HDU_BASE(with_revision)),
+HDU_UNIT_WITH(update_character,(HDU_BASE(with_revision)),
     HDU_FIELD(section_type,HDU_TYPE_ENUM(UserCharacterSectionType),1)
     HDU_FIELD(section,TYPE_UINT32,2)
     HDU_FIELD(content,TYPE_DATAUNIT,3)
