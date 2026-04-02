@@ -105,6 +105,10 @@ class TextLogFormatterT : public TextLogFormatterBase
                     {
                         maxIdx=ctx->scopeStack().size();
                     }
+                    if (maxIdx>ctx->scopeStack().size())
+                    {
+                        maxIdx=ctx->scopeStack().size();
+                    }
 
                     buf.append(lib::string_view(" stack=\""));
                     for (size_t i=0;i<maxIdx;i++)
