@@ -48,18 +48,61 @@ constexpr const uint32_t DefaultUnaryDeadlineTimeout=25;
 constexpr const uint32_t DefaultKeepAlivePeriod=60; // 60 seconds
 constexpr const uint32_t DefaultKeepAliveTimeout=20; // 20 seconds
 
+#if defined (BUILD_ANDROID) || defined (BUILD_IOS)
+
+constexpr const bool DefaultKeepAliveWithoutCalls=false;
+
 constexpr const char* DefaultConfigJson = R"({
-  "methodConfig": [{
-    "name": [{"service": ""}],
-    "retryPolicy": {
-      "maxAttempts": 5,
-      "initialBackoff": "1s",
-      "maxBackoff": "10s",
-      "backoffMultiplier": 2,
-      "retryableStatusCodes": ["UNAVAILABLE", "INTERNAL"]
+  "methodConfig": [
+    {
+      "name": [
+        {
+          "service": ""
+        }
+      ],
+      "retryPolicy": {
+        "maxAttempts": 5,
+        "initialBackoff": "0.8s",
+        "maxBackoff": "4s",
+        "backoffMultiplier": 1.6,
+        "retryableStatusCodes": [
+          "UNAVAILABLE",
+          "INTERNAL"
+        ]
+      },
+      "waitForReady": true
     }
-  }]
+  ]
 })";
+
+#else
+
+constexpr const bool DefaultKeepAliveWithoutCalls = true;
+
+constexpr const char* DefaultConfigJson = R"({
+  "methodConfig": [
+    {
+      "name": [
+        {
+          "service": ""
+        }
+      ],
+      "retryPolicy": {
+        "maxAttempts": 4,
+        "initialBackoff": "0.4s",
+        "maxBackoff": "8s",
+        "backoffMultiplier": 2.0,
+        "retryableStatusCodes": [
+          "UNAVAILABLE",
+          "INTERNAL"
+        ]
+      },
+      "waitForReady": true
+    }
+  ]
+})";
+
+#endif
 
 HDU_UNIT(grpc_config,
     HDU_FIELD(maximum_concurrent_calls,TYPE_UINT32,1,false,100)
@@ -78,7 +121,7 @@ HDU_UNIT(grpc_config,
     HDU_FIELD(error_response_type,TYPE_STRING,15,false,"grpc_api_server.Error")
     HDU_FIELD(keep_alive_period,TYPE_UINT32,16,false,DefaultKeepAlivePeriod)
     HDU_FIELD(keep_alive_timeout,TYPE_UINT32,17,false,DefaultKeepAliveTimeout)
-    HDU_FIELD(keep_alive_without_calls,TYPE_BOOL,18,false,true)
+    HDU_FIELD(keep_alive_without_calls,TYPE_BOOL,18,false,DefaultKeepAliveWithoutCalls)
     HDU_FIELD(grpc_code_header,TYPE_STRING,19,false,"x-grpc-code")
     HDU_FIELD(send_id_header,TYPE_BOOL,20,false,true)
 )
@@ -174,6 +217,10 @@ class HATN_GRPCCLIENT_EXPORT GrpcTransport : public base::ConfigObject<grpc_conf
             std::string pb,
             std::string du
         );
+
+        void updateNetworkState(bool disconnected);
+
+        void updateForegroundState();
 
     private:
 

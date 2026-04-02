@@ -21,6 +21,8 @@
 
 #include <hatn/logcontext/postasync.h>
 
+#include <hatn/network/networkerror.h>
+
 #include <hatn/api/apiliberror.h>
 #include <hatn/api/tenancy.h>
 #include <hatn/api/client/clientrequest.h>
@@ -143,9 +145,14 @@ void Client<RouterT,Transport,SessionWrapperT,Traits>::doExec(
     auto queueSize=queue.size();
 
     // check if client is closed
-    if (m_closed || m_networkDisconnected)
+    if (m_closed)
     {
         ec=commonError(common::CommonError::ABORTED);
+    }
+    else if (m_networkDisconnected)
+    {
+        HATN_CTX_SCOPE_ERROR("network is disconnected")
+        ec=network::networkError(network::NetworkError::NETWORK_NOT_CONNECTED);
     }
     else if (req->priority()!=Priority::Highest
                && queueSize>(maxQueueDepth + sessionWaitingReqCount))
@@ -439,6 +446,94 @@ void Client<RouterT,Transport,SessionWrapperT,Traits>::close(
                   callback(std::move(ctx),ec);
                 }
             );
+        }
+    );
+}
+
+//---------------------------------------------------------------
+
+template <typename RouterT,
+         template <typename Router, typename Traits> class Transport,
+         typename SessionWrapperT,
+         typename Traits>
+void Client<RouterT,Transport,SessionWrapperT,Traits>::updateNetworkState(bool disconnected)
+{
+    m_networkDisconnected.store(disconnected);
+
+    m_thread->execAsync(
+        [this,clientCtx=sharedMainCtx(),disconnected]()
+        {
+            if (m_closed)
+            {
+                return;
+            }
+
+            if (disconnected)
+            {
+                auto abortRequest=[](auto req)
+                {
+                    if (!req->cancelled())
+                    {
+                        req->callback("apiclientclose",req->taskCtx,commonError(common::CommonError::ABORTED),Response{});
+                    }
+                };
+
+                // clear queues
+                for (auto&& it: m_queues)
+                {
+                    while (!it.second.empty())
+                    {
+                        auto req=it.second.pop();
+                        abortRequest(std::move(req));
+                    }
+                }
+
+                // reset counters
+                for (auto&& it: m_sessionWaitingReqCount)
+                {
+                    it.second=0;
+                }
+
+                // clear session waiting queues
+                for (auto&& it: m_sessionWaitingQueues)
+                {
+                    while (!it.second.empty())
+                    {
+                        auto req=it.second.pop();
+                        abortRequest(std::move(req));
+                    }
+                }
+                m_sessionWaitingQueues.clear();
+            }
+
+            // update state in trasnport
+            m_transport.updateNetworkState(disconnected);
+        }
+    );
+}
+
+//---------------------------------------------------------------
+
+template <typename RouterT,
+         template <typename Router, typename Traits> class Transport,
+         typename SessionWrapperT,
+         typename Traits>
+void Client<RouterT,Transport,SessionWrapperT,Traits>::updateForegroundState()
+{
+    if (m_networkDisconnected)
+    {
+        return;
+    }
+
+    m_thread->execAsync(
+        [this,clientCtx=sharedMainCtx()]()
+        {
+            if (m_closed)
+            {
+                return;
+            }
+
+            m_transport.updateForegroundState();
         }
     );
 }

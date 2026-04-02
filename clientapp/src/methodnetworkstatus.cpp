@@ -16,6 +16,7 @@
 
 #include <hatn/dataunit/syntax.h>
 
+#include <hatn/clientapp/eventdispatcher.h>
 #include <hatn/clientapp/methodnetworkstatus.h>
 #include <hatn/clientapp/systemservice.h>
 
@@ -25,6 +26,7 @@ HATN_CLIENTAPP_NAMESPACE_BEGIN
 
 HDU_UNIT(network_status,
     HDU_FIELD(connected,TYPE_BOOL,1)
+    HDU_FIELD(event,TYPE_STRING,2)
 )
 
 //---------------------------------------------------------------
@@ -40,12 +42,31 @@ void MethodNetworkStatus::exec(
 
     auto msg=request.message.as<network_status::managed>();
 
-    HATN_CTX_DEBUG_RECORDS(1,"network status updated",{"connected",msg->fieldValue(network_status::connected)})
+    HATN_CTX_DEBUG_RECORDS(1,"network status updated",{"network_connected",msg->fieldValue(network_status::connected)},
+                           {"network_event",msg->fieldValue(network_status::event)})
 
-    std::ignore=msg;
-    std::ignore=ctx;
-    std::ignore=env;
-    //! @todo critical: publish network event
+    auto app=clientApp(env,ctx);
+    if (app!=nullptr)
+    {
+        auto event=std::make_shared<Event>();
+        event->category=EventCategory;
+
+        if (!msg->fieldValue(network_status::connected))
+        {
+            event->event=EventDisconnect;
+        }
+        else
+        {
+            event->event=msg->fieldValue(network_status::event);
+            if (event->event.empty())
+            {
+                event->event=EventConnect;
+            }
+        }
+
+        app->eventDispatcher().publish(env,ctx,event);
+    }
+
     callback(Error{},Response{});
 }
 
@@ -66,4 +87,3 @@ MessageBuilderFn MethodNetworkStatus::messageBuilder() const
 //---------------------------------------------------------------
 
 HATN_CLIENTAPP_NAMESPACE_END
-

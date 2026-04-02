@@ -208,10 +208,9 @@ class Client : public common::TaskSubcontext,
             return m_transport.setRouter(std::move(router));
         }
 
-        void setNetworkDisconnected(bool enable)
-        {
-            m_networkDisconnected.store(enable);
-        }
+        void updateNetworkState(bool disconnected);
+
+        void updateForegroundState();
 
     private:
 

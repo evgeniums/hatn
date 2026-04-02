@@ -83,6 +83,24 @@ void GrpcTransport::closeChannels()
 
 //--------------------------------------------------------------------------
 
+void GrpcTransport::updateNetworkState(bool disconnected)
+{
+    for (auto&& it: pimpl->channels)
+    {
+        it.second.updateNetworkState(disconnected);
+    }
+    pimpl->defaultChannel.updateNetworkState(disconnected);
+}
+
+//--------------------------------------------------------------------------
+
+void GrpcTransport::updateForegroundState()
+{
+    updateNetworkState(false);
+}
+
+//--------------------------------------------------------------------------
+
 common::SharedPtr<Router> GrpcTransport::router() const
 {
     return pimpl->router;

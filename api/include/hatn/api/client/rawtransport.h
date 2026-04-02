@@ -119,6 +119,16 @@ class RawTransport : public base::ConfigObject<raw_transport_config::type>
             return m_connectionPool.router();
         }
 
+        void updateNetworkState(bool /*disconnected*/)
+        {
+            //! @todo Handle network states
+        }
+
+        void updateForegroundState()
+        {
+            //! @todo Handle foreground state
+        }
+
     private:
 
         ConnectionPool<RouterT> m_connectionPool;

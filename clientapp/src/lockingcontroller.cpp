@@ -17,6 +17,7 @@
 #include <hatn/logcontext/context.h>
 
 #include <hatn/app/app.h>
+#include <hatn/clientapp/clientbridge.h>
 
 #include <hatn/clientapp/clientapp.h>
 #include <hatn/clientapp/clientappsettings.h>
@@ -210,6 +211,16 @@ void LockingController::setBackground()
     m_background=true;
     m_mutex.unlock();
 
+    auto event=std::make_shared<Event>();
+    event->category=FgBgEventCategory;
+    event->event=BackgroundEvent;
+    auto ctx=m_app->bridge().defaultContextBuilder()->makeContext(m_app->app().env());
+    m_app->eventDispatcher().publish(
+        m_app->app().env(),
+        ctx,
+        std::move(event)
+    );
+
     if (autoLockMode()==AutoLockMode::Background)
     {
         lock();
@@ -223,6 +234,16 @@ void LockingController::setForeground()
     m_mutex.lock();
     m_background=false;
     m_mutex.unlock();
+
+    auto event=std::make_shared<Event>();
+    event->category=FgBgEventCategory;
+    event->event=ForegroundEvent;
+    auto ctx=m_app->bridge().defaultContextBuilder()->makeContext(m_app->app().env());
+    m_app->eventDispatcher().publish(
+        m_app->app().env(),
+        ctx,
+        std::move(event)
+    );
 
     updateLastActivity();
 }
@@ -243,9 +264,10 @@ void LockingController::updateLastActivity()
     auto lastActivityEvent=std::make_shared<LastActivityEvent>();
     //! @todo Load last activity time to event's message
 
+    auto ctx=m_app->bridge().defaultContextBuilder()->makeContext(m_app->app().env());
     m_app->eventDispatcher().publish(
         m_app->app().env(),
-        HATN_LOGCONTEXT_NAMESPACE::makeLogCtx(),
+        ctx,
         std::move(lastActivityEvent)
     );
 }

@@ -44,6 +44,10 @@ class HATN_CLIENTAPP_EXPORT LockingController : public std::enable_shared_from_t
 
         constexpr static const char* EventCategory="locking";
 
+        constexpr static const char* FgBgEventCategory="fg_bg";
+        constexpr static const char* ForegroundEvent="foreground";
+        constexpr static const char* BackgroundEvent="background";
+
         constexpr static const char* SettingsLockingSection="clientapp.locking";
         constexpr static const char* SettingsPassphraseSection="clientapp.passphrase";
         constexpr static const char* SettingsPassphraseThrottleSection="clientapp.passphrase.throttle";

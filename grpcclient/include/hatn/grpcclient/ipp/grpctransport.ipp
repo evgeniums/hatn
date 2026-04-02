@@ -95,10 +95,12 @@ struct PriorityChannel
 {
     std::shared_ptr<grpc::Channel> channel;
     std::shared_ptr<grpc::GenericStub> stub;
-    common::MutexLock mutex;
+    mutable common::MutexLock mutex;
 
     Requests pendingRequests;
     Streams streams;
+
+    bool disconnected=false;
 
     PriorityChannel()
     {}
@@ -108,6 +110,12 @@ struct PriorityChannel
               std::shared_ptr<grpc::ChannelCredentials> creds,
               const std::string& userAgent
               );
+
+    bool isDisconnected() const
+    {
+        common::MutexScopedLock l{mutex};
+        return disconnected;
+    }
 
     void close()
     {
@@ -132,6 +140,50 @@ struct PriorityChannel
             stub.reset();
             channel.reset();
             pendingRequests.clear();
+        }
+    }
+
+    void updateNetworkState(bool disconnect)
+    {
+        if (disconnect)
+        {
+            std::vector<std::shared_ptr<grpc::ClientContext>> contexts;
+
+            {
+                common::MutexScopedLock l{mutex};
+                if (disconnected)
+                {
+                    return;
+                }
+
+                disconnect=true;
+                auto& ctxIdx = pendingRequests.get<by_shared_ptr>();
+                for (const auto& entry : ctxIdx)
+                {
+                    contexts.emplace_back(entry.grpcContext);
+                }
+            }
+
+            for (const auto& ctx : contexts)
+            {
+                ctx->TryCancel();
+            }
+
+            closeAllStreams();
+
+            {
+                common::MutexScopedLock l{mutex};
+                pendingRequests.clear();
+            }
+
+            return;
+        }
+
+        {
+            common::MutexScopedLock l{mutex};
+
+            disconnected=false;
+            channel->GetState(true);
         }
     }
 
@@ -241,6 +293,11 @@ struct PriorityChannel
         mutex.lock();
         streams.clear();
         mutex.unlock();
+    }
+
+    void resetState()
+    {
+
     }
 };
 
@@ -390,6 +447,12 @@ void GrpcTransport::sendRequest(
 
     // find channel for priority
     auto channel=pimpl->channel(req->priority());
+    if (channel->isDisconnected())
+    {
+        HATN_CTX_SCOPE_ERROR("network is disconnected")
+        callback(network::networkError(network::NetworkError::NETWORK_NOT_CONNECTED));
+        return;
+    }
 
     // create context
     std::shared_ptr<grpc::ClientContext> context;

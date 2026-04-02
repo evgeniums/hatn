@@ -36,6 +36,7 @@
     Do(NetworkError,PROXY_UNSUPPORTED_IP_PROTOCOL,_TR("SOCKS5 unsupported IP protocol","network")) \
     Do(NetworkError,PROXY_MAILFORMED_DATA,_TR("SOCKS5 data mailformed","network")) \
     Do(NetworkError,PROXY_INVALID_PARAMETERS,_TR("SOCKS5 invalid parameters of proxy server","network")) \
+    Do(NetworkError,NETWORK_NOT_CONNECTED,_TR("not connected to network","network")) \
     Do(NetworkError,DNS_FAILED,_TR("unable to resolve DNS name","network"))
 //! @note DNS_FAILED is intentionally the last error code.
 

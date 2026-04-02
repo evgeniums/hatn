@@ -29,6 +29,10 @@ class HATN_CLIENTAPP_EXPORT MethodNetworkStatus : public BridgeMethod<SystemServ
 {
     public:
 
+        constexpr static const char* EventCategory="network_state";
+        constexpr static const char* EventDisconnect="disconnect";
+        constexpr static const char* EventConnect="connect";
+
         constexpr static const char* Name="network_status";
 
         MethodNetworkStatus(SystemService* service) : BridgeMethod<SystemService>(service,Name)
