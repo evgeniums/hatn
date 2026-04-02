@@ -25,6 +25,13 @@ HATN_CLIENTAPP_NAMESPACE_BEGIN
 
 class SystemService;
 
+HDU_UNIT(network_status,
+    HDU_FIELD(connected,TYPE_BOOL,1)
+    HDU_FIELD(event,TYPE_STRING,2)
+    HDU_FIELD(medium,TYPE_STRING,3)
+    HDU_FIELD(online_type,TYPE_STRING,4)
+)
+
 class HATN_CLIENTAPP_EXPORT MethodNetworkStatus : public BridgeMethod<SystemService>
 {
     public:
@@ -32,6 +39,17 @@ class HATN_CLIENTAPP_EXPORT MethodNetworkStatus : public BridgeMethod<SystemServ
         constexpr static const char* EventCategory="network_state";
         constexpr static const char* EventDisconnect="disconnect";
         constexpr static const char* EventConnect="connect";
+        constexpr static const char* EventSwitch="switch";
+
+        constexpr static const char* MediumEthernet="ethernet";
+        constexpr static const char* MediumWifi="wifi";
+        constexpr static const char* MediumBluetooth="bluetooth";
+        constexpr static const char* MediumCellular="cellular";
+        constexpr static const char* MediumUnknown="unknown";
+
+        constexpr static const char* OnlineLocal="local";
+        constexpr static const char* OnlineGlobal="global";
+        constexpr static const char* OnlineUnknown="unknown";
 
         constexpr static const char* Name="network_status";
 

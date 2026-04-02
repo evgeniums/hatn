@@ -24,11 +24,6 @@
 
 HATN_CLIENTAPP_NAMESPACE_BEGIN
 
-HDU_UNIT(network_status,
-    HDU_FIELD(connected,TYPE_BOOL,1)
-    HDU_FIELD(event,TYPE_STRING,2)
-)
-
 //---------------------------------------------------------------
 
 void MethodNetworkStatus::exec(
@@ -42,8 +37,7 @@ void MethodNetworkStatus::exec(
 
     auto msg=request.message.as<network_status::managed>();
 
-    HATN_CTX_DEBUG_RECORDS(1,"network status updated",{"network_connected",msg->fieldValue(network_status::connected)},
-                           {"network_event",msg->fieldValue(network_status::event)})
+    HATN_CTX_DEBUG_RECORDS(1,"network status updated",{"network_status",msg->toString(true)})
 
     auto app=clientApp(env,ctx);
     if (app!=nullptr)
