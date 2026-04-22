@@ -154,6 +154,10 @@ HDU_UNIT_WITH(user_character_login,(HDU_BASE(db::object),HDU_BASE(with_user_char
 HDU_UNIT_WITH(character,(HDU_BASE(user_character_full),HDU_BASE(at_server),HDU_BASE(with_uid)),
               )
 
+HDU_UNIT_WITH(character_sync,(HDU_BASE(db::object),HDU_BASE(with_ledger_rev)),
+    HDU_FIELD(character,TYPE_OBJECT_ID,1)
+)
+
 HDU_UNIT(characters,
          HDU_REPEATED_FIELD(items,character::TYPE,1)
          HDU_FIELD(default_character,TYPE_OBJECT_ID,2)
