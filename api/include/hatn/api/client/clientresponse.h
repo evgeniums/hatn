@@ -90,6 +90,12 @@ class Response
         template <typename UnitT>
         Error parse(UnitT& obj, lib::string_view messageType={}) const
         {
+            return parseData(obj,*m_messageData,messageType);
+        }
+
+        template <typename UnitT, typename DataT>
+        Error parseData(UnitT& obj, const DataT& data, lib::string_view messageType={}) const
+        {
             // check message type
             if (messageType.empty())
             {
@@ -101,7 +107,7 @@ class Response
             }
 
             // deserialize message
-            du::WireBufSolidShared buf{m_messageData};
+            du::WireBufSolid buf{data.data(),data.size(),true};
             Error ec;
             if (!du::io::deserialize(obj,buf))
             {
