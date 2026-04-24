@@ -34,8 +34,8 @@ constexpr const int LedgerTierFieldId=122;
 
 enum class LedgerTier : int8_t
 {
-    Fast,
     Normal,
+    Fast,    
     Long
 };
 
