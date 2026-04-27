@@ -44,6 +44,11 @@ HDU_UNIT(with_ledger_rev,
     HDU_FIELD(ledger_tier,HDU_TYPE_ENUM(LedgerTier),LedgerTierFieldId,false,LedgerTier::Normal)
 )
 
+HDU_UNIT(with_seqnum,
+    HDU_FIELD(last_read_rev,TYPE_INT64,17)
+    HDU_FIELD(unread_count,TYPE_INT64,18)
+)
+
 HATN_CLIENT_SERVER_NAMESPACE_END
 
 #endif // HATNCLIENTSERVERMODELSRERVISION_H
