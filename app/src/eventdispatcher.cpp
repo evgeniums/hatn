@@ -142,7 +142,7 @@ void EventDispatcher::publish(
 {
     HATN_CTX_SCOPE("eventdispatcher::publish")
     HATN_CTX_SCOPE_PUSH("event_category",event->category);
-    HATN_CTX_SCOPE_PUSH("event_name",event->event);
+    HATN_CTX_SCOPE_PUSH("event_name",event->event);    
 
     EventKey key{
         event->category,
@@ -151,6 +151,7 @@ void EventDispatcher::publish(
     if (env)
     {
         key.setEnvId(env->name());
+        HATN_CTX_SCOPE_PUSH("event_env_id",env->name());
     }
     if (!event->topic.empty())
     {
@@ -201,6 +202,7 @@ size_t EventDispatcher::subscribe(
     HATN_CTX_SCOPE("eventdispatcher::subscribe")
     HATN_CTX_SCOPE_PUSH("event_category",key.category());
     HATN_CTX_SCOPE_PUSH("event",key.event());
+    HATN_CTX_SCOPE_PUSH("event_env_id",key.envId());
 
     size_t id=0;
     {
