@@ -458,6 +458,7 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
     using vectorType=HATN_COMMON_NAMESPACE::pmr::vector<type>;
     using isRepeatedType=std::true_type;
     using selfType=RepeatedFieldTmpl<Type,Id,DefaultTraits>;
+    using isUnitType=typename Type::isUnitType;
 
     constexpr static const ValueType typeId=Type::typeId;
 
@@ -1120,12 +1121,6 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
 
     virtual void arrayAppend(common::SharedPtr<Unit> val) override
     {
-        // if constexpr (Type::isUnitType::value)
-        // {
-        //     markSet();
-        //     RepeatedGetterSetter<type>::appendVal(*this,std::move(val));
-        // }
-#if 1
         auto self=this;
         auto t=hana::type_c<Type>;
         hana::eval_if(
@@ -1141,7 +1136,6 @@ struct RepeatedFieldTmpl : public Field, public RepeatedType
             Assert(false,"Invalid operation for field of this type");
           }
         );
-#endif
     }
 
     virtual void arrayInc(size_t idx,uint8_t val) override {RepeatedGetterSetter<Type>::incVal(vector[idx],val);}
