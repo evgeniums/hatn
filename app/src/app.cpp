@@ -934,6 +934,13 @@ void App::addPluginFolders(std::vector<std::string> folders)
 
 //---------------------------------------------------------------
 
+const std::vector<std::string>& App::pluginFolders() const noexcept
+{
+    return d->pluginFolders;
+}
+
+//---------------------------------------------------------------
+
 Result<std::shared_ptr<db::DbPlugin>> App_p::loadDbPlugin(lib::string_view name)
 {
     if (dbPlugin)

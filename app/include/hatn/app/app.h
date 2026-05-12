@@ -19,6 +19,8 @@
 #ifndef HATNAPPBASEAPP_H
 #define HATNAPPBASEAPP_H
 
+#include <vector>
+
 #include <hatn/common/threadwithqueue.h>
 
 #include <hatn/base/configtree.h>
@@ -196,6 +198,8 @@ class HATN_APP_EXPORT App
         }
 
         void addPluginFolders(std::vector<std::string> folders);
+
+        const std::vector<std::string>& pluginFolders() const noexcept;
 
         void setDbEncryptionKey(common::SharedPtr<HATN_CRYPT_NAMESPACE::SymmetricKey> key);
 
