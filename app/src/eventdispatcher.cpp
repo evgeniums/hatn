@@ -168,6 +168,8 @@ void EventDispatcher::publish(
     HATN_CTX_DEBUG_RECORDS(DebugVerbosityPublish,"publish event",
                            {"event_subject",event->subject},
                            {"event_oid",event->oid},
+                           {"event_genparam",event->genericParameter},
+                           {"event_msgtyp",event->messageTypeName}
                            )
 
     std::vector<EventHandler> handlers;
