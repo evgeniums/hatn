@@ -618,17 +618,15 @@ void Client<RouterT,Transport,SessionWrapperT,Traits>::refreshSession(common::Sh
                         count--;
                     }
 
-                    auto reqPtr=req.get();
+                    if (ec)
                     {
-                        if (ec)
-                        {
-                            req->callback("apiclientrefreshsession",req->taskCtx,ec,Response{});
-                        }
-                        else
-                        {
-                            // enqueue request again
-                            doExec(reqPtr->taskCtx,reqPtr->callback,std::move(req),true);
-                        }
+                        req->callback("apiclientrefreshsession",req->taskCtx,ec,Response{});
+                    }
+                    else
+                    {
+                        // enqueue request again
+                        auto reqPtr=req.get();
+                        doExec(reqPtr->taskCtx,reqPtr->callback,std::move(req),true);
                     }
                 }
 
