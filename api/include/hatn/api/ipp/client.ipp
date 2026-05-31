@@ -544,6 +544,29 @@ template <typename RouterT,
          template <typename Router, typename Traits> class Transport,
          typename SessionWrapperT,
          typename Traits>
+void Client<RouterT,Transport,SessionWrapperT,Traits>::reconnect()
+{
+    m_networkDisconnected.store(false);
+
+    m_thread->execAsync(
+        [this,clientCtx=sharedMainCtx()]()
+        {
+            if (m_closed)
+            {
+                return;
+            }
+
+            m_transport.reconnect();
+        }
+    );
+}
+
+//---------------------------------------------------------------
+
+template <typename RouterT,
+         template <typename Router, typename Traits> class Transport,
+         typename SessionWrapperT,
+         typename Traits>
 void Client<RouterT,Transport,SessionWrapperT,Traits>::refreshSession(common::SharedPtr<ReqCtx> req, Response resp)
 {
     postAsync(

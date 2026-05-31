@@ -86,9 +86,11 @@ class HATN_GRPCCLIENT_EXPORT GrpcStream : public grpc::ClientBidiReactor<grpc::B
         grpc::ByteBuffer m_responseBuffer;
         std::atomic<bool> m_closed;
         std::atomic<bool> m_initialResponse;
+        std::atomic<bool> m_readPending;
         grpc::ByteBuffer m_writeBuffer;
 
         common::MutexLock m_mutex;
+        std::shared_ptr<GrpcStream> m_self;
 };
 
 HATN_GRPCCLIENT_NAMESPACE_END

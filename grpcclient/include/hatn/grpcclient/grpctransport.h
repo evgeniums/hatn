@@ -45,11 +45,17 @@ HATN_GRPCCLIENT_NAMESPACE_BEGIN
 namespace common=HATN_COMMON_NAMESPACE;
 
 constexpr const uint32_t DefaultUnaryDeadlineTimeout=25;
-constexpr const uint32_t DefaultKeepAlivePeriod=60; // 60 seconds
-constexpr const uint32_t DefaultKeepAliveTimeout=20; // 20 seconds
+// Ping-response timeout. Worst-case dead-socket detection = keep_alive_period +
+// keep_alive_timeout. Shared by both platforms; tightening the timeout is nearly
+// free since on a healthy link it only matters once a ping is already unanswered.
+constexpr const uint32_t DefaultKeepAliveTimeout=5;
 
 #if defined (BUILD_ANDROID) || defined (BUILD_IOS)
 
+// Mobile: more conservative ping period — battery/radio wake.
+// The open event-listener stream keeps pings alive, so withoutCalls=false is fine.
+// Worst-case detection = 15 + 5 = 20 s.
+constexpr const uint32_t DefaultKeepAlivePeriod=15;
 constexpr const bool DefaultKeepAliveWithoutCalls=false;
 
 constexpr const char* DefaultConfigJson = R"({
@@ -77,6 +83,9 @@ constexpr const char* DefaultConfigJson = R"({
 
 #else
 
+// Desktop: aggressive ping period for fast zombie-socket detection.
+// Worst-case detection = 15 + 5 = 20 s.
+constexpr const uint32_t DefaultKeepAlivePeriod=15;
 constexpr const bool DefaultKeepAliveWithoutCalls = true;
 
 constexpr const char* DefaultConfigJson = R"({
@@ -104,6 +113,24 @@ constexpr const char* DefaultConfigJson = R"({
 
 #endif
 
+// Allow unlimited keepalive pings on idle connections.
+// gRPC default is 2, which stops pinging after 2 unanswered pings and defeats
+// the shorter keep_alive_period on idle channels. 0 = no cap.
+constexpr const uint32_t DefaultMaxPingsWithoutData=0;
+
+// Cap reconnect backoff at 10 s instead of the gRPC default of 120 s so the
+// channel retries quickly after a broken connection is detected.
+constexpr const uint32_t DefaultMaxReconnectBackoffMs=10000;
+constexpr const uint32_t DefaultInitialReconnectBackoffMs=1000;
+
+// Minimum interval the client allows between keepalive pings sent on a connection
+// with NO data frames flowing (e.g. a stuck stream after a WiFi<->VPN switch).
+// gRPC's default floor here is tens of seconds and OVERRIDES keep_alive_period,
+// so a zombie socket is only detected after that floor + keep_alive_timeout
+// (observed ~60-70 s) instead of keep_alive_period + keep_alive_timeout. Keep this
+// at/below keep_alive_period so pings actually flow at the configured cadence.
+constexpr const uint32_t DefaultMinSentPingIntervalWithoutDataMs=5000;
+
 HDU_UNIT(grpc_config,
     HDU_FIELD(maximum_concurrent_calls,TYPE_UINT32,1,false,100)
     HDU_REPEATED_FIELD(priority_channels,TYPE_UINT8,2)
@@ -124,6 +151,9 @@ HDU_UNIT(grpc_config,
     HDU_FIELD(keep_alive_without_calls,TYPE_BOOL,18,false,DefaultKeepAliveWithoutCalls)
     HDU_FIELD(grpc_code_header,TYPE_STRING,19,false,"x-grpc-code")
     HDU_FIELD(send_id_header,TYPE_BOOL,20,false,true)
+    HDU_FIELD(max_pings_without_data,TYPE_UINT32,21,false,DefaultMaxPingsWithoutData)
+    HDU_FIELD(max_reconnect_backoff_ms,TYPE_UINT32,22,false,DefaultMaxReconnectBackoffMs)
+    HDU_FIELD(initial_reconnect_backoff_ms,TYPE_UINT32,23,false,DefaultInitialReconnectBackoffMs)
 )
 
 namespace detail {
@@ -221,6 +251,12 @@ class HATN_GRPCCLIENT_EXPORT GrpcTransport : public base::ConfigObject<grpc_conf
         void updateNetworkState(bool disconnected);
 
         void updateForegroundState();
+
+        // Hard reconnect: tears down all channels (cancelling in-flight RPCs/streams) and
+        // re-creates them on the current network interface. Call when the transport medium
+        // changes (WiFi <-> cellular) so zombie sockets are replaced immediately instead of
+        // waiting for keepalive timeout to fire.
+        void reconnect();
 
     private:
 

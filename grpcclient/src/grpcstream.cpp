@@ -39,7 +39,8 @@ GrpcStream::GrpcStream(
         m_channelPriority(channelPriority),
         m_context(std::move(context)),
         m_closed(false),
-        m_initialResponse(true)
+        m_initialResponse(true),
+        m_readPending(false)
 {
 }
 
@@ -57,9 +58,6 @@ void GrpcStream::OnWriteDone(bool ok)
         // failed, wait for onDone
         return;
     }
-
-    //! @todo Fix for outgoing/bidirectional streams
-    StartWritesDone();
 
     m_mutex.lock();
     auto wcb=m_writeCallback;
@@ -79,12 +77,18 @@ void GrpcStream::OnWriteDone(bool ok)
 
 void GrpcStream::OnReadDone(bool ok)
 {
+    m_readPending=false;
     if (!ok)
     {
         // failed, wait for onDone
+#if 0
+        std::cout << "GrpcStream::OnReadDone failed" << std::endl;
+#endif
         return;
     }
-
+#if 0
+    std::cout << "GrpcStream::OnReadDone begin" << std::endl;
+#endif
     auto resetCallback=[&]()
     {
         m_mutex.lock();
@@ -143,9 +147,9 @@ void GrpcStream::OnReadDone(bool ok)
         }
         return;
     }
-
-    std::cerr << "GrpcStream::OnReadDone respWrapper: " << respWrapper.toString(true) << std::endl;
-
+#if 0
+    std::cout << "GrpcStream::OnReadDone respWrapper: " << respWrapper.toString(true) << std::endl;
+#endif
     // process response depending on message type
     if (respWrapper.fieldValue(stream_response::message_type)
              ==
@@ -191,6 +195,10 @@ void GrpcStream::OnReadDone(bool ok)
 
 void GrpcStream::OnDone(const grpc::Status& status)
 {
+#if 0
+    std::cout << "GrpcStream::OnDone status=" << status.error_message() << std::endl;
+#endif
+
     m_mutex.lock();
     m_closed=true;
     auto rcb=m_readCallback;
@@ -255,19 +263,31 @@ void GrpcStream::OnDone(const grpc::Status& status)
     m_writeCallback=WriteCb{};
     m_readCallback=ReadCb{};
     m_closeCallback=CloseCb{};
+    auto self=std::move(m_self);
     m_mutex.unlock();
-
-    auto self=shared_from_this();
     m_transport->removeStream(m_channelPriority,self);
 }
 
 //--------------------------------------------------------------------------
 
-void GrpcStream::readNext(ReadCb callback) {
-
+void GrpcStream::readNext(ReadCb callback)
+{
+#if 0
+    std::cout << "GrpcStream::readNext closed " << m_closed << std::endl;
+#endif
     if (m_closed)
     {
         callback(commonError(CommonError::ABORTED),{});
+        return;
+    }
+
+    // Guard against issuing two concurrent StartRead ops on the same stream.
+    // This can happen when a stale-stream callback fires on the app thread after
+    // a reconnect has already armed a new StartRead on this stream. gRPC reacts
+    // with GRPC_CALL_ERROR_TOO_MANY_OPERATIONS if StartRead is called twice
+    // before OnReadDone fires.
+    if (m_readPending.exchange(true))
+    {
         return;
     }
 
@@ -331,9 +351,17 @@ void GrpcStream::close(clientapi::StreamChannel::CloseCb callback)
 
 void GrpcStream::startStream(const grpc::ByteBuffer* initMsg, ReadCb callback)
 {
+#if 0
+    std::cout << "GrpcStream::startStream" << std::endl;
+#endif
+    m_mutex.lock();
     m_readCallback=callback;
+    m_self=shared_from_this();
+    m_mutex.unlock();
 
+    m_readPending=true;
     StartWrite(initMsg);
+    StartWritesDone();
     StartRead(&m_responseBuffer);
     StartCall();
 }

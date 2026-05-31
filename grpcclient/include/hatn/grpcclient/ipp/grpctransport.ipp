@@ -108,7 +108,8 @@ struct PriorityChannel
     void init(const GrpcTransport* cfg,
               const std::string& address,
               std::shared_ptr<grpc::ChannelCredentials> creds,
-              const std::string& userAgent
+              const std::string& userAgent,
+              const std::string& serverName
               );
 
     bool isDisconnected() const
@@ -281,13 +282,17 @@ struct PriorityChannel
 
     void closeAllStreams()
     {
+        std::vector<std::shared_ptr<GrpcStream>> st;
         mutex.lock();
-        auto& st=streams.get<by_shared_ptr>();
+        for (auto&& it: streams.get<by_shared_ptr>())
+        {
+            st.push_back(it.stream);
+        }
         mutex.unlock();
 
         for (auto& it : st)
         {
-            it.stream->close();
+            it->close();
         }
 
         mutex.lock();
@@ -297,7 +302,6 @@ struct PriorityChannel
 
     void resetState()
     {
-
     }
 };
 

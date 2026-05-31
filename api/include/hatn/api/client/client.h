@@ -212,6 +212,8 @@ class Client : public common::TaskSubcontext,
 
         void updateForegroundState();
 
+        void reconnect();
+
     private:
 
         void doExec(

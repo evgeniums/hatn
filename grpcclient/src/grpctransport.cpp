@@ -12,6 +12,10 @@
   *
   */
 
+#include <cstdlib>
+#include <mutex>
+#include <string>
+
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/generic/generic_stub.h>
 
@@ -26,6 +30,62 @@ HATN_GRPCCLIENT_NAMESPACE_BEGIN
 
 namespace api=HATN_API_NAMESPACE;
 
+namespace {
+
+// Enable gRPC C-core tracing from the environment so ping/keepalive/connectivity
+// behavior can be inspected without a rebuild. Opt-in via HATN_GRPC_TRACE:
+//   HATN_GRPC_TRACE=1            -> a sensible default set (keepalive + connectivity)
+//   HATN_GRPC_TRACE=http_keepalive,subchannel,tcp   -> exactly these tracers
+// HATN_GRPC_VERBOSITY overrides the log level (default DEBUG). These must be set
+// before the first channel is created, hence we run this once in the transport ctor.
+// overwrite=0: an explicitly exported GRPC_TRACE/GRPC_VERBOSITY always wins.
+void initGrpcTraceFromEnv()
+{
+#if 1
+    const char* trace=std::getenv("HATN_GRPC_TRACE");
+    if (trace==nullptr || trace[0]=='\0')
+    {
+        return;
+    }
+
+    std::string traceVal{trace};
+#else
+    std::string traceVal{"1"};
+#endif
+    if (traceVal=="1" || traceVal=="on" || traceVal=="default")
+    {
+        traceVal="http_keepalive,connectivity_state,subchannel";
+    }
+
+    ::setenv("GRPC_TRACE",traceVal.c_str(),0);
+
+    const char* verbosity=std::getenv("HATN_GRPC_VERBOSITY");
+    ::setenv("GRPC_VERBOSITY",(verbosity!=nullptr && verbosity[0]!='\0') ? verbosity : "DEBUG",0);
+
+    std::cout << "gRPC tracing enabled: GRPC_TRACE=" << std::getenv("GRPC_TRACE")
+              << " GRPC_VERBOSITY=" << std::getenv("GRPC_VERBOSITY") << std::endl;
+}
+
+// Build gRPC channel credentials from a Router's TLS/insecure settings.
+std::shared_ptr<grpc::ChannelCredentials> buildRouterCreds(const Router* router)
+{
+    if (router->isInsecure())
+    {
+        return grpc::InsecureChannelCredentials();
+    }
+
+    grpc::SslCredentialsOptions sslOpts;
+    sslOpts.pem_root_certs = router->serverCerts();
+    if (!router->clientPrivKey().empty())
+    {
+        sslOpts.pem_cert_chain = router->clientCertChain();
+        sslOpts.pem_private_key = router->clientPrivKey();
+    }
+    return grpc::SslCredentials(sslOpts);
+}
+
+} // anonymous namespace
+
 /*****************************GrpcTransport*********************************/
 
 //--------------------------------------------------------------------------
@@ -35,6 +95,10 @@ GrpcTransport::GrpcTransport(
     const common::pmr::AllocatorFactory* factory
     ) : pimpl(std::make_shared<detail::GrpcTransport_p>())
 {
+    // Enable gRPC tracing from the environment once, before any channel is created.
+    static std::once_flag grpcTraceOnce;
+    std::call_once(grpcTraceOnce,initGrpcTraceFromEnv);
+
     pimpl->transport=this;
     pimpl->thread=thread;
     pimpl->factory=factory;
@@ -101,6 +165,32 @@ void GrpcTransport::updateForegroundState()
 
 //--------------------------------------------------------------------------
 
+void GrpcTransport::reconnect()
+{
+    if (!pimpl->router || pimpl->router->hosts().empty())
+    {
+        return;
+    }
+
+    HATN_CTX_DEBUG(1,"GrpcTransport::reconnect: rebuilding channels after network medium change")
+
+    std::string address=pimpl->router->hosts().at(0).asString();
+    auto creds=buildRouterCreds(pimpl->router.get());
+
+    auto serverName=pimpl->router->serverName();
+
+    // Close and re-init each priority channel so zombie sockets are replaced immediately.
+    for (auto&& it: pimpl->channels)
+    {
+        it.second.close();
+        it.second.init(this,address,creds,name(),serverName);
+    }
+    pimpl->defaultChannel.close();
+    pimpl->defaultChannel.init(this,address,creds,name(),serverName);
+}
+
+//--------------------------------------------------------------------------
+
 common::SharedPtr<Router> GrpcTransport::router() const
 {
     return pimpl->router;
@@ -131,7 +221,6 @@ Error GrpcTransport::loadLogConfig(
     {
         HATN_CTX_WARN("GrpcTransport::loadLogConfig must be called before router is set")
     }
-
     base::ConfigTreePath p{configPath};
     p.append(ConfigSection);
     auto ec=base::ConfigObject<grpc_config::type>::loadLogConfig(configTree,p,records,settings);
@@ -158,28 +247,17 @@ void GrpcTransport::initChannels()
     }
     address=pimpl->router->hosts().at(0).asString();
 
-    // construct grpc channel credentials
-    std::shared_ptr<grpc::ChannelCredentials> creds;
+    auto creds=buildRouterCreds(pimpl->router.get());
     if (pimpl->router->isInsecure())
     {
         HATN_CTX_DEBUG(1,"use insecure channel for gRPC transport")
-        creds=grpc::InsecureChannelCredentials();
     }
     else
     {
         HATN_CTX_DEBUG(1,"use TLS channel for gRPC transport")
+    }
 
-        grpc::SslCredentialsOptions sslOpts;
-        sslOpts.pem_root_certs = pimpl->router->serverCerts();
-
-        if (!pimpl->router->clientPrivKey().empty())
-        {
-            sslOpts.pem_cert_chain = pimpl->router->clientCertChain();
-            sslOpts.pem_private_key = pimpl->router->clientPrivKey();
-        }
-
-        creds=grpc::SslCredentials(sslOpts);
-    }    
+    auto serverName=pimpl->router->serverName();
 
     // init priority channels
     auto maxPriotity=static_cast<uint8_t>(api::Priority::Highest);
@@ -191,12 +269,12 @@ void GrpcTransport::initChannels()
             auto priority=static_cast<api::Priority>(p);
             auto it=pimpl->channels.emplace(std::piecewise_construct,std::forward_as_tuple(priority),
                                     std::forward_as_tuple());
-            it.first->second.init(this,address,creds,name());
+            it.first->second.init(this,address,creds,name(),serverName);
         }
     }
 
     // init default priority channel
-    pimpl->defaultChannel.init(this,address,creds,name());
+    pimpl->defaultChannel.init(this,address,creds,name(),serverName);
 }
 
 //--------------------------------------------------------------------------
@@ -214,7 +292,8 @@ void GrpcTransport::addMessageTypeMap(
 void detail::PriorityChannel::init(const GrpcTransport* cfg,
                                    const std::string& address,
                                    std::shared_ptr<grpc::ChannelCredentials> creds,
-                                   const std::string& userAgent)
+                                   const std::string& userAgent,
+                                   const std::string& serverName)
 {
     std::string configJson{cfg->config().fieldValue(grpc_config::config_json)};
 
@@ -224,14 +303,20 @@ void detail::PriorityChannel::init(const GrpcTransport* cfg,
     {
         args.SetServiceConfigJSON(configJson);
     }
-    // Time between pings (e.g., 60 seconds)
-    args.SetInt(GRPC_ARG_KEEPALIVE_TIME_MS, cfg->config().fieldValue(grpc_config::keep_alive_period) * 1000);
-    // Time to wait for a response before closing the connection
-    args.SetInt(GRPC_ARG_KEEPALIVE_TIMEOUT_MS, cfg->config().fieldValue(grpc_config::keep_alive_timeout) * 1000);
-    // Allow pings even when there are no active calls
-    args.SetInt(GRPC_ARG_KEEPALIVE_PERMIT_WITHOUT_CALLS, cfg->config().fieldValue(grpc_config::keep_alive_without_calls));
 
-    auto serverName=cfg->router()->serverName();
+    // Keepalive: send pings every keep_alive_period seconds to detect dead connections.
+    args.SetInt(GRPC_ARG_KEEPALIVE_TIME_MS, cfg->config().fieldValue(grpc_config::keep_alive_period) * 1000);
+    // Close if no ping response within keep_alive_timeout seconds.
+    args.SetInt(GRPC_ARG_KEEPALIVE_TIMEOUT_MS, cfg->config().fieldValue(grpc_config::keep_alive_timeout) * 1000);
+    // Allow pings even when there are no active calls (desktop only; mobile keeps false for battery).
+    args.SetInt(GRPC_ARG_KEEPALIVE_PERMIT_WITHOUT_CALLS, cfg->config().fieldValue(grpc_config::keep_alive_without_calls) ? 1 : 0);
+    // Allow unlimited pings on idle connections. gRPC default is 2, which stops pinging
+    // after 2 unanswered pings and defeats the shorter keep_alive_period on idle channels.
+    args.SetInt(GRPC_ARG_HTTP2_MAX_PINGS_WITHOUT_DATA, cfg->config().fieldValue(grpc_config::max_pings_without_data));
+    // Cap reconnect backoff so the channel retries quickly after detecting a broken link.
+    args.SetInt(GRPC_ARG_INITIAL_RECONNECT_BACKOFF_MS, cfg->config().fieldValue(grpc_config::initial_reconnect_backoff_ms));
+    args.SetInt(GRPC_ARG_MAX_RECONNECT_BACKOFF_MS, cfg->config().fieldValue(grpc_config::max_reconnect_backoff_ms));
+
     if (!serverName.empty())
     {
         args.SetSslTargetNameOverride(serverName);
@@ -272,7 +357,7 @@ Result<clientapi::Response> detail::GrpcTransport_p::handleResponse(
 
     if (!streamMessage)
     {
-        auto handleHeaders=[&,this](const std::multimap<grpc::string_ref, grpc::string_ref>& metadata, std::string type)
+        auto handleHeaders=[&,this](const std::multimap<grpc::string_ref, grpc::string_ref>& metadata, std::string /*type*/)
         {
             auto respType=findHeader(metadata,transport->config().fieldValue(grpc_config::message_type_header));
             if (!respType.empty())
@@ -295,7 +380,7 @@ Result<clientapi::Response> detail::GrpcTransport_p::handleResponse(
             {
                 grpcCode=code;
             }
-#if 1
+#if 0
             // dump response headers
             std::cout << "------HEADERS " << type << "---------" << std::endl;
             for (auto it = metadata.begin(); it != metadata.end(); ++it) {
