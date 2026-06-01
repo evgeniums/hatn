@@ -474,6 +474,15 @@ class Uid : public common::WithSharedValue<uid::managed>
             return HATN_DATAUNIT_NAMESPACE::unitsEqual(get(),other) && version()==other.version() && index() == other.index();
         }
 
+        bool isServerOidEqual(const Uid& other) const noexcept
+        {
+            if (!server().isNull() && !other.server().isNull())
+            {
+                return server()->fieldValue(topic_object::oid) == other.server()->fieldValue(topic_object::oid);
+            }
+            return false;
+        }
+
         LocalUid local() const noexcept
         {
             if (isNull())
