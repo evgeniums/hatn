@@ -755,6 +755,22 @@ static Result<common::SharedPtr<SubunitT>> parseMessageSubunit(const MsgT& msg, 
     return subunit;
 }
 
+template <typename SubunitT, typename MsgT, typename FieldT>
+static Result<common::SharedPtr<SubunitT>> parseBytesAsSubunit(const MsgT& msg, const FieldT& field, const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault())
+{
+    static SubunitT sample;
+
+    const auto& subunitField=msg.field(field);
+    du::WireBufSolid buf{subunitField.dataPtr(),subunitField.dataSize(),true};
+    auto subunit=factory->createObject<SubunitT>();
+
+    Error ec;
+    du::io::deserialize(*subunit,buf,ec);
+    HATN_CHECK_EC(ec)
+
+    return subunit;
+}
+
 HATN_DATAUNIT_NAMESPACE_END
 
 #endif // HATNSUBUNIT_H
