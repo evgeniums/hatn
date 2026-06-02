@@ -19,6 +19,7 @@
 #define HATNCLIENTAPP_H
 
 #include <memory>
+#include <functional>
 
 #include <hatn/common/error.h>
 #include <hatn/common/taskcontext.h>
@@ -67,6 +68,8 @@ class HATN_CLIENTAPP_EXPORT ClientApp
         constexpr static const char* PincodeKey="pincode";
 
         constexpr static const char* DataInitFile=".init";
+
+        using CloseDataCallback=std::function<void(common::SharedPtr<Context>, const Error&)>;
 
         ClientApp(HATN_APP_NAMESPACE::AppName appName);
         virtual ~ClientApp();
@@ -163,9 +166,9 @@ class HATN_CLIENTAPP_EXPORT ClientApp
             return OK;
         }
 
-        virtual Error doCloseData()
+        virtual void doCloseData(common::SharedPtr<Context> ctx, CloseDataCallback callback)
         {
-            return OK;
+            if (callback) callback(std::move(ctx),OK);
         }
 
         virtual Error doRemoveData()

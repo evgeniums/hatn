@@ -14,6 +14,8 @@
   *
   */
 
+#include <future>
+
 #include <hatn/common/flatmap.h>
 #include <hatn/common/plainfile.h>
 #include <hatn/crypt/securekey.h>
@@ -303,11 +305,40 @@ Error ClientApp::closeData()
         return OK;
     }
 
+    // build context for async close
+    auto ctx=bridge().defaultContextBuilder()->makeContext(bridge().defaultEnv());
+
     // close data in derived class
-    auto ec=doCloseData();
+    Error ec;
+    auto appThread=app().appThread();
+    if (appThread!=nullptr
+        && appThread->isStarted()
+        && common::Thread::currentThread()!=appThread)
+    {
+        // Post doCloseData to the app thread and block on completion via std::future.
+        std::promise<Error> promise;
+        auto future=promise.get_future();
+        appThread->execAsync(
+            [this,ctx,&promise]()
+            {
+                doCloseData(ctx,
+                    [&promise](common::SharedPtr<Context>, const Error& err)
+                    {
+                        promise.set_value(err);
+                    });
+            }
+        );
+        ec=future.get();
+    }
+    else
+    {
+        // App thread not running, or we are already on it — call directly
+        // with no callback to avoid a self-deadlock.
+        doCloseData(std::move(ctx),{});
+    }
     if (ec)
     {
-        HATN_CTX_SCOPE_LOCK()
+        HATN_CTX_ERROR(ec,"failed to close data in derived class")
     }
 
     // close locking controller
