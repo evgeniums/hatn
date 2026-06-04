@@ -127,9 +127,7 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
 
             //! @todo fill protocols and session_auth
         }
-#if 1
-        std::cout << "ClientSessionTraits::refresh[negotiateAuthProtocol]: " << req->toString(true) << std::endl;
-#endif
+
         // define request callback
         auto reqCb=[sessionCtx=std::move(sessionCtx),invokeAuth=std::move(invokeAuth),client,callback=std::move(callback)](auto ctx, const Error& ec, api::client::Response response) mutable
         {

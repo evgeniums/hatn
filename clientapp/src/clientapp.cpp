@@ -56,6 +56,7 @@ class ClientApp_p
         std::shared_ptr<LockingController> lockingController;
 
         bool open=false;
+        int closeDataTimeoutMs=5000;
 };
 
 //--------------------------------------------------------------------------
@@ -298,8 +299,6 @@ Error ClientApp::openData(bool init)
 
 Error ClientApp::closeData()
 {
-    HATN_CTX_SCOPE("clientapp::closedata")
-
     if (!pimpl->open)
     {
         return OK;
@@ -328,7 +327,14 @@ Error ClientApp::closeData()
                     });
             }
         );
-        ec=future.get();
+        if (future.wait_for(std::chrono::milliseconds(pimpl->closeDataTimeoutMs))==std::future_status::timeout)
+        {
+            ec=commonError(CommonError::TIMEOUT);
+        }
+        else
+        {
+            ec=future.get();
+        }
     }
     else
     {
@@ -423,6 +429,18 @@ void ClientApp::setMainStorageKeyName(std::string name)
 const std::string& ClientApp::mainStorageKeyName() const
 {
     return pimpl->mainStorageKeyName;
+}
+
+//--------------------------------------------------------------------------
+
+void ClientApp::setCloseDataTimeoutMs(int ms) noexcept
+{
+    pimpl->closeDataTimeoutMs=ms;
+}
+
+int ClientApp::closeDataTimeoutMs() const noexcept
+{
+    return pimpl->closeDataTimeoutMs;
 }
 
 //--------------------------------------------------------------------------

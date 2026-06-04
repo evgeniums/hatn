@@ -125,6 +125,9 @@ class HATN_CLIENTAPP_EXPORT ClientApp
         void setMainStorageKeyName(std::string name);
         const std::string& mainStorageKeyName() const;
 
+        void setCloseDataTimeoutMs(int ms) noexcept;
+        int closeDataTimeoutMs() const noexcept;
+
         Error openMainDb(bool create=true);
 
         HATN_DB_NAMESPACE::AsyncDb& mainDb();
