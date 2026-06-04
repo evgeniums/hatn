@@ -93,3 +93,9 @@ IF (HATN_MASTER_PROJECT)
 ENDIF(HATN_MASTER_PROJECT)
 
 INSTALL_HATN_FILES()
+
+# Build optional tools
+IF(BUILD_FILE_ENCRYPTOR)
+    MESSAGE(STATUS "Building hatn file encryptor tool")
+    ADD_SUBDIRECTORY(tools/fileencryptor)
+ENDIF()
