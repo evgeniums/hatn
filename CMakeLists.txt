@@ -95,6 +95,9 @@ ENDIF(HATN_MASTER_PROJECT)
 INSTALL_HATN_FILES()
 
 # Build optional tools
+IF ($ENV{BUILD_HATN_FILE_ENCRYPTOR})
+    SET(BUILD_FILE_ENCRYPTOR $ENV{BUILD_HATN_FILE_ENCRYPTOR} CACHE BOOL "Building hatn file encryptor tool")
+ENDIF()
 IF(BUILD_FILE_ENCRYPTOR)
     MESSAGE(STATUS "Building hatn file encryptor tool")
     ADD_SUBDIRECTORY(tools/fileencryptor)
