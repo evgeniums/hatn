@@ -53,21 +53,21 @@ enum {
 /**
  * @brief Create an encryption context.
  *
- * Loads the hatn app config from @p config_file, sets @p config_root as the
- * top-level config key, and calls App::init() to load cipher suites.
+ * Loads @p config_file, extracts the subsection at @p section_path, and
+ * initialises cipher suites from it via a hatn App.
  *
- * @param config_file      Path to the JSONC app config (null-terminated prefix
- *                         of length @p config_file_len, need not be NUL-terminated).
- * @param config_file_len  Length of @p config_file.
- * @param config_root      App config-tree root (e.g. "asta").
- * @param config_root_len  Length of @p config_root.
- * @param out_ctx          Receives the created context on success.
+ * @param config_file       Path to the JSONC config file (e.g. the server config).
+ * @param config_file_len   Length of @p config_file.
+ * @param section_path      Dot-separated path to the fileencryptor subsection
+ *                          within the config file (e.g. "fileencryptor").
+ * @param section_path_len  Length of @p section_path.
+ * @param out_ctx           Receives the created context on success.
  * @return HATN_FILE_ENCRYPTOR_OK or an error code.
  */
 int hatn_file_encryptor_ctx_create(const char* config_file,
                                    size_t      config_file_len,
-                                   const char* config_root,
-                                   size_t      config_root_len,
+                                   const char* section_path,
+                                   size_t      section_path_len,
                                    hatn_file_encryptor_ctx* out_ctx);
 
 /**

@@ -49,15 +49,19 @@ public:
     FileEncryptor& operator=(FileEncryptor&&) = default;
 
     /**
-     * @brief Load app config and initialise cipher suites.
-     * @param configFilePath Path to the JSONC app config file.
-     * @param appConfigRoot  Top-level key in the config (e.g. "asta").
+     * @brief Load cipher suites from a subsection of an app config file.
+     * @param configFilePath Path to the JSONC config file (e.g. the server config).
+     * @param sectionPath    Dot-separated path to the fileencryptor subsection
+     *                       within the config file (e.g. "fileencryptor").
+     *                       The subsection must contain "crypt" (required),
+     *                       "password_generator" (optional), and "app" (optional).
      *
-     * Drives hatn::app::App: loadConfigFile → setAppConfigRoot → init.
+     * Extracts the subsection at @p sectionPath, feeds it to a hatn App as its
+     * entire config, then calls App::init() to load cipher suites.
      * May be called only once; subsequent calls return an error.
      */
     common::Error init(std::string_view configFilePath,
-                       std::string_view appConfigRoot);
+                       std::string_view sectionPath);
 
     /**
      * @brief Generate a passphrase using the App's password generator.

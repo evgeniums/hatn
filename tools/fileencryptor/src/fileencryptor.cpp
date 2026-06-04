@@ -11,6 +11,10 @@
 #include <hatn/common/memorylockeddata.h>
 #include <hatn/common/errorcategory.h>
 
+#include <hatn/base/configtree.h>
+#include <hatn/base/configtreepath.h>
+#include <hatn/base/configtreeloader.h>
+
 #include <hatn/crypt/cryptcontainer.h>
 #include <hatn/crypt/ciphersuite.h>
 #include <hatn/crypt/passwordgenerator.h>
@@ -43,17 +47,49 @@ FileEncryptor::~FileEncryptor() = default;
 //---------------------------------------------------------------
 
 common::Error FileEncryptor::init(std::string_view configFilePath,
-                                  std::string_view appConfigRoot)
+                                  std::string_view sectionPath)
 {
     if (d->initialised)
     {
         return commonError(common::CommonError::INVALID_ARGUMENT);
     }
 
-    d->app = std::make_unique<app::App>(app::AppName{"hatn-file-encryptor", "hatn File Encryptor"});
-    d->app->setAppConfigRoot(std::string{appConfigRoot});
+    // Load the full server config, extract the subsection at sectionPath,
+    // serialize it back to JSON, then feed only that to the App.
+    // This lets the server config keep all FileEncryptor config nested under
+    // one key (e.g. "fileencryptor") without affecting any other service.
 
-    auto ec = d->app->loadConfigFile(std::string{configFilePath});
+    base::ConfigTreeLoader loader;
+
+    auto fullTree = loader.createFromFile(std::string{configFilePath});
+    if (fullTree)
+    {
+        return fullTree.takeError();
+    }
+
+    auto sectionResult = fullTree.value().get(base::ConfigTreePath{std::string{sectionPath}});
+    if (sectionResult)
+    {
+        return sectionResult.takeError();
+    }
+    const auto& section = sectionResult.value();
+
+    auto ioHandler = loader.handler();
+    if (!ioHandler)
+    {
+        return commonError(common::CommonError::UNSUPPORTED);
+    }
+    auto jsonResult = ioHandler->serialize(section);
+    if (jsonResult)
+    {
+        return jsonResult.takeError();
+    }
+
+    d->app = std::make_unique<app::App>(app::AppName{"fileencryptor", "hatn File Encryptor"});
+    // Use hatn's built-in "app" root for the app subsection within the extracted JSON.
+    // No setAppConfigRoot call needed — "app" is the default.
+
+    auto ec = d->app->loadConfigString(jsonResult.value());
     HATN_CHECK_EC(ec)
 
     ec = d->app->init();

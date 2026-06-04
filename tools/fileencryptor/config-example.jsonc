@@ -1,0 +1,83 @@
+// Example config file showing how to embed the fileencryptor subsection
+// inside a larger server (or standalone) JSONC config.
+//
+// Pass this file to hatn-file-encryptor:
+//   hatn-file-encryptor --config config-example.jsonc --plain in.bin --target out.bin
+//
+// Or with a custom subsection path:
+//   hatn-file-encryptor --config myserver.jsonc --section-path myapp.fileencryptor ...
+
+{
+    // ── Other top-level server sections (illustrative) ────────────────────
+    "server-app": {
+        "common": {
+            "server_id":   "example-server",
+            "server_name": "Example Server",
+            "route_host_name": "localhost",
+            "route_host_port": 50051,
+
+            // Override the subsection path if needed (default is "fileencryptor"):
+            // "file_encryptor_section_path": "fileencryptor"
+        }
+        // ... other server config ...
+    },
+
+    // ── fileencryptor subsection ──────────────────────────────────────────
+    // This is what FileEncryptor::init() extracts and feeds to its hatn App.
+    // The path to this subsection is passed as the second argument to init()
+    // (default: "fileencryptor").
+    "fileencryptor": {
+
+        // ── Crypt (required) ─────────────────────────────────────────────
+        // Read from the top-level "crypt" key of the extracted subsection.
+        "crypt": {
+            // Crypt plugin name. "hatnopenssl" is the built-in default.
+            // Omit or leave empty to skip cipher-suite init (no encryption).
+            "provider": "hatnopenssl",
+
+            // Default cipher suite id — must match one of the entries below
+            // AND match the suite the C++ client loads for decryption.
+            "default_cipher_suite": "suite1",
+
+            // List of available cipher suites.
+            "cipher_suites": [
+                {
+                    "id":     "suite1",             // referenced by default_cipher_suite
+                    "aead":   "chacha20-poly1305",  // authenticated encryption
+                    "pbkdf":  "pbkdf2/sha256",      // passphrase → master key
+                    "digest": "sha512",
+                    "mac":    "poly1305",
+                    "hkdf":   "sha256"
+                    // "cipher":    optional (non-AEAD symmetric cipher)
+                    // "signature": optional
+                }
+            ]
+        },
+
+        // ── Password generator (optional) ────────────────────────────────
+        // Controls passphrase generation when no passphrase is supplied.
+        // Omit the entire section to use built-in defaults.
+        "password_generator": {
+            "min_length":      12,   // default: 8
+            "max_length":      16,   // default: 14
+            "letters_weight":  70,   // relative weight of letter characters
+            "digits_weight":   20,   // relative weight of digit characters
+            "specials_weight": 10,   // relative weight of special characters
+            "has_special":     true, // require at least one special character
+            "has_digit":       true  // require at least one digit
+        },
+
+        // ── App (optional) ───────────────────────────────────────────────
+        // Controls hatn App internals (plugin search folders, data folder).
+        // Omit entirely if defaults are acceptable.
+        "app": {
+            "data_folder":    "/var/lib/fileencryptor",
+            "plugin_folders": ["plugins/crypt"]
+        },
+
+        // ── DB (optional) ────────────────────────────────────────────────
+        // hatn App loads this section but FileEncryptor never opens a database.
+        // Omit or leave as an empty object.
+        "db": {}
+    }
+}

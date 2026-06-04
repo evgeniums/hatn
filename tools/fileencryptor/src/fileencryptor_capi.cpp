@@ -60,11 +60,11 @@ extern "C" {
 
 int hatn_file_encryptor_ctx_create(const char* config_file,
                                    size_t      config_file_len,
-                                   const char* config_root,
-                                   size_t      config_root_len,
+                                   const char* section_path,
+                                   size_t      section_path_len,
                                    hatn_file_encryptor_ctx* out_ctx)
 {
-    if (!config_file || !config_file_len || !config_root || !config_root_len || !out_ctx)
+    if (!config_file || !config_file_len || !section_path || !section_path_len || !out_ctx)
     {
         set_error("hatn_file_encryptor_ctx_create: null or empty argument");
         return HATN_FILE_ENCRYPTOR_ERR_BADARG;
@@ -75,9 +75,9 @@ int hatn_file_encryptor_ctx_create(const char* config_file,
         auto* ctx = new hatn_file_encryptor_ctx_t{};
 
         std::string_view cfgPath{config_file, config_file_len};
-        std::string_view cfgRoot{config_root, config_root_len};
+        std::string_view secPath{section_path, section_path_len};
 
-        auto ec = ctx->encryptor.init(cfgPath, cfgRoot);
+        auto ec = ctx->encryptor.init(cfgPath, secPath);
         if (ec)
         {
             set_error(ec.message());

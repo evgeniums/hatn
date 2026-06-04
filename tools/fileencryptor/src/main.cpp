@@ -9,15 +9,19 @@
 /**
  * hatn-file-encryptor: CLI tool to encrypt a file using hatn CryptContainer.
  *
+ * Cipher suites are read from the "fileencryptor" subsection of the config
+ * file (or another subsection specified with --section-path).
+ *
  * Usage:
- *   hatn-file-encryptor --config <file> --config-root <root>
- *                       --plain <file> --target <file>
+ *   hatn-file-encryptor --config <file> --plain <file> --target <file>
+ *                       [--section-path <path>]
  *                       [--passphrase <str>]
  *                       [--passphrase-file <file>]
  *
  * Options:
- *   --config          Path to the app JSONC config file (required).
- *   --config-root     Top-level config key, e.g. "asta" (required).
+ *   --config          Path to the JSONC config file (required).
+ *   --section-path    Dot-separated path to the fileencryptor subsection
+ *                     within the config file (default: "fileencryptor").
  *   --plain           Input plaintext file (required).
  *   --target          Output file for the encrypted CryptContainer blob (required).
  *   --passphrase      Passphrase to use; if omitted one is generated.
@@ -46,12 +50,12 @@ static void usage(const char* argv0)
 {
     std::cerr
         << "Usage: " << argv0 << "\n"
-        << "  --config <file>          App config file (JSONC)\n"
-        << "  --config-root <root>     Config tree root (e.g. asta)\n"
-        << "  --plain <file>           Input plaintext file\n"
-        << "  --target <file>          Output encrypted file\n"
-        << "  [--passphrase <str>]     Passphrase (auto-generated if omitted)\n"
-        << "  [--passphrase-file <f>]  Also write passphrase to this file\n";
+        << "  --config <file>           Config file (JSONC)\n"
+        << "  --plain <file>            Input plaintext file\n"
+        << "  --target <file>           Output encrypted file\n"
+        << "  [--section-path <path>]   Subsection path in config (default: fileencryptor)\n"
+        << "  [--passphrase <str>]      Passphrase (auto-generated if omitted)\n"
+        << "  [--passphrase-file <f>]   Also write passphrase to this file\n";
 }
 
 static std::string readFile(const std::string& path)
@@ -88,7 +92,7 @@ static void writeFile(const std::string& path, const char* data, size_t len, boo
 int main(int argc, char* argv[])
 {
     std::string configFile;
-    std::string configRoot;
+    std::string sectionPath = "fileencryptor";
     std::string plainFile;
     std::string targetFile;
     std::string passphrase;
@@ -105,19 +109,19 @@ int main(int argc, char* argv[])
             return argv[++i];
         };
 
-        if      (arg == "--config")          configFile     = next();
-        else if (arg == "--config-root")     configRoot     = next();
-        else if (arg == "--plain")           plainFile      = next();
-        else if (arg == "--target")          targetFile     = next();
-        else if (arg == "--passphrase")      passphrase     = next();
+        if      (arg == "--config")          configFile   = next();
+        else if (arg == "--section-path")    sectionPath  = next();
+        else if (arg == "--plain")           plainFile    = next();
+        else if (arg == "--target")          targetFile   = next();
+        else if (arg == "--passphrase")      passphrase   = next();
         else if (arg == "--passphrase-file") passphraseFile = next();
         else if (arg == "--help" || arg == "-h") { usage(argv[0]); return 0; }
         else { std::cerr << "Unknown option: " << arg << "\n"; usage(argv[0]); return 1; }
     }
 
-    if (configFile.empty() || configRoot.empty() || plainFile.empty() || targetFile.empty())
+    if (configFile.empty() || plainFile.empty() || targetFile.empty())
     {
-        std::cerr << "Error: --config, --config-root, --plain and --target are required.\n";
+        std::cerr << "Error: --config, --plain and --target are required.\n";
         usage(argv[0]);
         return 1;
     }
@@ -126,7 +130,7 @@ int main(int argc, char* argv[])
     {
         // Initialise encryptor from app config
         hatn::fileencryptor::FileEncryptor enc;
-        auto ec = enc.init(configFile, configRoot);
+        auto ec = enc.init(configFile, sectionPath);
         if (ec)
         {
             std::cerr << "Encryptor init failed: " << ec.message() << "\n";
