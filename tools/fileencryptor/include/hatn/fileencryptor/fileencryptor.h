@@ -16,11 +16,12 @@
 #define HATNFILEENCRYPTOR_H
 
 #include <memory>
+#include <string>
+#include <string_view>
 
 #include <hatn/common/error.h>
 #include <hatn/common/result.h>
 #include <hatn/common/bytearray.h>
-#include <hatn/common/lib.h>
 
 namespace hatn {
 namespace fileencryptor {
@@ -55,8 +56,8 @@ public:
      * Drives hatn::app::App: loadConfigFile → setAppConfigRoot → init.
      * May be called only once; subsequent calls return an error.
      */
-    common::Error init(common::lib::string_view configFilePath,
-                       common::lib::string_view appConfigRoot);
+    common::Error init(std::string_view configFilePath,
+                       std::string_view appConfigRoot);
 
     /**
      * @brief Generate a passphrase using the App's password generator.
@@ -77,8 +78,8 @@ public:
      * A fresh CryptContainer is constructed per call, so this method is safe
      * to call concurrently once init() has completed.
      */
-    common::Error encrypt(common::lib::string_view plaintext,
-                          common::lib::string_view passphrase,
+    common::Error encrypt(std::string_view plaintext,
+                          std::string_view passphrase,
                           common::ByteArray& out);
 
 private:

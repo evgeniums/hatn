@@ -6,6 +6,8 @@
 
 */
 
+#include <string_view>
+
 #include <hatn/common/memorylockeddata.h>
 #include <hatn/common/errorcategory.h>
 
@@ -40,8 +42,8 @@ FileEncryptor::~FileEncryptor() = default;
 
 //---------------------------------------------------------------
 
-common::Error FileEncryptor::init(common::lib::string_view configFilePath,
-                                  common::lib::string_view appConfigRoot)
+common::Error FileEncryptor::init(std::string_view configFilePath,
+                                  std::string_view appConfigRoot)
 {
     if (d->initialised)
     {
@@ -75,8 +77,8 @@ common::Result<std::string> FileEncryptor::generatePassphrase()
 
 //---------------------------------------------------------------
 
-common::Error FileEncryptor::encrypt(common::lib::string_view plaintext,
-                                     common::lib::string_view passphrase,
+common::Error FileEncryptor::encrypt(std::string_view plaintext,
+                                     std::string_view passphrase,
                                      common::ByteArray& out)
 {
     crypt::CryptContainer container{d->app->defaultCipherSuite()};

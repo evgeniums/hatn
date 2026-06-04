@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <string>
+#include <string_view>
 
 #include <hatn/common/bytearray.h>
 
@@ -73,8 +74,8 @@ int hatn_file_encryptor_ctx_create(const char* config_file,
     {
         auto* ctx = new hatn_file_encryptor_ctx_t{};
 
-        hatn::common::lib::string_view cfgPath{config_file, config_file_len};
-        hatn::common::lib::string_view cfgRoot{config_root, config_root_len};
+        std::string_view cfgPath{config_file, config_file_len};
+        std::string_view cfgRoot{config_root, config_root_len};
 
         auto ec = ctx->encryptor.init(cfgPath, cfgRoot);
         if (ec)
@@ -114,8 +115,8 @@ int hatn_file_encryptor_encrypt(hatn_file_encryptor_ctx    ctx,
 
     try
     {
-        hatn::common::lib::string_view pt{plaintext, plaintext_len};
-        hatn::common::lib::string_view pp{passphrase, passphrase_len};
+        std::string_view pt{plaintext, plaintext_len};
+        std::string_view pp{passphrase, passphrase_len};
 
         hatn::common::ByteArray result;
         auto ec = ctx->encryptor.encrypt(pt, pp, result);
