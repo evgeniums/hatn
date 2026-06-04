@@ -9,13 +9,11 @@
 #include <string_view>
 
 #include <hatn/common/memorylockeddata.h>
-#include <hatn/common/errorcategory.h>
 
 #include <hatn/crypt/cryptcontainer.h>
 #include <hatn/crypt/ciphersuite.h>
-#include <hatn/crypt/passwordgenerator.h>
 
-#include <hatn/fileencryptor/fileencryptor.h>
+#include <hatn/fileencryptor/filedecryptor.h>
 
 #include "filecryptbase.h"
 
@@ -24,15 +22,15 @@ namespace fileencryptor {
 
 //---------------------------------------------------------------
 
-FileEncryptor::FileEncryptor()
+FileDecryptor::FileDecryptor()
     : d(std::make_unique<FileCryptBase>())
 {}
 
-FileEncryptor::~FileEncryptor() = default;
+FileDecryptor::~FileDecryptor() = default;
 
 //---------------------------------------------------------------
 
-common::Error FileEncryptor::init(std::string_view configFilePath,
+common::Error FileDecryptor::init(std::string_view configFilePath,
                                   std::string_view sectionPath)
 {
     return d->init(configFilePath, sectionPath);
@@ -40,27 +38,14 @@ common::Error FileEncryptor::init(std::string_view configFilePath,
 
 //---------------------------------------------------------------
 
-common::Result<std::string> FileEncryptor::generatePassphrase()
-{
-    const auto* suites = d->app->cipherSuites().suites();
-    auto* gen = suites ? suites->passwordGenerator() : nullptr;
-    if (!gen)
-    {
-        return commonError(common::CommonError::UNSUPPORTED);
-    }
-    return gen->generateString();
-}
-
-//---------------------------------------------------------------
-
-common::Error FileEncryptor::encrypt(std::string_view plaintext,
+common::Error FileDecryptor::decrypt(std::string_view ciphertext,
                                      std::string_view passphrase,
                                      common::ByteArray& out)
 {
     crypt::CryptContainer container{d->app->defaultCipherSuite()};
     container.setCipherSuites(d->app->cipherSuites().suites());
     container.setPassphrase(common::MemoryLockedArray{passphrase});
-    return container.pack(plaintext, out);
+    return container.unpack(ciphertext, out);
 }
 
 //---------------------------------------------------------------

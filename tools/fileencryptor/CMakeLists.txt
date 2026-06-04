@@ -2,19 +2,24 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.15)
 PROJECT(hatn-file-encryptor-project)
 
 SET(FILEENCRYPTOR_CORE_SOURCES
+    src/filecryptbase.cpp
     src/fileencryptor.cpp
+    src/filedecryptor.cpp
 )
 
 SET(FILEENCRYPTOR_CORE_HEADERS
     include/hatn/fileencryptor/fileencryptor.h
+    include/hatn/fileencryptor/filedecryptor.h
 )
 
 SET(FILEENCRYPTOR_CAPI_SOURCES
     src/fileencryptor_capi.cpp
+    src/filedecryptor_capi.cpp
 )
 
 SET(FILEENCRYPTOR_CAPI_HEADERS
     include/hatn/fileencryptor/fileencryptor_capi.h
+    include/hatn/fileencryptor/filedecryptor_capi.h
 )
 
 # --------------------------------------------------------------------------
@@ -89,30 +94,34 @@ ELSEIF(UNIX)
 ENDIF()
 
 # --------------------------------------------------------------------------
-# Executable: hatn-file-encryptor
+# Macro: add a file-crypt CLI executable
 # --------------------------------------------------------------------------
 
-ADD_EXECUTABLE(hatn-file-encryptor
-    src/main.cpp
-    $<TARGET_OBJECTS:hatnfileencryptorcore>
-)
+MACRO(ADD_FILECRYPT_EXE target_name main_src)
+    ADD_EXECUTABLE(${target_name}
+        ${main_src}
+        $<TARGET_OBJECTS:hatnfileencryptorcore>
+    )
+    SET_PROPERTY(TARGET ${target_name} PROPERTY CXX_STANDARD 17)
+    TARGET_INCLUDE_DIRECTORIES(${target_name} PRIVATE
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<BUILD_INTERFACE:${HATN_BINARY_DIR}/include>
+        ${HATN_INCLUDE_DIRECTORIES}
+    )
+    TARGET_COMPILE_DEFINITIONS(${target_name} PRIVATE ${HATN_COMPILE_DEFINITIONS})
+    TARGET_COMPILE_OPTIONS(${target_name}     PRIVATE ${HATN_COMPILE_OPTIONS})
+    ADD_HATN_MODULES(${target_name} PRIVATE app crypt)
+    TARGET_LINK_DIRECTORIES(${target_name} PRIVATE ${HATN_LINK_DIRECTORIES})
+    TARGET_LINK_LIBRARIES(${target_name} PRIVATE
+        ${CMAKE_THREAD_LIBS_INIT}
+        ${Boost_LIBRARIES}
+        ${HATN_SYSTEM_LIBS}
+    )
+ENDMACRO()
 
-SET_PROPERTY(TARGET hatn-file-encryptor PROPERTY CXX_STANDARD 17)
+# --------------------------------------------------------------------------
+# Executables
+# --------------------------------------------------------------------------
 
-TARGET_INCLUDE_DIRECTORIES(hatn-file-encryptor PRIVATE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<BUILD_INTERFACE:${HATN_BINARY_DIR}/include>
-    ${HATN_INCLUDE_DIRECTORIES}
-)
-
-TARGET_COMPILE_DEFINITIONS(hatn-file-encryptor PRIVATE ${HATN_COMPILE_DEFINITIONS})
-TARGET_COMPILE_OPTIONS(hatn-file-encryptor     PRIVATE ${HATN_COMPILE_OPTIONS})
-
-ADD_HATN_MODULES(hatn-file-encryptor PRIVATE app crypt)
-
-TARGET_LINK_DIRECTORIES(hatn-file-encryptor PRIVATE ${HATN_LINK_DIRECTORIES})
-TARGET_LINK_LIBRARIES(hatn-file-encryptor PRIVATE
-    ${CMAKE_THREAD_LIBS_INIT}
-    ${Boost_LIBRARIES}
-    ${HATN_SYSTEM_LIBS}
-)
+ADD_FILECRYPT_EXE(hatn-file-encryptor src/main.cpp)
+ADD_FILECRYPT_EXE(hatn-file-decryptor src/maindecrypt.cpp)

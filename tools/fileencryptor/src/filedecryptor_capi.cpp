@@ -13,8 +13,8 @@
 
 #include <hatn/common/bytearray.h>
 
-#include <hatn/fileencryptor/fileencryptor.h>
-#include <hatn/fileencryptor/fileencryptor_capi.h>
+#include <hatn/fileencryptor/filedecryptor.h>
+#include <hatn/fileencryptor/filedecryptor_capi.h>
 
 #include "filecrypt_helpers.h"
 
@@ -22,20 +22,20 @@
  * Thread-local error message storage
  * -------------------------------------------------------------------------- */
 
-static thread_local std::string t_last_error;
+static thread_local std::string t_decryptor_last_error;
 
 static void set_error(const std::string& msg)
 {
-    t_last_error = msg;
+    t_decryptor_last_error = msg;
 }
 
 /* --------------------------------------------------------------------------
  * Opaque context struct
  * -------------------------------------------------------------------------- */
 
-struct hatn_file_encryptor_ctx_t
+struct hatn_file_decryptor_ctx_t
 {
-    hatn::fileencryptor::FileEncryptor encryptor;
+    hatn::fileencryptor::FileDecryptor decryptor;
 };
 
 /* --------------------------------------------------------------------------
@@ -44,94 +44,94 @@ struct hatn_file_encryptor_ctx_t
 
 extern "C" {
 
-int hatn_file_encryptor_ctx_create(const char* config_file,
+int hatn_file_decryptor_ctx_create(const char* config_file,
                                    size_t      config_file_len,
                                    const char* section_path,
                                    size_t      section_path_len,
-                                   hatn_file_encryptor_ctx* out_ctx)
+                                   hatn_file_decryptor_ctx* out_ctx)
 {
     if (!config_file || !config_file_len || !section_path || !section_path_len || !out_ctx)
     {
-        set_error("hatn_file_encryptor_ctx_create: null or empty argument");
-        return HATN_FILE_ENCRYPTOR_ERR_BADARG;
+        set_error("hatn_file_decryptor_ctx_create: null or empty argument");
+        return HATN_FILE_DECRYPTOR_ERR_BADARG;
     }
 
     try
     {
-        auto* ctx = new hatn_file_encryptor_ctx_t{};
+        auto* ctx = new hatn_file_decryptor_ctx_t{};
 
         std::string_view cfgPath{config_file, config_file_len};
         std::string_view secPath{section_path, section_path_len};
 
-        auto ec = ctx->encryptor.init(cfgPath, secPath);
+        auto ec = ctx->decryptor.init(cfgPath, secPath);
         if (ec)
         {
             set_error(ec.message());
             delete ctx;
-            return HATN_FILE_ENCRYPTOR_ERR_INIT;
+            return HATN_FILE_DECRYPTOR_ERR_INIT;
         }
 
         *out_ctx = ctx;
-        return HATN_FILE_ENCRYPTOR_OK;
+        return HATN_FILE_DECRYPTOR_OK;
     }
     catch (const std::exception& ex)
     {
-        set_error(std::string{"hatn_file_encryptor_ctx_create exception: "} + ex.what());
-        return HATN_FILE_ENCRYPTOR_ERR_INIT;
+        set_error(std::string{"hatn_file_decryptor_ctx_create exception: "} + ex.what());
+        return HATN_FILE_DECRYPTOR_ERR_INIT;
     }
     catch (...)
     {
-        set_error("hatn_file_encryptor_ctx_create: unknown exception");
-        return HATN_FILE_ENCRYPTOR_ERR_INIT;
+        set_error("hatn_file_decryptor_ctx_create: unknown exception");
+        return HATN_FILE_DECRYPTOR_ERR_INIT;
     }
 }
 
-int hatn_file_encryptor_encrypt(hatn_file_encryptor_ctx    ctx,
-                                const char*                plaintext,
-                                size_t                     plaintext_len,
+int hatn_file_decryptor_decrypt(hatn_file_decryptor_ctx    ctx,
+                                const char*                ciphertext,
+                                size_t                     ciphertext_len,
                                 const char*                passphrase,
                                 size_t                     passphrase_len,
-                                hatn_file_encryptor_bytes* out_ciphertext)
+                                hatn_file_decryptor_bytes* out_plaintext)
 {
-    if (!ctx || !plaintext || !passphrase || !passphrase_len || !out_ciphertext)
+    if (!ctx || !ciphertext || !ciphertext_len || !passphrase || !passphrase_len || !out_plaintext)
     {
-        set_error("hatn_file_encryptor_encrypt: null or empty argument");
-        return HATN_FILE_ENCRYPTOR_ERR_BADARG;
+        set_error("hatn_file_decryptor_decrypt: null or empty argument");
+        return HATN_FILE_DECRYPTOR_ERR_BADARG;
     }
 
     try
     {
-        std::string_view pt{plaintext, plaintext_len};
+        std::string_view ct{ciphertext, ciphertext_len};
         std::string_view pp{passphrase, passphrase_len};
 
         hatn::common::ByteArray result;
-        auto ec = ctx->encryptor.encrypt(pt, pp, result);
+        auto ec = ctx->decryptor.decrypt(ct, pp, result);
         if (ec)
         {
             set_error(ec.message());
-            return HATN_FILE_ENCRYPTOR_ERR_ENCRYPT;
+            return HATN_FILE_DECRYPTOR_ERR_DECRYPT;
         }
 
-        filecrypt_fill_bytes(out_ciphertext,
-                             &out_ciphertext->data,
-                             &out_ciphertext->length,
+        filecrypt_fill_bytes(out_plaintext,
+                             &out_plaintext->data,
+                             &out_plaintext->length,
                              result.data(),
                              result.size());
-        return HATN_FILE_ENCRYPTOR_OK;
+        return HATN_FILE_DECRYPTOR_OK;
     }
     catch (const std::exception& ex)
     {
-        set_error(std::string{"hatn_file_encryptor_encrypt exception: "} + ex.what());
-        return HATN_FILE_ENCRYPTOR_ERR_ENCRYPT;
+        set_error(std::string{"hatn_file_decryptor_decrypt exception: "} + ex.what());
+        return HATN_FILE_DECRYPTOR_ERR_DECRYPT;
     }
     catch (...)
     {
-        set_error("hatn_file_encryptor_encrypt: unknown exception");
-        return HATN_FILE_ENCRYPTOR_ERR_ENCRYPT;
+        set_error("hatn_file_decryptor_decrypt: unknown exception");
+        return HATN_FILE_DECRYPTOR_ERR_DECRYPT;
     }
 }
 
-void hatn_file_encryptor_bytes_free(hatn_file_encryptor_bytes* buf)
+void hatn_file_decryptor_bytes_free(hatn_file_decryptor_bytes* buf)
 {
     if (buf && buf->data)
     {
@@ -141,14 +141,14 @@ void hatn_file_encryptor_bytes_free(hatn_file_encryptor_bytes* buf)
     }
 }
 
-void hatn_file_encryptor_ctx_destroy(hatn_file_encryptor_ctx ctx)
+void hatn_file_decryptor_ctx_destroy(hatn_file_decryptor_ctx ctx)
 {
     delete ctx;
 }
 
-const char* hatn_file_encryptor_last_error(void)
+const char* hatn_file_decryptor_last_error(void)
 {
-    return t_last_error.c_str();
+    return t_decryptor_last_error.c_str();
 }
 
 } // extern "C"
