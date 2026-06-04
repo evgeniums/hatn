@@ -67,7 +67,8 @@ common::Error FileEncryptor::init(std::string_view configFilePath,
 
 common::Result<std::string> FileEncryptor::generatePassphrase()
 {
-    auto* gen = d->app->cipherSuites().passwordGenerator();
+    const auto* suites = d->app->cipherSuites().suites();
+    auto* gen = suites ? suites->passwordGenerator() : nullptr;
     if (!gen)
     {
         return commonError(common::CommonError::UNSUPPORTED);
@@ -82,7 +83,7 @@ common::Error FileEncryptor::encrypt(std::string_view plaintext,
                                      common::ByteArray& out)
 {
     crypt::CryptContainer container{d->app->defaultCipherSuite()};
-    container.setCipherSuites(&d->app->cipherSuites());
+    container.setCipherSuites(d->app->cipherSuites().suites());
     container.setPassphrase(common::MemoryLockedArray{passphrase});
     return container.pack(plaintext, out);
 }
