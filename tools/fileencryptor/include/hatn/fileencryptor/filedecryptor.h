@@ -44,8 +44,10 @@ public:
 
     FileDecryptor(const FileDecryptor&) = delete;
     FileDecryptor& operator=(const FileDecryptor&) = delete;
-    FileDecryptor(FileDecryptor&&) = default;
-    FileDecryptor& operator=(FileDecryptor&&) = default;
+
+    // Declared here, defined in .cpp where FileCryptBase is complete.
+    FileDecryptor(FileDecryptor&&) noexcept;
+    FileDecryptor& operator=(FileDecryptor&&) noexcept;
 
     /**
      * @brief Load cipher suites from a subsection of an app config file.

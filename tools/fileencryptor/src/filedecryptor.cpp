@@ -27,6 +27,8 @@ FileDecryptor::FileDecryptor()
 {}
 
 FileDecryptor::~FileDecryptor() = default;
+FileDecryptor::FileDecryptor(FileDecryptor&&) noexcept = default;
+FileDecryptor& FileDecryptor::operator=(FileDecryptor&&) noexcept = default;
 
 //---------------------------------------------------------------
 

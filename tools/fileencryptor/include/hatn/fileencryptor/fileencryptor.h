@@ -26,12 +26,12 @@
 namespace hatn {
 namespace fileencryptor {
 
-class FileEncryptorImpl;
+class FileCryptBase;
 
 /**
  * @brief Generic data encryptor driven by hatn CryptContainer.
  *
- * Init once per process with init(configFilePath, appConfigRoot); the hatn App
+ * Init once per process with init(configFilePath, sectionPath); the hatn App
  * loads cipher suites from the "crypt" section of the config (cipher_suites +
  * default_cipher_suite).  Encrypt arbitrary bytes via encrypt(); each call
  * constructs a fresh CryptContainer so concurrent use is safe once init() has
@@ -45,8 +45,10 @@ public:
 
     FileEncryptor(const FileEncryptor&) = delete;
     FileEncryptor& operator=(const FileEncryptor&) = delete;
-    FileEncryptor(FileEncryptor&&) = default;
-    FileEncryptor& operator=(FileEncryptor&&) = default;
+
+    // Declared here, defined in .cpp where FileCryptBase is complete.
+    FileEncryptor(FileEncryptor&&) noexcept;
+    FileEncryptor& operator=(FileEncryptor&&) noexcept;
 
     /**
      * @brief Load cipher suites from a subsection of an app config file.
@@ -87,7 +89,7 @@ public:
                           common::ByteArray& out);
 
 private:
-    std::unique_ptr<FileEncryptorImpl> d;
+    std::unique_ptr<FileCryptBase> d;
 };
 
 } // namespace fileencryptor

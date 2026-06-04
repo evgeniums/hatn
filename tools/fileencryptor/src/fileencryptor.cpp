@@ -29,6 +29,8 @@ FileEncryptor::FileEncryptor()
 {}
 
 FileEncryptor::~FileEncryptor() = default;
+FileEncryptor::FileEncryptor(FileEncryptor&&) noexcept = default;
+FileEncryptor& FileEncryptor::operator=(FileEncryptor&&) noexcept = default;
 
 //---------------------------------------------------------------
 
