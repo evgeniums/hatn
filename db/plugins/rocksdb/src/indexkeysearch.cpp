@@ -472,6 +472,8 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
     const auto& queryField=idxQuery.query.field(cursor.pos);
     ++cursor.pos;
 
+#if 0
+    //! @todo optimization: Fix it, glue only entire key, not partial internal keys
     // glue scalar fields if operators and orders match and none of them is null
     if (cursor.pos<idxQuery.query.fields().size()
         &&
@@ -487,7 +489,7 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT nextKeyField(
         // go to next field
         return nextKeyField(cursor,handler,idxQuery,keyCallback,snapshot,allocatorFactory,prevFrom,prevTo);
     }
-
+#endif
     // for neq operation split to lt and gt queries
     auto doNeq=[&](const auto& val)
     {
