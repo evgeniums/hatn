@@ -1,8 +1,13 @@
 
 IF NOT DEFINED DEP_LIBS (
-SET DEP_LIBS=openssl boost c-ares lz4 gflags rapidjson rocksdb
+SET DEP_LIBS=openssl boost c-ares lz4 gflags rapidjson rocksdb sentry
 )
 ECHO "Building libraries: %DEP_LIBS%"
+
+IF NOT DEFINED SENTRY_VERSION (
+SET SENTRY_VERSION=0.14.2
+)
+ECHO "Using Sentry version %SENTRY_VERSION%"
 
 IF NOT DEFINED DEPS_ROOT (
 SET DEPS_ROOT=%SCRIPTS_ROOT%/libs

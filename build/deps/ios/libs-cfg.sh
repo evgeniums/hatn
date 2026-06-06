@@ -1,7 +1,11 @@
 #!/bin/bash
 
 if [ -z "$dep_libs" ]; then
-export dep_libs="openssl boost c-ares rapidjson lz4 rocksdb utf8proc"
+export dep_libs="openssl boost c-ares rapidjson lz4 rocksdb utf8proc sentry"
+fi
+
+if [ -z "$sentry_version" ]; then
+export sentry_version=0.14.2
 fi
 
 if [ -z "$openssl_version" ]; then
