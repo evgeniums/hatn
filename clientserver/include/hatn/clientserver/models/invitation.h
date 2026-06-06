@@ -135,6 +135,7 @@ HDU_UNIT_WITH(client_invitation,(HDU_BASE(HATN_DB_NAMESPACE::object),HDU_BASE(in
     HDU_FIELD(protection_code,TYPE_STRING,5)
     HDU_FIELD(private_link,uri::TYPE,6)
     HDU_FIELD(full_username,uri::TYPE,7)
+    HDU_FIELD(character,TYPE_STRING,8)
 )
 
 HDU_UNIT_WITH(invitation_parameters,(HDU_BASE(HATN_DB_NAMESPACE::with_expire)),
