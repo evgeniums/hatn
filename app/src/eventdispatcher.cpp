@@ -134,6 +134,20 @@ EventDispatcher::EventDispatcher() : m_subscriptions(std::make_shared<EventSubsc
 
 //---------------------------------------------------------------
 
+EventDispatcher::~EventDispatcher() noexcept
+{
+    // Atomically detach subscriptions under the lock, then destroy them outside it.
+    // This ensures re-entrant unsubscribe() calls (triggered by subscriber destructors)
+    // see null m_subscriptions and return early, avoiding use-after-free on m_mutex.
+    std::shared_ptr<EventSubscriptions> subs;
+    {
+        common::SharedLocker::ExclusiveScope l{m_mutex};
+        subs=std::move(m_subscriptions);
+    }
+}
+
+//---------------------------------------------------------------
+
 void EventDispatcher::publish(
         common::SharedPtr<app::AppEnv> env,
         common::SharedPtr<Context> ctx,
@@ -226,7 +240,10 @@ void EventDispatcher::unsubscribe(
 
     {
         common::SharedLocker::ExclusiveScope l{m_mutex};
-        m_subscriptions->remove(id);
+        if (m_subscriptions)
+        {
+            m_subscriptions->remove(id);
+        }
     }
 }
 

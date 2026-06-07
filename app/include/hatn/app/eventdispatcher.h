@@ -292,6 +292,7 @@ class HATN_APP_EXPORT EventDispatcher
     public:
 
         EventDispatcher();
+        ~EventDispatcher() noexcept;
 
         void publish(
             common::SharedPtr<app::AppEnv> env,
@@ -310,8 +311,8 @@ class HATN_APP_EXPORT EventDispatcher
 
     private:
 
-        std::shared_ptr<EventSubscriptions> m_subscriptions;
         common::SharedLocker m_mutex;
+        std::shared_ptr<EventSubscriptions> m_subscriptions;
 };
 
 HATN_APP_NAMESPACE_END
