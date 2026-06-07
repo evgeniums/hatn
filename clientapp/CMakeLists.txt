@@ -23,6 +23,7 @@ SET (HEADERS
     include/hatn/clientapp/clientappdbmodelsprovider.h
 
     include/hatn/clientapp/clientappsettings.h
+    include/hatn/clientapp/clientappfilesettings.h
     include/hatn/clientapp/lockingcontroller.h
     include/hatn/clientapp/confirmationdescriptor.h
 
@@ -45,6 +46,7 @@ SET (SOURCES
     src/methodupdatesystemca.cpp
     src/clientappdbmodelsprovider.cpp
     src/clientappsettings.cpp
+    src/clientappfilesettings.cpp
     src/lockingcontroller.cpp
 
     src/testservicedb.cpp

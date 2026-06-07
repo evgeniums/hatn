@@ -35,6 +35,7 @@
 
 #include <hatn/clientapp/clientbridge.h>
 #include <hatn/clientapp/clientapp.h>
+#include <hatn/clientapp/clientappfilesettings.h>
 #include <hatn/clientapp/eventdispatcher.h>
 #include <hatn/clientapp/mobileplatformcontext.h>
 #include <hatn/clientapp/testservicedb.h>
@@ -434,6 +435,166 @@ int MobileApp::getAppSetting(
     }
     jsonValue=r.value();
     return 0;
+}
+
+//-----------------------------------------------------------------------------
+
+int MobileApp::getFileSetting(
+        const std::string key,
+        std::string& jsonValue,
+        Error& error
+    )
+{
+    auto* fs=pimpl->app->fileSettings();
+    if (!fs)
+    {
+        auto ec=clientAppError(ClientAppError::APPLICATION_SETTING_NOT_SET);
+        error.code=ec.code();
+        error.codeString=ec.codeString();
+        error.message=ec.message();
+        return ec.code();
+    }
+
+    auto r=fs->getJson(key);
+    if (r)
+    {
+        error.code=r.error().code();
+        error.codeString=r.error().codeString();
+        error.message=r.error().message();
+        return r.error().code();
+    }
+    jsonValue=r.value();
+    return 0;
+}
+
+//-----------------------------------------------------------------------------
+
+int MobileApp::setFileSetting(
+        const std::string key,
+        const std::string& jsonValue,
+        Error& error
+    )
+{
+    auto* fs=pimpl->app->fileSettings();
+    if (!fs)
+    {
+        auto ec=clientAppError(ClientAppError::APPLICATION_SETTING_NOT_SET);
+        error.code=ec.code();
+        error.codeString=ec.codeString();
+        error.message=ec.message();
+        return ec.code();
+    }
+
+    auto ec=fs->setJson(key,jsonValue);
+    if (ec)
+    {
+        error.code=ec.code();
+        error.codeString=ec.codeString();
+        error.message=ec.message();
+        return ec.code();
+    }
+    return 0;
+}
+
+//-----------------------------------------------------------------------------
+
+namespace {
+
+template <typename T>
+int doGetFileSetting(HATN_CLIENTAPP_NAMESPACE::ClientAppFileSettings* fs, const std::string& key, T& value, Error& error)
+{
+    if (!fs)
+    {
+        auto ec=clientAppError(ClientAppError::APPLICATION_SETTING_NOT_SET);
+        error.code=ec.code();
+        error.codeString=ec.codeString();
+        error.message=ec.message();
+        return ec.code();
+    }
+    HATN_COMMON_NAMESPACE::Error ec;
+    value=fs->template getAs<T>(key,ec);
+    if (ec)
+    {
+        error.code=ec.code();
+        error.codeString=ec.codeString();
+        error.message=ec.message();
+        return ec.code();
+    }
+    return 0;
+}
+
+template <typename T>
+int doSetFileSetting(HATN_CLIENTAPP_NAMESPACE::ClientAppFileSettings* fs, const std::string& key, T value, Error& error)
+{
+    if (!fs)
+    {
+        auto ec=clientAppError(ClientAppError::APPLICATION_SETTING_NOT_SET);
+        error.code=ec.code();
+        error.codeString=ec.codeString();
+        error.message=ec.message();
+        return ec.code();
+    }
+    auto ec=fs->set(key,std::move(value));
+    if (ec)
+    {
+        error.code=ec.code();
+        error.codeString=ec.codeString();
+        error.message=ec.message();
+        return ec.code();
+    }
+    return 0;
+}
+
+} // namespace
+
+int MobileApp::getFileSettingString(const std::string key, std::string& value, Error& error)
+{
+    return doGetFileSetting(pimpl->app->fileSettings(),key,value,error);
+}
+
+int MobileApp::getFileSettingInt(const std::string key, int64_t& value, Error& error)
+{
+    return doGetFileSetting(pimpl->app->fileSettings(),key,value,error);
+}
+
+int MobileApp::getFileSettingUInt(const std::string key, uint64_t& value, Error& error)
+{
+    return doGetFileSetting(pimpl->app->fileSettings(),key,value,error);
+}
+
+int MobileApp::getFileSettingBool(const std::string key, bool& value, Error& error)
+{
+    return doGetFileSetting(pimpl->app->fileSettings(),key,value,error);
+}
+
+int MobileApp::getFileSettingDouble(const std::string key, double& value, Error& error)
+{
+    return doGetFileSetting(pimpl->app->fileSettings(),key,value,error);
+}
+
+int MobileApp::setFileSettingString(const std::string key, const std::string& value, Error& error)
+{
+    return doSetFileSetting(pimpl->app->fileSettings(),key,value,error);
+}
+
+int MobileApp::setFileSettingInt(const std::string key, int64_t value, Error& error)
+{
+    return doSetFileSetting(pimpl->app->fileSettings(),key,value,error);
+}
+
+int MobileApp::setFileSettingUInt(const std::string key, uint64_t value, Error& error)
+{
+    return doSetFileSetting(pimpl->app->fileSettings(),key,value,error);
+}
+
+int MobileApp::setFileSettingBool(const std::string key, bool value, Error& error)
+{
+    return doSetFileSetting(pimpl->app->fileSettings(),key,value,error);
+}
+
+int MobileApp::setFileSettingDouble(const std::string key, double value, Error& error)
+{
+    return doSetFileSetting(pimpl->app->fileSettings(),key,value,error);
 }
 
 //-----------------------------------------------------------------------------

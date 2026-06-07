@@ -202,6 +202,30 @@ class HATN_CLIENTAPP_EXPORT MobileApp
             Error& error
         );
 
+        int getFileSetting(
+            const std::string key,
+            std::string& jsonValue,
+            Error& error
+        );
+
+        int setFileSetting(
+            const std::string key,
+            const std::string& jsonValue,
+            Error& error
+        );
+
+        int getFileSettingString(const std::string key, std::string& value, Error& error);
+        int getFileSettingInt(const std::string key, int64_t& value, Error& error);
+        int getFileSettingUInt(const std::string key, uint64_t& value, Error& error);
+        int getFileSettingBool(const std::string key, bool& value, Error& error);
+        int getFileSettingDouble(const std::string key, double& value, Error& error);
+
+        int setFileSettingString(const std::string key, const std::string& value, Error& error);
+        int setFileSettingInt(const std::string key, int64_t value, Error& error);
+        int setFileSettingUInt(const std::string key, uint64_t value, Error& error);
+        int setFileSettingBool(const std::string key, bool value, Error& error);
+        int setFileSettingDouble(const std::string key, double value, Error& error);
+
         const LockingBridge* locking() const;
         LockingBridge* locking();
 

@@ -28,6 +28,7 @@
 #include <hatn/clientapp/clientappdbmodelsprovider.h>
 #include <hatn/clientapp/clientappdbmodels.h>
 #include <hatn/clientapp/clientappsettings.h>
+#include <hatn/clientapp/clientappfilesettings.h>
 #include <hatn/clientapp/lockingcontroller.h>
 #include <hatn/clientapp/clientapp.h>
 
@@ -53,6 +54,7 @@ class ClientApp_p
 
         std::map<std::string,std::shared_ptr<db::Schema>> dbSchemas;
         std::shared_ptr<ClientAppSettings> appSettings;
+        std::shared_ptr<ClientAppFileSettings> fileSettings;
         std::shared_ptr<LockingController> lockingController;
 
         bool open=false;
@@ -242,8 +244,20 @@ Error ClientApp::openData(bool init)
 {
     HATN_CTX_SCOPE("clientapp::opendata")
 
+    // construct and load file settings (no DB required)
+    {
+        lib::filesystem::path filePath{app().appDataFolder()};
+        filePath.append(ClientAppFileSettings::FileName);
+        pimpl->fileSettings=std::make_shared<ClientAppFileSettings>(this,filePath.string());
+    }
+    auto ec=pimpl->fileSettings->load();
+    if (ec)
+    {
+        HATN_CTX_ERROR(ec,"failed to load file settings")
+    }
+
     // open main database
-    auto ec=openMainDb(init);
+    ec=openMainDb(init);
     HATN_CHECK_EC(ec)
 
     HATN_CTX_DEBUG("main db opened")
@@ -455,6 +469,20 @@ const ClientAppSettings* ClientApp::appSettings() const
 ClientAppSettings* ClientApp::appSettings()
 {
     return pimpl->appSettings.get();
+}
+
+//--------------------------------------------------------------------------
+
+const ClientAppFileSettings* ClientApp::fileSettings() const
+{
+    return pimpl->fileSettings.get();
+}
+
+//--------------------------------------------------------------------------
+
+ClientAppFileSettings* ClientApp::fileSettings()
+{
+    return pimpl->fileSettings.get();
 }
 
 //--------------------------------------------------------------------------

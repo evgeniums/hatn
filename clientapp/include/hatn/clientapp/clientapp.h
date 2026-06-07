@@ -52,6 +52,7 @@ using Context=common::TaskContext;
 class Dispatcher;
 class ClientApp_p;
 class ClientAppSettings;
+class ClientAppFileSettings;
 class LockingController;
 
 class HATN_CLIENTAPP_EXPORT ClientApp
@@ -136,6 +137,9 @@ class HATN_CLIENTAPP_EXPORT ClientApp
         ClientAppSettings* appSettings();
 
         void flushAppSettings(std::string section={});
+
+        const ClientAppFileSettings* fileSettings() const;
+        ClientAppFileSettings* fileSettings();
 
         const LockingController* lockingController() const;
         LockingController* lockingController();
