@@ -104,6 +104,12 @@ class HATN_CLIENTAPP_EXPORT LockingController : public std::enable_shared_from_t
             return m_autoLockMode;
         }
 
+        bool lockOnBackground() const noexcept
+        {
+            common::MutexScopedLock l(m_mutex);
+            return m_lockOnBackground;
+        }
+
         uint32_t pincodeTolerateTries() const
         {
             common::MutexScopedLock l(m_mutex);
@@ -145,6 +151,7 @@ class HATN_CLIENTAPP_EXPORT LockingController : public std::enable_shared_from_t
             ClientAppSettings::Callback callback,
             AutoLockMode mode,
             uint32_t period=DefaultAutoLockPeriod,
+            bool lockOnBackground=false,
             uint32_t tolerateTries=DefaultPincodeTolerateTries,
             uint32_t resetErrorPeriod=DefaultPincodeResetErrorPeriod
         );
@@ -175,11 +182,13 @@ class HATN_CLIENTAPP_EXPORT LockingController : public std::enable_shared_from_t
         common::DateTime m_lastActivity;
         bool m_locked;
         bool m_background;
+        bool m_started;
 
         common::AsioDeadlineTimer m_activityTimer;
 
         uint32_t m_autoLockPeriod;
         AutoLockMode m_autoLockMode;
+        bool m_lockOnBackground;
         uint32_t m_pincodeTolerateTries;
         uint32_t m_pincodeResetErrorsPeriod;
 

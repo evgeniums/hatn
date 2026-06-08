@@ -32,9 +32,11 @@ LockingController::LockingController(ClientApp* app)
       m_lastActivity(common::DateTime::currentUtc()),
       m_locked(false),
       m_background(false),
+      m_started(false),
       m_activityTimer(app->app().appThread()),
       m_autoLockPeriod(DefaultAutoLockPeriod),
       m_autoLockMode(AutoLockMode::Disabled),
+      m_lockOnBackground(false),
       m_pincodeTolerateTries(DefaultPincodeTolerateTries),
       m_pincodeResetErrorsPeriod(DefaultPincodeResetErrorPeriod),
       m_passphraseThrottlePeriod(DefaultPassphraseThrottlePeriod),
@@ -91,6 +93,7 @@ void LockingController::start()
 
     m_app->appSettings()->configTree().setDefaultEx(lockingSection.copyAppend("period"),DefaultAutoLockPeriod);
     m_app->appSettings()->configTree().setDefaultEx(lockingSection.copyAppend("mode"),static_cast<int>(AutoLockMode::Disabled));
+    m_app->appSettings()->configTree().setDefaultEx(lockingSection.copyAppend("lock_on_background"),false);
     m_app->appSettings()->configTree().setDefaultEx(lockingSection.copyAppend("tolerate_tries"),DefaultPincodeTolerateTries);
     m_app->appSettings()->configTree().setDefaultEx(lockingSection.copyAppend("reset_error_period"),DefaultPincodeResetErrorPeriod);
 
@@ -109,6 +112,7 @@ void LockingController::start()
         checkLockedByLastActivity();
     };
     m_activityTimer.setPeriodUs(ActivityTimerPeriod * 1000 * 1000);
+    m_activityTimer.setSingleShot(false);
     m_activityTimer.start(std::move(activityHandler));
 
     // subscribe to app settings events
@@ -134,12 +138,24 @@ void LockingController::start()
         },
         EventKey{AppSettingsEvent::Category,SettingsPassphraseSection}
     );
+
+    // prime in-memory values from the just-loaded DB-backed settings
+    updateLockingSettings();
+    updatePassphraseSettings();
+
+    m_mutex.lock();
+    m_started=true;
+    m_mutex.unlock();
 }
 
 //---------------------------------------------------------------
 
 void LockingController::close()
 {
+    m_mutex.lock();
+    m_started=false;
+    m_mutex.unlock();
+
     m_activityTimer.stop();
 
     m_app->eventDispatcher().unsubscribe(m_appSettingsSubscription);
@@ -163,6 +179,7 @@ bool LockingController::checkLockedByLastActivity()
         auto expire=m_lastActivity;
         m_mutex.unlock();
         expire.addSeconds(autoLockPeriod());
+
         if (now.after(expire))
         {
             lock();
@@ -221,7 +238,11 @@ void LockingController::setBackground()
         std::move(event)
     );
 
-    if (autoLockMode()==AutoLockMode::Background)
+    m_mutex.lock();
+    bool started=m_started;
+    m_mutex.unlock();
+
+    if (started && lockOnBackground())
     {
         lock();
     }
@@ -260,7 +281,7 @@ void LockingController::updateLastActivity()
     m_mutex.lock();
     m_lastActivity.loadCurrentUtc();
     m_mutex.unlock();
-
+#if 0
     auto lastActivityEvent=std::make_shared<LastActivityEvent>();
     //! @todo Load last activity time to event's message
 
@@ -270,6 +291,7 @@ void LockingController::updateLastActivity()
         ctx,
         std::move(lastActivityEvent)
     );
+#endif
 }
 
 //---------------------------------------------------------------
@@ -279,6 +301,7 @@ void LockingController::setAutoLockSettings(
         ClientAppSettings::Callback callback,
         AutoLockMode mode,
         uint32_t period,
+        bool lockOnBackground,
         uint32_t tolerateTries,
         uint32_t resetErrorPeriod
     )
@@ -294,18 +317,24 @@ void LockingController::setAutoLockSettings(
             {
                 return;
             }
-            auto r3=m_app->appSettings()->configTree().set(lockingSection.copyAppend("tolerate_tries"),tolerateTries);
+            auto r3=m_app->appSettings()->configTree().set(lockingSection.copyAppend("lock_on_background"),lockOnBackground);
             if (r3)
             {
                 return;
             }
-            auto r4=m_app->appSettings()->configTree().set(lockingSection.copyAppend("reset_error_period"),resetErrorPeriod);
+            auto r4=m_app->appSettings()->configTree().set(lockingSection.copyAppend("tolerate_tries"),tolerateTries);
             if (r4)
+            {
+                return;
+            }
+            auto r5=m_app->appSettings()->configTree().set(lockingSection.copyAppend("reset_error_period"),resetErrorPeriod);
+            if (r5)
             {
                 return;
             }
         }
     }
+    updateLockingSettings();
     m_app->appSettings()->flush(std::move(ctx),std::move(callback),SettingsLockingSection);
 }
 
@@ -326,6 +355,7 @@ void LockingController::setPassphraseCheckPeriod(
             return;
         }
     }
+    updatePassphraseSettings();
     m_app->appSettings()->flush(std::move(ctx),std::move(callback),SettingsPassphraseSection);
 }
 
@@ -335,6 +365,7 @@ void LockingController::updateLockingSettings()
 {
     HATN_BASE_NAMESPACE::ConfigTreePath lockingSection{SettingsLockingSection};
     AutoLockMode mode;
+    bool lockOnBg=false;
     uint32_t period;
     uint32_t tolerateTries;
     uint32_t resetErrorPeriod;
@@ -349,6 +380,13 @@ void LockingController::updateLockingSettings()
             mode=static_cast<AutoLockMode>(modeInt);
             tolerateTries=m_app->appSettings()->configTree().getEx(lockingSection.copyAppend("tolerate_tries")).asEx<uint32_t>();
             resetErrorPeriod=m_app->appSettings()->configTree().getEx(lockingSection.copyAppend("reset_error_period")).asEx<uint32_t>();
+
+            // Try to read the new key; falls back to false if not yet stored.
+            auto bgResult=m_app->appSettings()->configTree().get(lockingSection.copyAppend("lock_on_background"));
+            if (!bgResult)
+            {
+                lockOnBg=bgResult.value().asEx<bool>();
+            }
         }
         catch (...)
         {
@@ -356,10 +394,18 @@ void LockingController::updateLockingSettings()
         }
     }
 
+    // Migration: legacy stored mode==Background → lock_on_background=true + Disabled.
+    if (mode==AutoLockMode::Background)
+    {
+        lockOnBg=true;
+        mode=AutoLockMode::Disabled;
+    }
+
     {
         common::MutexScopedLock l(m_mutex);
         m_autoLockPeriod=period;
         m_autoLockMode=mode;
+        m_lockOnBackground=lockOnBg;
         m_pincodeTolerateTries=tolerateTries;
         m_pincodeResetErrorsPeriod=resetErrorPeriod;
     }
