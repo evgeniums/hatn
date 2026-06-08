@@ -880,6 +880,94 @@ Error App::createAppDataFolder()
 
 //---------------------------------------------------------------
 
+void App::setDataFolder(std::string folder)
+{
+    m_dataFolder=std::move(folder);
+}
+
+//---------------------------------------------------------------
+
+const std::string& App::dataFolder() const noexcept
+{
+    return m_dataFolder.empty() ? m_appDataFolder : m_dataFolder;
+}
+
+//---------------------------------------------------------------
+
+Error App::createDataFolder()
+{
+    const auto& folder=dataFolder();
+    Assert(!folder.empty(),"Data folder must not be empty");
+
+    lib::fs_error_code ec;
+    lib::filesystem::create_directories(folder,ec);
+    auto ec1=lib::makeFilesystemError(ec);
+    HATN_CHECK_CHAIN_LOG_EC(ec1,_TR("failed to create data folder","app"),HLOG_MODULE(app))
+
+    lib::filesystem::permissions(
+        folder,
+        lib::filesystem::perms::owner_all,
+        lib::filesystem::perm_options::replace,
+        ec
+    );
+    if (ec)
+    {
+        ec1=lib::makeFilesystemError(ec);
+        HATN_CTX_ERROR(ec1,"failed to change permissions of data folder");
+    }
+
+    return OK;
+}
+
+//---------------------------------------------------------------
+
+void App::setFilesFolder(std::string folder)
+{
+    m_filesFolder=std::move(folder);
+}
+
+//---------------------------------------------------------------
+
+std::string App::filesFolder() const
+{
+    if (!m_filesFolder.empty())
+    {
+        return m_filesFolder;
+    }
+    lib::filesystem::path p{dataFolder()};
+    p.append("files");
+    return p.string();
+}
+
+//---------------------------------------------------------------
+
+Error App::createFilesFolder()
+{
+    auto folder=filesFolder();
+    Assert(!folder.empty(),"Files folder must not be empty");
+
+    lib::fs_error_code ec;
+    lib::filesystem::create_directories(folder,ec);
+    auto ec1=lib::makeFilesystemError(ec);
+    HATN_CHECK_CHAIN_LOG_EC(ec1,_TR("failed to create files folder","app"),HLOG_MODULE(app))
+
+    lib::filesystem::permissions(
+        folder,
+        lib::filesystem::perms::owner_all,
+        lib::filesystem::perm_options::replace,
+        ec
+    );
+    if (ec)
+    {
+        ec1=lib::makeFilesystemError(ec);
+        HATN_CTX_ERROR(ec1,"failed to change permissions of files folder");
+    }
+
+    return OK;
+}
+
+//---------------------------------------------------------------
+
 void App::registerLoggerHandlerBuilder(std::string name, LoggerHandlerBuilder builder)
 {
     d->loggerBuilders[std::move(name)]=std::move(builder);
@@ -988,7 +1076,7 @@ db::ClientConfig App_p::dbClientConfig(lib::string_view provider)
             lib::filesystem::path p{dbPath};
             if (!p.is_absolute())
             {
-                p=app->appDataFolder();
+                p=app->dataFolder();
                 p.append(dbPath);
                 dbPath=p.string();
             }
@@ -997,7 +1085,7 @@ db::ClientConfig App_p::dbClientConfig(lib::string_view provider)
     }
     else
     {
-        lib::filesystem::path p{app->appDataFolder()};
+        lib::filesystem::path p{app->dataFolder()};
         p.append("db");
         cfg.dbPath=p.string();
     }

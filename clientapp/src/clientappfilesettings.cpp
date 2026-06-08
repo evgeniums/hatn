@@ -32,14 +32,15 @@ HATN_CLIENTAPP_NAMESPACE_BEGIN
 
 //---------------------------------------------------------------
 
-ClientAppFileSettings::ClientAppFileSettings(ClientApp* app, std::string filePath)
-    : m_app(app), m_filePath(std::move(filePath))
+ClientAppFileSettings::ClientAppFileSettings(ClientApp* app)
+    : m_app(app)
 {}
 
 //---------------------------------------------------------------
 
-Error ClientAppFileSettings::load()
+Error ClientAppFileSettings::load(const std::string& filePath)
 {
+    m_filePath = filePath;
     m_configTree.reset();
 
     std::string backupPath = common::FileUtils::backupName(m_filePath.c_str());
@@ -51,18 +52,8 @@ Error ClientAppFileSettings::load()
         return OK;
     }
 
-    // Try primary first, fall back to backup on error — mirrors loadFromFileWithBackup semantics.
     std::string buf;
-    Error ec;
-    if (primaryExists)
-    {
-        ec = common::FileUtils::loadFromFile(buf, m_filePath.c_str());
-    }
-    if (ec && backupExists)
-    {
-        buf.clear();
-        ec = common::FileUtils::loadFromFile(buf, backupPath.c_str());
-    }
+    auto ec = common::FileUtils::loadFromFileWithBackup(buf, m_filePath.c_str());
     if (ec)
     {
         return ec;

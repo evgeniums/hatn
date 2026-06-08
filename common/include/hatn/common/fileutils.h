@@ -166,7 +166,7 @@ struct FileUtils final
             return OK;
         }
 
-        return loadFromFile(container,backupName(fileName));
+        return loadFromFile(container,backupName(fileName).c_str());
     }
 
     template <typename PathT>

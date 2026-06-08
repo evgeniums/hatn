@@ -138,8 +138,8 @@ class HATN_CLIENTAPP_EXPORT ClientApp
 
         void flushAppSettings(std::string section={});
 
-        const ClientAppFileSettings* fileSettings() const;
-        ClientAppFileSettings* fileSettings();
+        const ClientAppFileSettings& fileSettings() const;
+        ClientAppFileSettings& fileSettings();
 
         const LockingController* lockingController() const;
         LockingController* lockingController();

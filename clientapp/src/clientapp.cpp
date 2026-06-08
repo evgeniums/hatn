@@ -40,7 +40,8 @@ class ClientApp_p
 {
     public:
 
-        ClientApp_p(HATN_APP_NAMESPACE::AppName appName) : app(std::move(appName))
+        ClientApp_p(HATN_APP_NAMESPACE::AppName appName, ClientApp* owner)
+            : app(std::move(appName)), fileSettings(owner)
         {}
 
         HATN_APP_NAMESPACE::App app;
@@ -54,7 +55,7 @@ class ClientApp_p
 
         std::map<std::string,std::shared_ptr<db::Schema>> dbSchemas;
         std::shared_ptr<ClientAppSettings> appSettings;
-        std::shared_ptr<ClientAppFileSettings> fileSettings;
+        ClientAppFileSettings fileSettings;
         std::shared_ptr<LockingController> lockingController;
 
         bool open=false;
@@ -63,7 +64,7 @@ class ClientApp_p
 
 //--------------------------------------------------------------------------
 
-ClientApp::ClientApp(HATN_APP_NAMESPACE::AppName appName) : pimpl(std::make_unique<ClientApp_p>(std::move(appName)))
+ClientApp::ClientApp(HATN_APP_NAMESPACE::AppName appName) : pimpl(std::make_unique<ClientApp_p>(std::move(appName), this))
 {}
 
 //--------------------------------------------------------------------------
@@ -121,6 +122,17 @@ Error ClientApp::init()
 
     // init locking controller
     pimpl->lockingController->init();
+
+    // load file settings (no DB required)
+    {
+        lib::filesystem::path filePath{app().appDataFolder()};
+        filePath.append(ClientAppFileSettings::FileName);
+        ec = pimpl->fileSettings.load(filePath.string());
+        if (ec)
+        {
+            HATN_CTX_ERROR(ec,"failed to load file settings")
+        }
+    }
 
     // done
     return OK;
@@ -244,20 +256,8 @@ Error ClientApp::openData(bool init)
 {
     HATN_CTX_SCOPE("clientapp::opendata")
 
-    // construct and load file settings (no DB required)
-    {
-        lib::filesystem::path filePath{app().appDataFolder()};
-        filePath.append(ClientAppFileSettings::FileName);
-        pimpl->fileSettings=std::make_shared<ClientAppFileSettings>(this,filePath.string());
-    }
-    auto ec=pimpl->fileSettings->load();
-    if (ec)
-    {
-        HATN_CTX_ERROR(ec,"failed to load file settings")
-    }
-
     // open main database
-    ec=openMainDb(init);
+    auto ec=openMainDb(init);
     HATN_CHECK_EC(ec)
 
     HATN_CTX_DEBUG("main db opened")
@@ -279,7 +279,15 @@ Error ClientApp::openData(bool init)
     // create folder-ready file
     if (init)
     {
-        lib::filesystem::path initFilePath{app().appDataFolder()};
+        // ensure the data folder exists before writing the init marker
+        auto ec0=app().createDataFolder();
+        if (ec0)
+        {
+            HATN_CTX_SCOPE_ERROR("failed to create data folder before writing init file")
+            return ec0;
+        }
+
+        lib::filesystem::path initFilePath{app().dataFolder()};
         initFilePath.append(DataInitFile);
         common::PlainFile initFile;
         ec=initFile.open(initFilePath.string(),common::File::Mode::write_new);
@@ -392,15 +400,16 @@ Error ClientApp::removeData()
         ec1=chainAndLogError(std::move(ec1),_TR("failed to destroy main database","clientapp"));
     }
 
-    // remove data directory
-    auto appDataFolder=app().appDataFolder();
-    if (!appDataFolder.empty())
+    // remove data directory (dataFolder() is separate from appDataFolder() when explicitly
+    // configured, so this removes only the user data, not the metadata folder)
+    auto dataFolder=app().dataFolder();
+    if (!dataFolder.empty())
     {
         lib::fs_error_code fsErr;
-        lib::filesystem::remove_all(appDataFolder,fsErr);
+        lib::filesystem::remove_all(dataFolder,fsErr);
         if (fsErr)
         {
-            return chainAndLogError(lib::makeFilesystemError(fsErr),_TR("failed to remove application data folder","clientapp"));
+            return chainAndLogError(lib::makeFilesystemError(fsErr),_TR("failed to remove data folder","clientapp"));
         }
     }
 
@@ -473,16 +482,16 @@ ClientAppSettings* ClientApp::appSettings()
 
 //--------------------------------------------------------------------------
 
-const ClientAppFileSettings* ClientApp::fileSettings() const
+const ClientAppFileSettings& ClientApp::fileSettings() const
 {
-    return pimpl->fileSettings.get();
+    return pimpl->fileSettings;
 }
 
 //--------------------------------------------------------------------------
 
-ClientAppFileSettings* ClientApp::fileSettings()
+ClientAppFileSettings& ClientApp::fileSettings()
 {
-    return pimpl->fileSettings.get();
+    return pimpl->fileSettings;
 }
 
 //--------------------------------------------------------------------------
@@ -514,7 +523,7 @@ LockingController* ClientApp::lockingController()
 
 bool ClientApp::appDataInitialized() const
 {
-    lib::filesystem::path initFilePath{app().appDataFolder()};
+    lib::filesystem::path initFilePath{app().dataFolder()};
     initFilePath.append(DataInitFile);
 
     lib::fs_error_code fsec;

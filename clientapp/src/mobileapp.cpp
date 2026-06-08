@@ -445,17 +445,7 @@ int MobileApp::getFileSetting(
         Error& error
     )
 {
-    auto* fs=pimpl->app->fileSettings();
-    if (!fs)
-    {
-        auto ec=clientAppError(ClientAppError::APPLICATION_SETTING_NOT_SET);
-        error.code=ec.code();
-        error.codeString=ec.codeString();
-        error.message=ec.message();
-        return ec.code();
-    }
-
-    auto r=fs->getJson(key);
+    auto r=pimpl->app->fileSettings().getJson(key);
     if (r)
     {
         error.code=r.error().code();
@@ -475,17 +465,7 @@ int MobileApp::setFileSetting(
         Error& error
     )
 {
-    auto* fs=pimpl->app->fileSettings();
-    if (!fs)
-    {
-        auto ec=clientAppError(ClientAppError::APPLICATION_SETTING_NOT_SET);
-        error.code=ec.code();
-        error.codeString=ec.codeString();
-        error.message=ec.message();
-        return ec.code();
-    }
-
-    auto ec=fs->setJson(key,jsonValue);
+    auto ec=pimpl->app->fileSettings().setJson(key,jsonValue);
     if (ec)
     {
         error.code=ec.code();
@@ -501,18 +481,10 @@ int MobileApp::setFileSetting(
 namespace {
 
 template <typename T>
-int doGetFileSetting(HATN_CLIENTAPP_NAMESPACE::ClientAppFileSettings* fs, const std::string& key, T& value, Error& error)
+int doGetFileSetting(HATN_CLIENTAPP_NAMESPACE::ClientAppFileSettings& fs, const std::string& key, T& value, Error& error)
 {
-    if (!fs)
-    {
-        auto ec=clientAppError(ClientAppError::APPLICATION_SETTING_NOT_SET);
-        error.code=ec.code();
-        error.codeString=ec.codeString();
-        error.message=ec.message();
-        return ec.code();
-    }
     HATN_COMMON_NAMESPACE::Error ec;
-    value=fs->template getAs<T>(key,ec);
+    value=fs.template getAs<T>(key,ec);
     if (ec)
     {
         error.code=ec.code();
@@ -524,17 +496,9 @@ int doGetFileSetting(HATN_CLIENTAPP_NAMESPACE::ClientAppFileSettings* fs, const 
 }
 
 template <typename T>
-int doSetFileSetting(HATN_CLIENTAPP_NAMESPACE::ClientAppFileSettings* fs, const std::string& key, T value, Error& error)
+int doSetFileSetting(HATN_CLIENTAPP_NAMESPACE::ClientAppFileSettings& fs, const std::string& key, T value, Error& error)
 {
-    if (!fs)
-    {
-        auto ec=clientAppError(ClientAppError::APPLICATION_SETTING_NOT_SET);
-        error.code=ec.code();
-        error.codeString=ec.codeString();
-        error.message=ec.message();
-        return ec.code();
-    }
-    auto ec=fs->set(key,std::move(value));
+    auto ec=fs.set(key,std::move(value));
     if (ec)
     {
         error.code=ec.code();

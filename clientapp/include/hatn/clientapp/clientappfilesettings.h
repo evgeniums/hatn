@@ -54,7 +54,7 @@ class HATN_CLIENTAPP_EXPORT ClientAppFileSettings
 
         using Mutator = std::function<Error(HATN_BASE_NAMESPACE::ConfigTree&)>;
 
-        ClientAppFileSettings(ClientApp* app, std::string filePath);
+        explicit ClientAppFileSettings(ClientApp* app);
 
         virtual ~ClientAppFileSettings() = default;
         ClientAppFileSettings(const ClientAppFileSettings&) = delete;
@@ -63,7 +63,7 @@ class HATN_CLIENTAPP_EXPORT ClientAppFileSettings
         ClientAppFileSettings& operator=(ClientAppFileSettings&&) = delete;
 
         /** @brief Load settings from file. A missing file is treated as empty settings (returns OK). */
-        Error load();
+        Error load(const std::string& filePath);
 
         //-----------------------------------------------------------------------
         // Write API

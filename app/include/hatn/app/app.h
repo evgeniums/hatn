@@ -173,6 +173,41 @@ class HATN_APP_EXPORT App
 
         Error createAppDataFolder();
 
+        /**
+         * @brief Set explicit data folder (holds DB, .init, estk.dat).
+         *
+         * When empty (default), dataFolder() falls back to appDataFolder() so
+         * existing single-root behaviour is preserved.
+         */
+        void setDataFolder(std::string folder);
+
+        /**
+         * @brief Return the active data folder.
+         *
+         * Returns the explicitly-set data folder when non-empty, otherwise
+         * falls back to appDataFolder().
+         */
+        const std::string& dataFolder() const noexcept;
+
+        Error createDataFolder();
+
+        /**
+         * @brief Set explicit files folder (holds user file blobs).
+         *
+         * When empty (default), filesFolder() returns "<dataFolder>/files".
+         */
+        void setFilesFolder(std::string folder);
+
+        /**
+         * @brief Return the active files folder.
+         *
+         * Returns the explicitly-set files folder when non-empty, otherwise
+         * returns "<dataFolder>/files".
+         */
+        std::string filesFolder() const;
+
+        Error createFilesFolder();
+
         std::vector<std::string> listLogFiles() const;
 
         void registerLoggerHandlerBuilder(std::string name, LoggerHandlerBuilder builder);
@@ -312,6 +347,11 @@ class HATN_APP_EXPORT App
 
         std::string m_appDataFolder;
         std::string m_appsDataFolder;
+
+        /** Explicitly configured data folder (empty = fall back to appDataFolder). */
+        std::string m_dataFolder;
+        /** Explicitly configured files folder (empty = "<dataFolder>/files"). */
+        std::string m_filesFolder;
 
         std::string m_appConfigRoot;
         uint8_t m_defaultThreadCount;
