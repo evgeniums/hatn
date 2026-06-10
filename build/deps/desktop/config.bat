@@ -1,6 +1,6 @@
 
 IF NOT DEFINED DEP_LIBS (
-SET DEP_LIBS=openssl boost c-ares lz4 gflags rapidjson rocksdb sentry
+SET DEP_LIBS=openssl boost c-ares lz4 gflags rapidjson rocksdb utf8proc sentry
 )
 ECHO "Building libraries: %DEP_LIBS%"
 
@@ -28,6 +28,11 @@ IF NOT DEFINED CARES_VERSION (
 SET CARES_VERSION=1.34.5
 )
 ECHO "Using c-ares version %CARES_VERSION%"
+
+IF NOT DEFINED GRPC_VERSION (
+SET GRPC_VERSION=1.78.1
+)
+ECHO "Using gRPC version %GRPC_VERSION%"
 
 IF NOT DEFINED COMPILER_VERSION (
 SET COMPILER_VERSION=14.51
