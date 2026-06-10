@@ -20,7 +20,12 @@ IF DEFINED CMAKE_MSVC_GENERATOR (
 
 SET ARCH_CMAKE=-G "%CMAKE_MSVC_GENERATOR%" -A %MSVC_BUILD_ARCH% -T %MSVC_TOOLSET%
 
-)
+) ELSE {
+
+SET ARCH_CMAKE=-G Ninja
+
+}
+
 
 cmake %ARCH_CMAKE% -DCMAKE_INSTALL_PREFIX=%DEPS_PREFIX% ^
 		-DCMAKE_BUILD_TYPE=Release ^
@@ -42,6 +47,7 @@ if %errorlevel% neq 0 exit %errorlevel%
 ) ELSE (
 
 cmake --build . --target install --config Release -- /m:1 /p:UseMultiToolTask=true /p:MultiProcMaxCount=%BUILD_WORKERS% /fileLogger
+
 rem cmake --build . --target install --config Debug -- /m:1 /p:UseMultiToolTask=true /p:MultiProcMaxCount=%BUILD_WORKERS% /fileLogger
 if %errorlevel% neq 0 exit %errorlevel%
 )

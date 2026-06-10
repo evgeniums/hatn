@@ -42,7 +42,6 @@ IF "%HATN_ARCH%"=="arm64" SET BOOST_ARCH=arm
     --with-program_options ^
     --with-random ^
     --with-regex ^
-    --with-system ^
     --with-test ^
     --with-thread ^
     --with-timer ^

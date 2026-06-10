@@ -5,10 +5,10 @@ IF "%PYTHON_PATH%"=="" SET PYTHON_PATH=C:\Programs\Python
 IF "%CMAKE_PATH%"=="" SET CMAKE_PATH=C:\Program Files\CMake\bin
 SET PATH=%PATH%;%CMAKE_PATH%;%PYTHON_PATH%
 
-IF "%MSVC_ROOT%"=="" SET MSVC_ROOT=C:\Program Files\Microsoft Visual Studio\2022\Community
+IF "%MSVC_ROOT%"=="" SET MSVC_ROOT=C:\Program Files\Microsoft Visual Studio\18\Community
 
 IF NOT DEFINED MSVC_COMPILER_VERSION (
-SET MSVC_COMPILER_VERSION=14.3
+SET MSVC_COMPILER_VERSION=14.51
 )
 FOR /f "tokens=1,2 delims=." %%a IN ("%MSVC_COMPILER_VERSION%") do SET MSVC_COMPILER=v%%a%%b
 ECHO "Using %MSVC_COMPILER_VERSION% (%MSVC_COMPILER%) toolset"

@@ -15,6 +15,11 @@ ENDIF()
 
 MESSAGE(STATUS "Using DEPS_ROOT: ${DEPS_ROOT}")
 
+IF (MSVC)
+SET(Boost_IGNORE_TOOLSET ON)
+SET(Boost_COMPILER "-vc1451")
+ENDIF()
+
 LIST(APPEND CMAKE_MODULE_PATH ${DEPS_ROOT}/cmake ${DEPS_ROOT}/lib/cmake)
 SET(HATN_INCLUDE_DIRECTORIES ${DEPS_ROOT}/include CACHE STRING "Include folder of dependencies")
 SET(HATN_LINK_DIRECTORIES ${DEPS_ROOT}/lib CACHE STRING "Library folder of dependencies")
@@ -179,7 +184,7 @@ ENDIF(MINGW)
 
 FIND_PACKAGE(Threads REQUIRED)
 
-SET (BOOST_MODULES system thread regex program_options date_time filesystem locale)
+SET (BOOST_MODULES thread regex program_options date_time filesystem locale)
 
 IF (CMAKE_CXX_STANDARD GREATER_EQUAL 17)
     CHECK_INCLUDE_FILE_CXX("memory_resource" HAVE_PMR)
