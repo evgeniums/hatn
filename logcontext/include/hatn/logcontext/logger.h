@@ -283,6 +283,24 @@ class HATN_LOGCONTEXT_EXPORT LoggerBase
 
     private:
 
+        // Non-locking setters — must only be called while m_mutex is already held for writing
+        // (used by loadLogConfig to avoid re-locking a non-recursive shared_mutex).
+        void setTagLevelUnlocked(std::string tag, LogLevel level)
+        {
+            m_tags.emplace(std::move(tag), level);
+        }
+        void setModuleLevelUnlocked(std::string module, LogLevel level)
+        {
+            m_modules.emplace(std::move(module), level);
+        }
+        void setScopeLevelUnlocked(std::string scope, LogLevel level)
+        {
+            m_scopes.emplace(std::move(scope), level);
+        }
+        void clearTagsUnlocked()    { m_tags.clear(); }
+        void clearModulesUnlocked() { m_modules.clear(); }
+        void clearScopesUnlocked()  { m_scopes.clear(); }
+
         void lockWr() const
         {
             m_mutex.lock();

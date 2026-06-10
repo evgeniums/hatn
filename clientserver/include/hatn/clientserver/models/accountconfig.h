@@ -42,6 +42,12 @@ HDU_UNIT(account_config,
     HDU_FIELD(topic,TYPE_STRING,13)
     HDU_FIELD(title,TYPE_STRING,14)
     HDU_FIELD(mock,TYPE_BOOL,15)
+    // Feedback provider provisioning — optional; set by the server admin to route
+    // account-level user feedback to a specific destination (e.g. a Sentry project).
+    HDU_FIELD(feedback_scheme,TYPE_STRING,16)
+    HDU_FIELD(feedback_dsn,TYPE_STRING,17)
+    HDU_FIELD(feedback_release,TYPE_STRING,18)
+    HDU_FIELD(feedback_environment,TYPE_STRING,19)
 )
 
 HDU_UNIT(account_config_token,

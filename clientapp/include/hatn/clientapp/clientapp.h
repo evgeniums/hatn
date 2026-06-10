@@ -30,6 +30,12 @@
 
 #include <hatn/clientapp/clientappdefs.h>
 
+HATN_CLIENTAPP_NAMESPACE_BEGIN
+class FeedbackProviderRegistry;
+class LogsProviderRegistry;
+class CrashReporterRegistry;
+HATN_CLIENTAPP_NAMESPACE_END
+
 HATN_CRYPT_NAMESPACE_BEGIN
 class SymmetricKey;
 HATN_CRYPT_NAMESPACE_END
@@ -153,6 +159,15 @@ class HATN_CLIENTAPP_EXPORT ClientApp
         virtual hatn::Error initTests();
 
         std::shared_ptr<db::Schema> dbSchema(const std::string& name) const;
+
+        FeedbackProviderRegistry& feedbackProviderRegistry() noexcept;
+        const FeedbackProviderRegistry& feedbackProviderRegistry() const noexcept;
+
+        LogsProviderRegistry& logsProviderRegistry() noexcept;
+        const LogsProviderRegistry& logsProviderRegistry() const noexcept;
+
+        CrashReporterRegistry& crashReporterRegistry() noexcept;
+        const CrashReporterRegistry& crashReporterRegistry() const noexcept;
 
         void publishEvent(
             std::shared_ptr<HATN_APP_NAMESPACE::Event> event,

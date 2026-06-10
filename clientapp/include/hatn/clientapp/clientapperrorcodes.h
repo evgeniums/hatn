@@ -41,6 +41,8 @@
     Do(ClientAppError,APPLICATION_CONFIG_NOT_SET,_TR("application configuration parameter not set","clientapp")) \
     Do(ClientAppError,CONFIRMATION_REQUIRED,_TR("confirmation required","clientapp")) \
     Do(ClientAppError,CONFIRMATION_FAILED,_TR("confirmation failed","clientapp")) \
+    Do(ClientAppError,FEEDBACK_PROVIDER_NOT_CONFIGURED,_TR("feedback provider not configured","clientapp")) \
+    Do(ClientAppError,LOGS_PROVIDER_NOT_CONFIGURED,_TR("logs provider not configured","clientapp")) \
 
 HATN_CLIENTAPP_NAMESPACE_BEGIN
 
