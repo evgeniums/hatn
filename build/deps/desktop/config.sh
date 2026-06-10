@@ -19,7 +19,7 @@ export grpc_version=1.78.1
 fi
 
 if [ -z "$cares_version" ]; then
-export cares_version=1.27
+export cares_version=1.34.5
 fi
 
 if [ -z "$build_workers" ]; then

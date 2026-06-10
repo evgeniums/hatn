@@ -22,6 +22,8 @@
 
 #include <hatn/app/app.h>
 
+#include <hatn/logcontext/loggerconfig.h>
+
 #include <hatn/clientapp/clientbridge.h>
 #include <hatn/clientapp/eventdispatcher.h>
 #include <hatn/clientapp/systemservice.h>
@@ -30,6 +32,10 @@
 #include <hatn/clientapp/clientappsettings.h>
 #include <hatn/clientapp/clientappfilesettings.h>
 #include <hatn/clientapp/lockingcontroller.h>
+#include <hatn/clientapp/methodsetloggerconfig.h>
+#include <hatn/clientapp/feedbackprovider.h>
+#include <hatn/clientapp/logsprovider.h>
+#include <hatn/clientapp/crashreporter.h>
 #include <hatn/clientapp/clientapp.h>
 
 HATN_CLIENTAPP_NAMESPACE_BEGIN
@@ -57,6 +63,10 @@ class ClientApp_p
         std::shared_ptr<ClientAppSettings> appSettings;
         ClientAppFileSettings fileSettings;
         std::shared_ptr<LockingController> lockingController;
+
+        FeedbackProviderRegistry feedbackProviderRegistry;
+        LogsProviderRegistry logsProviderRegistry;
+        CrashReporterRegistry crashReporterRegistry;
 
         bool open=false;
         int closeDataTimeoutMs=5000;
@@ -131,6 +141,29 @@ Error ClientApp::init()
         if (ec)
         {
             HATN_CTX_ERROR(ec,"failed to load file settings")
+        }
+    }
+
+    // Apply persisted custom logger settings on top of the app-config defaults.
+    // File settings have just been loaded; the app logger already carries the
+    // config-file defaults set during app().init().
+    {
+        common::Error lec;
+        auto json = pimpl->fileSettings.getJson(
+            HATN_BASE_NAMESPACE::ConfigTreePath{HATN_LOGCONTEXT_NAMESPACE::LoggerConfigSettingsPath},
+            lec
+        );
+        if (!lec && !json.empty())
+        {
+            auto* loggerWrapper = &app().logger();
+            if (loggerWrapper->logger())
+            {
+                lec = applyLoggerConfigJson(loggerWrapper->logger(), json);
+                if (lec)
+                {
+                    HATN_CTX_ERROR(lec, "failed to apply custom logger config from file settings")
+                }
+            }
         }
     }
 
@@ -576,6 +609,48 @@ void ClientApp::publishEvent(
     }
 
     ctx->afterThreadProcessing();
+}
+
+//--------------------------------------------------------------------------
+
+FeedbackProviderRegistry& ClientApp::feedbackProviderRegistry() noexcept
+{
+    return pimpl->feedbackProviderRegistry;
+}
+
+//--------------------------------------------------------------------------
+
+const FeedbackProviderRegistry& ClientApp::feedbackProviderRegistry() const noexcept
+{
+    return pimpl->feedbackProviderRegistry;
+}
+
+//--------------------------------------------------------------------------
+
+LogsProviderRegistry& ClientApp::logsProviderRegistry() noexcept
+{
+    return pimpl->logsProviderRegistry;
+}
+
+//--------------------------------------------------------------------------
+
+const LogsProviderRegistry& ClientApp::logsProviderRegistry() const noexcept
+{
+    return pimpl->logsProviderRegistry;
+}
+
+//--------------------------------------------------------------------------
+
+CrashReporterRegistry& ClientApp::crashReporterRegistry() noexcept
+{
+    return pimpl->crashReporterRegistry;
+}
+
+//--------------------------------------------------------------------------
+
+const CrashReporterRegistry& ClientApp::crashReporterRegistry() const noexcept
+{
+    return pimpl->crashReporterRegistry;
 }
 
 //--------------------------------------------------------------------------

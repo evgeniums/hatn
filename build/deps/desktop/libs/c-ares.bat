@@ -5,6 +5,9 @@ SET repo_path=https://github.com/c-ares/%lib_name%
 
 CALL %SCRIPTS_ROOT%/scripts/clonegit.bat
 
+git checkout v%CARES_VERSION%
+if %errorlevel% neq 0 exit %errorlevel%
+
 cd %build_dir%
 
 IF DEFINED CMAKE_MSVC_GENERATOR (

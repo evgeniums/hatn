@@ -21,6 +21,7 @@
 #include <cstddef>
 #include <initializer_list>
 #include <vector>
+#include <limits>
 
 #include <hatn/common/common.h>
 

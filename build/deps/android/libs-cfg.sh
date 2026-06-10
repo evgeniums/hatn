@@ -23,3 +23,7 @@ fi
 if [ -z "$iconv_version" ]; then
 export iconv_version=1.16
 fi
+
+if [ -z "$cares_version" ]; then
+export cares_version=1.34.5
+fi

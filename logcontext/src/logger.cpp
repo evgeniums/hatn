@@ -16,34 +16,13 @@
   *
   */
 
-#include <hatn/dataunit/syntax.h>
 #include <hatn/dataunit/ipp/syntax.ipp>
 
-#include <hatn/base/configobject.h>
-
 #include <hatn/logcontext/loggererror.h>
+#include <hatn/logcontext/loggerconfig.h>
 #include <hatn/logcontext/logger.h>
 
 HATN_LOGCONTEXT_NAMESPACE_BEGIN
-
-namespace {
-
-HDU_UNIT(mapped_level,
-    HDU_FIELD(name,TYPE_STRING,1)
-    HDU_FIELD(level,TYPE_STRING,2)
-)
-
-HDU_UNIT(logger_config,
-    HDU_FIELD(level,TYPE_STRING,1)
-    HDU_FIELD(debug_verbosity,TYPE_UINT8,2)
-    HDU_REPEATED_FIELD(tags,mapped_level::TYPE,3)
-    HDU_REPEATED_FIELD(modules,mapped_level::TYPE,4)
-    HDU_REPEATED_FIELD(scopes,mapped_level::TYPE,5)
-)
-
-using LoggerConfig =  HATN_BASE_NAMESPACE::ConfigObject<logger_config::type>;
-
-}
 
 //---------------------------------------------------------------
 
@@ -59,6 +38,12 @@ Error LoggerBase::loadLogConfig(
     )
 {
     lib::unique_lock<lib::shared_mutex> l{m_mutex};
+
+    // Clear previous per-name overrides so that re-applying is idempotent
+    // (replace semantics, not accumulate).
+    clearTagsUnlocked();
+    clearModulesUnlocked();
+    clearScopesUnlocked();
 
     // load config
     LoggerConfig cfg;
@@ -100,7 +85,8 @@ Error LoggerBase::loadLogConfig(
             lib::string_view levelName=tags.at(i).field(mapped_level::level).value();
             auto r=parseLevel(name,levelName,LogContextError::INVALID_TAG_LOG_LEVEL);
             HATN_CHECK_RESULT(r)
-            setTagLevel(std::string{name},r.value());
+            // Use unlocked setter — m_mutex is already held above (unique_lock l).
+            setTagLevelUnlocked(std::string{name},r.value());
         }
     }
 
@@ -113,7 +99,7 @@ Error LoggerBase::loadLogConfig(
             lib::string_view levelName=modules.at(i).field(mapped_level::level).value();
             auto r=parseLevel(name,levelName,LogContextError::INVALID_MODULE_LOG_LEVEL);
             HATN_CHECK_RESULT(r)
-            setModuleLevel(std::string{name},r.value());
+            setModuleLevelUnlocked(std::string{name},r.value());
         }
     }
 
@@ -126,7 +112,7 @@ Error LoggerBase::loadLogConfig(
             lib::string_view levelName=scopes.at(i).field(mapped_level::level).value();
             auto r=parseLevel(name,levelName,LogContextError::INVALID_SCOPE_LOG_LEVEL);
             HATN_CHECK_RESULT(r)
-            setScopeLevel(std::string{name},r.value());
+            setScopeLevelUnlocked(std::string{name},r.value());
         }
     }
 #else

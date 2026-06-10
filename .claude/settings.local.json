@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(sed -n '1098,1122p' /Users/user1/projects/hatn/deps/root-clang/include/ares.h)",
+      "Read(//Users/user1/projects/hatn/deps/root-clang/include/**)",
+      "Bash(find /projects/ubuntu/deps -name \"version.h\" -path \"*/rocksdb/*\" 2>/dev/null | head -5)",
+      "Read(//projects/ubuntu/**)",
+      "Bash(grep -n \"ROCKSDB_MAJOR\\\\|ROCKSDB_MINOR\\\\|ROCKSDB_PATCH\" /Users/user1/projects/ubuntu/deps/root-clang/include/rocksdb/version.h 2>/dev/null)",
+      "Read(//Users/user1/projects/ubuntu/deps/root-clang/include/rocksdb/**)"
+    ]
+  }
+}

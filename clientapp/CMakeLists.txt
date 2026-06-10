@@ -14,6 +14,13 @@ SET (HEADERS
     include/hatn/clientapp/methodnetworkstatus.h
     include/hatn/clientapp/methodsyncdatetime.h
     include/hatn/clientapp/methodupdatesystemca.h
+    include/hatn/clientapp/methodgetloggerconfig.h
+    include/hatn/clientapp/methodsetloggerconfig.h
+    include/hatn/clientapp/methodsendlogs.h
+
+    include/hatn/clientapp/feedbackprovider.h
+    include/hatn/clientapp/logsprovider.h
+    include/hatn/clientapp/crashreporter.h
 
     include/hatn/clientapp/networkevent.h
     include/hatn/clientapp/systemcaevent.h
@@ -44,6 +51,12 @@ SET (SOURCES
     src/methodnetworkstatus.cpp
     src/methodsyncdatetime.cpp
     src/methodupdatesystemca.cpp
+    src/methodgetloggerconfig.cpp
+    src/methodsetloggerconfig.cpp
+    src/methodsendlogs.cpp
+    src/feedbackprovider.cpp
+    src/logsprovider.cpp
+    src/crashreporter.cpp
     src/clientappdbmodelsprovider.cpp
     src/clientappsettings.cpp
     src/clientappfilesettings.cpp
