@@ -19,7 +19,7 @@
 #define HATNMANAGEDWEAKCTRL_MP_H
 
 #include <atomic>
-
+#include <limits>
 #include <hatn/common/common.h>
 
 HATN_COMMON_NAMESPACE_BEGIN

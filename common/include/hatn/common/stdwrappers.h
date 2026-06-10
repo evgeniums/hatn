@@ -38,6 +38,7 @@
     #include <variant>
     #include <optional>
     #include <mutex>
+    #include <string_view>
 #endif
 
 #if __cplusplus < 202302L

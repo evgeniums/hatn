@@ -46,7 +46,7 @@ struct Request
     std::string subject;
     std::string messageTypeName;
     std::string messageJson;
-    std::vector<std::vector<const char>> buffers;
+    std::vector<std::vector<char>> buffers;
     ConfirmationDescriptor confirmation;
 
     uint32_t cacheOptions=0;

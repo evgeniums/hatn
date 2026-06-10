@@ -19,6 +19,7 @@
 #define HATNERRORCATEGORY_H
 
 #include <string>
+#include <cstring>
 #include <system_error>
 
 #include <hatn/common/common.h>

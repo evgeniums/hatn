@@ -20,6 +20,7 @@
 #include <hatn/logcontext/contextlogger.h>
 
 #include <rocksdb/db.h>
+#include <rocksdb/version.h>
 #include <rocksdb/utilities/transaction_db.h>
 
 #include <hatn/common/utils.h>
@@ -448,7 +449,15 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
         if (d->opt.config().field(rocksdb_options::readonly).value())
         {
             HATN_CTX_SCOPE_PUSH("readonly",true)
+#if ROCKSDB_MAJOR >= 11
+            {
+                std::unique_ptr<ROCKSDB_NAMESPACE::DB> dbPtr;
+                status = ROCKSDB_NAMESPACE::DB::OpenForReadOnly(options,dbPath,cfDescriptors,&cfHandles,&dbPtr);
+                db = dbPtr.release();
+            }
+#else
             status = ROCKSDB_NAMESPACE::DB::OpenForReadOnly(options,dbPath,cfDescriptors,&cfHandles,&db);
+#endif
         }
         else
         {

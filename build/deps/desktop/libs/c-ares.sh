@@ -3,7 +3,9 @@ export lib_name=c-ares
 export folder=$src_dir/$lib_name
 export repo_path=https://github.com/c-ares/$lib_name
 
+export git_extra_args="--depth 1 --branch v$cares_version --single-branch"
 source $scripts_root/scripts/clonegit.sh
+unset git_extra_args
 
 cd $lib_build_dir
 

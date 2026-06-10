@@ -53,6 +53,16 @@
 #  define sclose(x) close((x))
 #endif
 
+// c-ares changed the legacy ares_callback abuf parameter to `const` on its
+// development branch (post-1.34.6 released tags). Select the qualifier to
+// match whatever header we build against so hatn compiles with both current
+// releases and future versions that ship the const change.
+#if defined(ARES_VERSION_NUM) && ARES_VERSION_NUM > 0x013406
+#  define HATN_CARES_ABUF_CONST const
+#else
+#  define HATN_CARES_ABUF_CONST
+#endif
+
 #include <hatn/common/thread.h>
 #include <hatn/common/asiotimer.h>
 #include <hatn/common/translate.h>
@@ -290,7 +300,7 @@ struct Query : public common::EnableManaged<Query>
 
 }
 
-static void queryCb(void *arg, int status, int timeouts, unsigned char *abuf, int alen);
+static void queryCb(void *arg, int status, int timeouts, HATN_CARES_ABUF_CONST unsigned char *abuf, int alen);
 
 static bool setSocketBlockingMode(ares_socket_t fd, bool blocking)
 {
@@ -739,7 +749,7 @@ static int fClose(ares_socket_t sockID, void *data)
 }
 
 //---------------------------------------------------------------
-static void queryCb(void *arg, int status, int, unsigned char *abuf, int alen)
+static void queryCb(void *arg, int status, int, HATN_CARES_ABUF_CONST unsigned char *abuf, int alen)
 {
     auto q=reinterpret_cast<Query*>(arg);
     auto query=q->cyclicRefToSelf;
