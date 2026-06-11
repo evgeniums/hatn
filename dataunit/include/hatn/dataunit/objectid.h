@@ -465,7 +465,8 @@ namespace fmt
         template <typename FormatContext>
         auto format(const HATN_DATAUNIT_NAMESPACE::ObjectId& id, FormatContext& ctx) const
         {
-            return format_to(ctx.out(),"{}",id.asString());
+            auto s = id.asString();
+            return formatter<string_view>::format({s.data(), s.size()}, ctx);
         }
     };
 }

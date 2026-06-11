@@ -109,7 +109,7 @@ Error ServerApp::initApp(
         return commonError(CommonError::INVALID_COMMAND_LINE_ARGUMENTS);
     }
 
-    auto description=fmt::format(HATN_NAMESPACE::_TR("Running \"{}\" with config file \"{}\"","serverapp"),pimpl->app.appName().displayName,configFilePath);
+    auto description=fmt::format(fmt::runtime(HATN_NAMESPACE::_TR("Running \"{}\" with config file \"{}\"","serverapp")),pimpl->app.appName().displayName,configFilePath);
     std::cout << description << std::endl;
 
     auto runningFailedMessage=HATN_NAMESPACE::_TR("Failed to initialize server application:","serverapp");
@@ -184,7 +184,7 @@ int ServerApp::exec()
 
     HATN_COMMON_NAMESPACE::Thread::mainThread()->start();
 
-    auto description=fmt::format(HATN_NAMESPACE::_TR("Finished \"{}\"","whitemserver"),pimpl->app.appName().displayName);
+    auto description=fmt::format(fmt::runtime(HATN_NAMESPACE::_TR("Finished \"{}\"","whitemserver")),pimpl->app.appName().displayName);
     std::cout << description << std::endl;
 
     return 0;

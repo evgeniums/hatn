@@ -52,7 +52,7 @@ std::string Random::generateAsString(const uint32_t& max, size_t minDigits)
 {
     auto num=generate(max);
     auto format=fmt::format("{{:0{}d}}",minDigits);
-    return fmt::format(format,num);
+    return fmt::format(fmt::runtime(format),num);
 }
 
 //---------------------------------------------------------------
