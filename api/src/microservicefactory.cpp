@@ -70,7 +70,7 @@ struct makeMicroserviceAndRunT
             // failed to load microservice config
             ec=microservice.takeError();
             auto ec1=apiLibError(ApiLibError::MICROSERVICE_CREATE_FAILED,
-                                   std::make_shared<common::NativeError>(fmt::format(_TR("microservice \"{}\"","api"),microserviceName))
+                                   std::make_shared<common::NativeError>(fmt::format(fmt::runtime(_TR("microservice \"{}\"","api")),microserviceName))
                                    );
             ec.stackWith(std::move(ec1));
             return ec;
@@ -81,7 +81,7 @@ struct makeMicroserviceAndRunT
         if (ec)
         {
             auto ec1=apiLibError(ApiLibError::MICROSERVICE_RUN_FAILED,
-                                   std::make_shared<common::NativeError>(fmt::format(_TR("microservice \"{}\"","api"),microserviceName))
+                                   std::make_shared<common::NativeError>(fmt::format(fmt::runtime(_TR("microservice \"{}\"","api")),microserviceName))
                                    );
             ec.stackWith(std::move(ec1));
             return ec;
@@ -113,7 +113,7 @@ Result<std::shared_ptr<MicroService>> MicroServiceFactory::makeAndRun(
     {
         // failed to load microservice config
         auto ec1=apiLibError(ApiLibError::MICROSERVICE_CONFIG_INVALID,
-                               std::make_shared<common::NativeError>(fmt::format(_TR("at path \"{}\"","api"),configTreePath.path()))
+                               std::make_shared<common::NativeError>(fmt::format(fmt::runtime(_TR("at path \"{}\"","api")),configTreePath.path()))
                                );
         ec.stackWith(std::move(ec1));
         return ec;
@@ -138,7 +138,7 @@ Result<std::map<std::string,std::shared_ptr<MicroService>>> MicroServiceFactory:
     if (!configTree.isSet(path))
     {
         return apiLibError(ApiLibError::MICROSERVICES_CONFIG_SECTION_MISSING,
-                           std::make_shared<common::NativeError>(fmt::format(_TR("at path \"{}\"","api"),path.path()))
+                           std::make_shared<common::NativeError>(fmt::format(fmt::runtime(_TR("at path \"{}\"","api")),path.path()))
                            );
     }
     auto microservicesSection=configTree.get(path);
@@ -146,7 +146,7 @@ Result<std::map<std::string,std::shared_ptr<MicroService>>> MicroServiceFactory:
     if (microservicesSection->type()!=HATN_BASE_NAMESPACE::config_tree::Type::ArrayTree)
     {
         return apiLibError(ApiLibError::MICROSERVICES_CONFIG_SECTION_INVALID,
-                           std::make_shared<common::NativeError>(fmt::format(_TR("at path \"{}\"","api"),path.path()))
+                           std::make_shared<common::NativeError>(fmt::format(fmt::runtime(_TR("at path \"{}\"","api")),path.path()))
                            );
     }
     auto configs=microservicesSection->asArray<HATN_BASE_NAMESPACE::ConfigTree>();
@@ -163,7 +163,7 @@ Result<std::map<std::string,std::shared_ptr<MicroService>>> MicroServiceFactory:
         {
             // failed to load microservice config
             auto ec1=apiLibError(ApiLibError::MICROSERVICE_CONFIG_INVALID,
-                                   std::make_shared<common::NativeError>(fmt::format(_TR("at path \"{}.{}\"","api"),path.path(),i))
+                                   std::make_shared<common::NativeError>(fmt::format(fmt::runtime(_TR("at path \"{}.{}\"","api")),path.path(),i))
                                    );
             ec.stackWith(std::move(ec1));
         }
@@ -176,7 +176,7 @@ Result<std::map<std::string,std::shared_ptr<MicroService>>> MicroServiceFactory:
             if (microservices.find(microserviceName)!=microservices.end())
             {
                 ec=apiLibError(ApiLibError::DUPLICATE_MICROSERVICE,
-                                 std::make_shared<common::NativeError>(fmt::format(_TR("microservice \"{}\" at path \"{}.{}\"","api"),microserviceName,path.path(),i))
+                                 std::make_shared<common::NativeError>(fmt::format(fmt::runtime(_TR("microservice \"{}\" at path \"{}.{}\"","api")),microserviceName,path.path(),i))
                                        );
             }
 

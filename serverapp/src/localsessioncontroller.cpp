@@ -54,7 +54,7 @@ Error LocalSessionControllerBase::init(const crypt::CipherSuites* suites)
         }
         if (suite==nullptr)
         {
-            return common::genericError(fmt::format(_TR("unknown cipher suite \"{}\" for tag \"{}\""),
+            return common::genericError(fmt::format(fmt::runtime(_TR("unknown cipher suite \"{}\" for tag \"{}\"")),
                                                     tokenConfig.fieldValue(session_token::cipher_suite),tokenConfig.fieldValue(session_token::tag)),
                                                     common::CommonError::CONFIGURATION_ERROR);
         }

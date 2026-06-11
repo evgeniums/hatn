@@ -541,7 +541,7 @@ Error FileLoggerTraits::loadLogConfig(
         if (fsec)
         {
             ec=lib::makeFilesystemError(fsec);
-            HATN_CHECK_CHAIN_EC(ec,fmt::format(_TR("failed to create parent directories for log file {}","logcontext"),logFileName))
+            HATN_CHECK_CHAIN_EC(ec,fmt::format(fmt::runtime(_TR("failed to create parent directories for log file {}","logcontext")),logFileName))
         }
 
         // change permissions
@@ -558,7 +558,7 @@ Error FileLoggerTraits::loadLogConfig(
         }
     }
     ec=d->logFile->open(logFileName,common::PlainFile::Mode::append);
-    HATN_CHECK_CHAIN_EC(ec,fmt::format(_TR("failed to open log file {}","logcontext"),logFileName))
+    HATN_CHECK_CHAIN_EC(ec,fmt::format(fmt::runtime(_TR("failed to open log file {}","logcontext")),logFileName))
 
     // open error log file
     auto errorLogMode=d->config().fieldValue(filelogger_config::error_log_mode);
@@ -593,7 +593,7 @@ Error FileLoggerTraits::loadLogConfig(
             if (fsec)
             {
                 ec=lib::makeFilesystemError(fsec);
-                HATN_CHECK_CHAIN_EC(ec,fmt::format(_TR("failed to create parent directories for error log file {}","logcontext"),errorLogFileName))
+                HATN_CHECK_CHAIN_EC(ec,fmt::format(fmt::runtime(_TR("failed to create parent directories for error log file {}","logcontext")),errorLogFileName))
             }
 
             // change permissions
@@ -610,7 +610,7 @@ Error FileLoggerTraits::loadLogConfig(
             }
         }
         ec=d->errorLogFile->open(errorLogFileName,common::PlainFile::Mode::append);
-        HATN_CHECK_CHAIN_EC(ec,fmt::format(_TR("failed to open error log file {}","logcontext"),errorLogFileName))
+        HATN_CHECK_CHAIN_EC(ec,fmt::format(fmt::runtime(_TR("failed to open error log file {}","logcontext")),errorLogFileName))
     }
 
     // init log thread

@@ -181,7 +181,7 @@ struct ReaderHandler : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>, Re
             auto arrayTypeId=config_tree::ValueType<std::decay_t<T>>::arrayId;
             if (current->tree->type()!=arrayTypeId)
             {
-                parser.error=fmt::format(_TR("mismatched types of array elements (note, floating numbers must contain period (.) symbol)","base"));
+                parser.error=fmt::format(fmt::runtime(_TR("mismatched types of array elements (note, floating numbers must contain period (.) symbol)","base")));
                 return false;
             }
 
@@ -325,7 +325,7 @@ Error ConfigTreeJson::doParse(
             parser.error=rapidjson::GetParseError_En(e);
         }
 
-        auto msg=fmt::format(_TR("{} at offset {} near {}...","base"), parser.error, offset, source.substr(offset, 32));
+        auto msg=fmt::format(fmt::runtime(_TR("{} at offset {} near {}...","base")), parser.error, offset, source.substr(offset, 32));
         auto ec=Error{BaseError::CONFIG_PARSE_ERROR,std::make_shared<ConfigTreeParseError>(msg,offset,static_cast<int>(e))};
         return ec;
     }

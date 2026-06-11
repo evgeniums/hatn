@@ -157,8 +157,8 @@ Error loadConfig(T& obj, const ConfigTree& configTree, const ConfigTreePath& pat
             auto reqResult=HATN_DATAUNIT_NAMESPACE::visitors::checkRequiredFields(obj);
             if (reqResult.first!=-1)
             {
-                auto errMsg=fmt::format(_TR("required parameter \"{}\" not set","base"),reqResult.second);
-                auto ec=std::make_shared<common::NativeError>(fmt::format(_TR("{} at path \"{}\": {}"), obj.name(), path.path(), errMsg));
+                auto errMsg=fmt::format(fmt::runtime(_TR("required parameter \"{}\" not set","base")),reqResult.second);
+                auto ec=std::make_shared<common::NativeError>(fmt::format(fmt::runtime(_TR("{} at path \"{}\": {}")), obj.name(), path.path(), errMsg));
                 return baseError(BaseError::CONFIG_OBJECT_VALIDATE_ERROR,std::move(ec));
             }
         }
@@ -225,7 +225,7 @@ Error loadConfig(T& obj, const ConfigTree& configTree, const ConfigTreePath& pat
     auto ec=obj.each(predicate,handler);
     if (ec)
     {
-        auto err=std::make_shared<common::NativeError>(fmt::format(_TR("{} at path \"{}\": parameter \"{}\"","base"), obj.name(),path.path(),failedField));
+        auto err=std::make_shared<common::NativeError>(fmt::format(fmt::runtime(_TR("{} at path \"{}\": parameter \"{}\"","base")), obj.name(),path.path(),failedField));
         err->setPrevError(std::move(ec));
         return baseError(BaseError::CONFIG_OBJECT_LOAD_ERROR,std::move(err));
     }
@@ -400,7 +400,7 @@ Error ConfigObject<Traits>::validate(const ConfigTreePath& path, const Validator
     HATN_VALIDATOR_NAMESPACE::validate(_CFG,validator,err);
     if (err)
     {
-        auto ec=std::make_shared<common::NativeError>(fmt::format(_TR("{} at path \"{}\": {}","base"), _CFG.name(), path.path(), err.message()));
+        auto ec=std::make_shared<common::NativeError>(fmt::format(fmt::runtime(_TR("{} at path \"{}\": {}","base")), _CFG.name(), path.path(), err.message()));
         return baseError(BaseError::CONFIG_OBJECT_VALIDATE_ERROR,std::move(ec));
     }
 

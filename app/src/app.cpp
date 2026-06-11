@@ -730,7 +730,7 @@ void App::close()
         auto ec=d->dbPlugin->cleanup();        
         if (ec)
         {
-            std::ignore=chainAndLogError(std::move(ec),fmt::format(_TR("failed to cleanup database plugin","app"),d->dbPlugin->info()->name));
+            std::ignore=chainAndLogError(std::move(ec),fmt::format(fmt::runtime(_TR("failed to cleanup database plugin","app")),d->dbPlugin->info()->name));
         }
     }
 
@@ -742,7 +742,7 @@ void App::close()
         auto ec=d->logger->close();
         if (ec)
         {
-            auto ec1=chainError(std::move(ec),fmt::format(_TR("failed to close logger","app"),d->dbPlugin->info()->name));
+            auto ec1=chainError(std::move(ec),fmt::format(fmt::runtime(_TR("failed to close logger","app")),d->dbPlugin->info()->name));
             std::cerr << ec1.codeString() << ": " << ec1.message() << std::endl;
         }
     }
@@ -1051,7 +1051,7 @@ Result<std::shared_ptr<db::DbPlugin>> App_p::loadDbPlugin(lib::string_view name)
 
     // init plugin
     auto ec=dbPlugin->init();
-    HATN_CHECK_CHAIN_LOG_EC(ec,fmt::format(_TR("failed to initialize database plugin \"{}\"","app"),nm),HLOG_MODULE(app))
+    HATN_CHECK_CHAIN_LOG_EC(ec,fmt::format(fmt::runtime(_TR("failed to initialize database plugin \"{}\"","app")),nm),HLOG_MODULE(app))
 
     // done
     return dbPlugin;
@@ -1137,7 +1137,7 @@ Error App_p::initDbPlugin()
         auto plugin=loadDbPlugin(name);
         if (plugin)
         {
-            return chainAndLogError(plugin.takeError(),fmt::format(_TR("failed database provider \"{}\"","app"),name));
+            return chainAndLogError(plugin.takeError(),fmt::format(fmt::runtime(_TR("failed database provider \"{}\"","app")),name));
         }
         dbPlugin=plugin.takeValue();
     }
@@ -1383,7 +1383,7 @@ Error App::setPreloadedCipherSuites(const std::vector<std::string>& suitesJson)
         catch (const common::ErrorException& ex)
         {
             auto ec=ex.error();
-            auto msg=fmt::format(_TR("failed to preload cipher suite\n{}\n{}"),json,du::RawError::threadLocal().message);
+            auto msg=fmt::format(fmt::runtime(_TR("failed to preload cipher suite\n{}\n{}")),json,du::RawError::threadLocal().message);
             HATN_CTX_ERROR(ec,msg.c_str())
             return ec;
         }
@@ -1450,7 +1450,7 @@ Error App_p::loadCryptPlugin(lib::string_view nameView)
     auto ec=cryptPlugin->init();
     if (ec)
     {
-        return common::chainError(std::move(ec),fmt::format(_TR("failed to initialize cryptographic plugin \"{}\"","app"),name));
+        return common::chainError(std::move(ec),fmt::format(fmt::runtime(_TR("failed to initialize cryptographic plugin \"{}\"","app")),name));
     }
 
     // done

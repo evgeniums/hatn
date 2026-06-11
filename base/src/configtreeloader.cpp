@@ -144,7 +144,7 @@ Error parseIncludes(const lib::string_view& filename, const ConfigTree &value, c
 {
     auto makeError=[&filename](const ConfigTreePath& path, const Error& origin)
     {
-        auto msg=fmt::format(_TR("invalid format of include: {} at path \"{}\" in file \"{}\"","base"), origin.message(), path.path(), filename);
+        auto msg=fmt::format(fmt::runtime(_TR("invalid format of include: {} at path \"{}\" in file \"{}\"","base")), origin.message(), path.path(), filename);
         return Error{BaseError::CONFIG_PARSE_ERROR,std::make_shared<ConfigTreeParseError>(msg)};
     };
 
@@ -214,7 +214,7 @@ Error loadNext(const ConfigTreeLoader& loader, ConfigTree &current, const Config
     std::shared_ptr<ConfigTreeIo> handler{loader.handler(format)};
     if (!handler)
     {
-        auto msg=fmt::format(_TR("unsupported config format \"{}\" of file {}","base"), format, descriptor.file);
+        auto msg=fmt::format(fmt::runtime(_TR("unsupported config format \"{}\" of file {}","base")), format, descriptor.file);
         return Error{BaseError::CONFIG_PARSE_ERROR,std::make_shared<ConfigTreeParseError>(msg)};
     }
 
@@ -225,11 +225,11 @@ Error loadNext(const ConfigTreeLoader& loader, ConfigTree &current, const Config
         std::string msg;
         if (chain.empty())
         {
-            msg=fmt::format(_TR("file not found: {}","base"), filename);
+            msg=fmt::format(fmt::runtime(_TR("file not found: {}","base")), filename);
         }
         else
         {
-            msg=fmt::format(_TR("include file not found: {}","base"), filename);
+            msg=fmt::format(fmt::runtime(_TR("include file not found: {}","base")), filename);
         }
         return Error{BaseError::CONFIG_PARSE_ERROR,std::make_shared<ConfigTreeParseError>(msg)};
     };
@@ -295,7 +295,7 @@ Error loadNext(const ConfigTreeLoader& loader, ConfigTree &current, const Config
     // check for cycles
     if (std::find(chain.begin(), chain.end(), filename)!=chain.end())
     {
-        auto msg=fmt::format(_TR("include cycle detected for file {}","base"), filename);
+        auto msg=fmt::format(fmt::runtime(_TR("include cycle detected for file {}","base")), filename);
         return Error{BaseError::CONFIG_PARSE_ERROR,std::make_shared<ConfigTreeParseError>(msg)};
     }
     chain.push_back(filename);
@@ -482,7 +482,7 @@ Error ConfigTreeLoader::loadFromString(ConfigTree &target, lib::string_view sour
     auto loader=handler(format);
     if (!loader)
     {
-        auto msg=fmt::format(_TR("unsupported config format \"{}\"","base"), format);
+        auto msg=fmt::format(fmt::runtime(_TR("unsupported config format \"{}\"","base")), format);
         return Error{BaseError::CONFIG_PARSE_ERROR,std::make_shared<ConfigTreeParseError>(msg)};
     }
     auto ec=loader->parse(target,source,root,format);

@@ -34,7 +34,7 @@ Error SessionToken::init(
     auto it=m_tagTokenHandlers.find(m_currentTag);
     if (it==m_tagTokenHandlers.end())
     {
-        return common::genericError(fmt::format(_TR("current tag \"{}\" not found in session tokens",m_currentTag)),common::CommonError::CONFIGURATION_ERROR);
+        return common::genericError(fmt::format(fmt::runtime(_TR("current tag \"{}\" not found in session tokens",m_currentTag))),common::CommonError::CONFIGURATION_ERROR);
     }
     m_currentTokenHandler=it->second;
 

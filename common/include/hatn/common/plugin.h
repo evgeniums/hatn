@@ -190,7 +190,7 @@ class HATN_COMMON_EXPORT PluginLoader final : public Singleton
                 result=std::dynamic_pointer_cast<T>(plugin);
                 if (!result)
                 {
-                    return genericError(fmt::format(_TR("Could not cast plugin {0} to requested type!"),fileName),CommonError::PLUGIN_FAILED);
+                    return genericError(fmt::format(fmt::runtime(_TR("Could not cast plugin {0} to requested type!")),fileName),CommonError::PLUGIN_FAILED);
                 }
             }
             return result;

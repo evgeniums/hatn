@@ -272,7 +272,7 @@ Result<std::shared_ptr<hatn::common::Plugin>> PluginLoader::loadDynamicPlugin(
     std::shared_ptr<hatn::common::Plugin> plugin;
     if (!lib::filesystem::exists(fileName))
     {
-        auto ec=genericError(fmt::format(_TR("file does not exists"),fileName),CommonError::PLUGIN_FAILED);
+        auto ec=genericError(fmt::format(fmt::runtime(_TR("file does not exists")),fileName),CommonError::PLUGIN_FAILED);
         HATN_WARN(plugin,ec.message());
         return ec;
     }
@@ -341,21 +341,21 @@ Result<std::shared_ptr<hatn::common::Plugin>> PluginLoader::loadDynamicPlugin(
             }
             else
             {
-                auto ec=genericError(fmt::format(_TR("invalid plugin loader in {}"),fileName),CommonError::PLUGIN_FAILED);
+                auto ec=genericError(fmt::format(fmt::runtime(_TR("invalid plugin loader in {}")),fileName),CommonError::PLUGIN_FAILED);
                 FreeSharedLibrary(lib);
                 return ec;
             }
         }
         else
         {
-            auto ec=genericError(fmt::format(_TR("failed to find plugin signature in {}: {}"),fileName,GetLastFileError()),CommonError::PLUGIN_FAILED);
+            auto ec=genericError(fmt::format(fmt::runtime(_TR("failed to find plugin signature in {}: {}")),fileName,GetLastFileError()),CommonError::PLUGIN_FAILED);
             FreeSharedLibrary(lib);
             return ec;
         }
     }
     else
     {
-        auto ec=genericError(fmt::format(_TR("failed to load dynamic library {}: {}"),fileName,GetLastFileError()),CommonError::PLUGIN_FAILED);
+        auto ec=genericError(fmt::format(fmt::runtime(_TR("failed to load dynamic library {}: {}")),fileName,GetLastFileError()),CommonError::PLUGIN_FAILED);
         return ec;
     }
     if (!plugin)

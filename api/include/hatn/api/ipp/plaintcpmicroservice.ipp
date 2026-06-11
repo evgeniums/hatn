@@ -58,7 +58,7 @@ Result<common::SharedPtr<typename PlainTcpMicroServiceConfig<EnvT>::NetworkServe
     TcpServerConfig config;
 
     // load config
-    auto ec=loadLogConfig(fmt::format(_TR("configuration of plain TCP microservice {}","api"),name),config,configTree,configTreePath);
+    auto ec=loadLogConfig(fmt::format(fmt::runtime(_TR("configuration of plain TCP microservice {}","api")),name),config,configTree,configTreePath);
     if (ec)
     {
         auto ec1=apiLibError(ApiLibError::TCP_SERVER_CONFIG_FAILED);

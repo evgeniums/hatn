@@ -266,7 +266,7 @@ class UpdateFilter
             }
             if (validateCb)
             {
-                validateCb(false,fmt::format(_TR("Field with ID={} is not present in object {}","dataunit"),id,unit->name()));
+                validateCb(false,fmt::format(fmt::runtime(_TR("Field with ID={} is not present in object {}","dataunit")),id,unit->name()));
             }
             return false;
         }
