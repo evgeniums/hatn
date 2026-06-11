@@ -139,6 +139,12 @@ struct WireBufChainedTraits : public WireBufSolidSharedTraits
         m_cursor=m_chain.begin();
     }
 
+    void appendBuffer(common::ConstDataBuf buf)
+    {
+        m_chain.emplace_back(common::DataBuf{buf});
+        m_cursor=m_chain.begin();
+    }
+
     common::SpanBuffers buffers() const
     {
         return m_buffers;

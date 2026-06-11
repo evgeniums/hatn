@@ -297,6 +297,11 @@ IF (APPLE)
     TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PUBLIC -DBOOST_STACKTRACE_USE_NOOP)
 ENDIF(APPLE)
 
+# boost::stacktrace uses EnumProcessModules/GetModuleInformation on Windows
+IF (WIN32)
+    TARGET_LINK_LIBRARIES(${PROJECT_NAME} PUBLIC Psapi)
+ENDIF(WIN32)
+
 INSTALL_MODULE()
 
 # @todo Fix fmt linking
