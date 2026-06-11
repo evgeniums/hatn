@@ -60,7 +60,7 @@ std::vector<std::string> Utf8Proc::tokenize(std::string_view normalized) const
     std::string current_token;
 
     const utf8proc_uint8_t* ptr = (const utf8proc_uint8_t*)normalized.data();
-    ssize_t size = static_cast<ssize_t>(normalized.size());
+    utf8proc_ssize_t size = static_cast<utf8proc_ssize_t>(normalized.size());
     utf8proc_int32_t codepoint;
     utf8proc_ssize_t n;
 
@@ -114,7 +114,7 @@ std::vector<std::string> Utf8Proc::tokenizeWithDomains(std::string_view normaliz
     std::string current_token;
 
     const utf8proc_uint8_t* ptr = (const utf8proc_uint8_t*)normalized.data();
-    ssize_t size = static_cast<ssize_t>(normalized.size());
+    utf8proc_ssize_t size = static_cast<utf8proc_ssize_t>(normalized.size());
 
     utf8proc_int32_t cp;
     utf8proc_ssize_t n;
@@ -135,7 +135,7 @@ std::vector<std::string> Utf8Proc::tokenizeWithDomains(std::string_view normaliz
             if (cp == '.' || cp == '-') {
                 // Peek at next character
                 const utf8proc_uint8_t* next_ptr = ptr + n;
-                ssize_t next_size = size - n;
+                utf8proc_ssize_t next_size = size - n;
                 utf8proc_int32_t next_cp;
                 if (next_size > 0 && utf8proc_iterate(next_ptr, next_size, &next_cp) > 0) {
                     // It's "glue" if surrounded by Alphanumerics
