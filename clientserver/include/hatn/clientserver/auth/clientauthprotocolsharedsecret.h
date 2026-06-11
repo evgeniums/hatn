@@ -26,7 +26,7 @@
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
-const api::Method& HATN_CLIENT_SERVER_EXPORT hssLogin();
+HATN_CLIENT_SERVER_EXPORT const api::Method& hssLogin();
 
 class HATN_CLIENT_SERVER_EXPORT ClientAuthProtocolSharedSecretImpl : public ClientAuthProtocol
 {
