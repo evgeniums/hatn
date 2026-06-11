@@ -64,6 +64,9 @@ RocksdbHandler::RocksdbHandler(RocksdbHandler_p* pimpl):d(pimpl)
 RocksdbHandler::~RocksdbHandler()
 {}
 
+RocksdbHandler::RocksdbHandler(RocksdbHandler&&) noexcept = default;
+RocksdbHandler& RocksdbHandler::operator=(RocksdbHandler&&) noexcept = default;
+
 //---------------------------------------------------------------
 
 bool RocksdbHandler::isBlobEnabled() const noexcept

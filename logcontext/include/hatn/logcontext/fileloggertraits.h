@@ -66,9 +66,9 @@ class HATN_LOGCONTEXT_EXPORT FileLoggerTraits
         ~FileLoggerTraits();
 
         FileLoggerTraits(const FileLoggerTraits&)=delete;
-        FileLoggerTraits(FileLoggerTraits&&)=default;
+        FileLoggerTraits(FileLoggerTraits&&) noexcept;
         FileLoggerTraits& operator=(const FileLoggerTraits&)=delete;
-        FileLoggerTraits& operator=(FileLoggerTraits&&)=default;
+        FileLoggerTraits& operator=(FileLoggerTraits&&) noexcept;
 
         FileLoggerBufWrapper prepareBuf();        
 

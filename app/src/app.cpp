@@ -314,6 +314,9 @@ App::~App()
     std::cout << "App closed" << std::endl;
 }
 
+App::App(App&&) noexcept = default;
+App& App::operator=(App&&) noexcept = default;
+
 //---------------------------------------------------------------
 
 void App::logAppStart()

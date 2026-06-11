@@ -385,6 +385,9 @@ FileLoggerTraits::~FileLoggerTraits()
     std::ignore=close();
 }
 
+FileLoggerTraits::FileLoggerTraits(FileLoggerTraits&&) noexcept = default;
+FileLoggerTraits& FileLoggerTraits::operator=(FileLoggerTraits&&) noexcept = default;
+
 //---------------------------------------------------------------
 
 FileLoggerBufWrapper FileLoggerTraits::prepareBuf()

@@ -67,9 +67,9 @@ class HATN_APP_EXPORT App
         ~App();
 
         App(const App&)=delete;
-        App(App&&)=default;
+        App(App&&) noexcept;
         App& operator= (const App&)=delete;
-        App& operator= (App&&)=default;
+        App& operator= (App&&) noexcept;
 
         Error loadConfigString(
             common::lib::string_view source,

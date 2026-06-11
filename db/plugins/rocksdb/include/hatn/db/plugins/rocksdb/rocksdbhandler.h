@@ -45,8 +45,8 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler
 
         RocksdbHandler(const RocksdbHandler&)=delete;
         RocksdbHandler& operator=(const RocksdbHandler&)=delete;
-        RocksdbHandler(RocksdbHandler&&)=default;
-        RocksdbHandler& operator=(RocksdbHandler&&)=default;
+        RocksdbHandler(RocksdbHandler&&) noexcept;
+        RocksdbHandler& operator=(RocksdbHandler&&) noexcept;
 
         RocksdbHandler_p* p() noexcept
         {
