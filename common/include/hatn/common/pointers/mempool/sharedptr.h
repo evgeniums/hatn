@@ -691,13 +691,17 @@ class SharedFromThisWrapper : public T,
 template <typename T>
 struct EmbeddedSharedPtr
 {
-    inline EmbeddedSharedPtr& operator=(const SharedPtr<T>& sharedPtr) noexcept
+    // Template methods defer instantiation of SharedPtr<U> until call time,
+    // allowing EmbeddedSharedPtr<T> to be used with forward-declared T on MSVC.
+    template <typename U = T>
+    inline EmbeddedSharedPtr& operator=(const SharedPtr<U>& sharedPtr) noexcept
     {
         storage=sharedPtr;
         ptr=sharedPtr.get();
         return *this;
     }
-    inline EmbeddedSharedPtr& operator=(SharedPtr<T>&& sharedPtr) noexcept
+    template <typename U = T>
+    inline EmbeddedSharedPtr& operator=(SharedPtr<U>&& sharedPtr) noexcept
     {
         ptr=sharedPtr.get();
         storage=std::move(sharedPtr);
@@ -717,7 +721,8 @@ struct EmbeddedSharedPtr
         ptr=nullptr;
     }
 
-    SharedPtr<T> castBack() const
+    template <typename U = T>
+    SharedPtr<U> castBack() const
     {
         return ptr->sharedFromThis();
     }
