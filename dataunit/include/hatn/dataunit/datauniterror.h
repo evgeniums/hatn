@@ -124,12 +124,12 @@ void prepareRawError(RawErrorCode code, const char* msg, Args&&... args)
 {
     if (RawError::threadLocal().message.empty())
     {
-        RawError::threadLocal().message=fmt::format(msg,std::forward<Args>(args)...);
+        RawError::threadLocal().message=fmt::format(fmt::runtime(msg),std::forward<Args>(args)...);
         RawError::threadLocal().code=code;
     }
     else
     {
-        auto newMessage=fmt::format(msg,std::forward<Args>(args)...);
+        auto newMessage=fmt::format(fmt::runtime(msg),std::forward<Args>(args)...);
         RawError::threadLocal().message=fmt::format("{}: {}",newMessage, RawError::threadLocal().message);
     }
 }

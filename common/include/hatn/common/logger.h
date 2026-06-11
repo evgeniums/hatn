@@ -291,7 +291,7 @@ class HATN_COMMON_EXPORT Logger final
         //! Format and append string
         template <typename ... Args> void append(const char* format, Args&&... args)
         {
-            fmt::format_to(std::back_inserter(*buffer),format,std::forward<Args>(args)...);
+            fmt::format_to(std::back_inserter(*buffer),fmt::runtime(format),std::forward<Args>(args)...);
         }
 
         //! Format and append string and return self reference
