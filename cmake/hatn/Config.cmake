@@ -254,6 +254,11 @@ ENDIF()
 
 IF ((${CMAKE_CXX_COMPILER_ID} MATCHES "Clang"))
     SET(HATN_COMPILE_OPTIONS ${HATN_COMPILE_OPTIONS} -Wno-unused-function -Qunused-arguments -Wno-deprecated-declarations)
+    IF (MSVC)
+        # clang-cl: MSVC STL marks std type traits [[clang::no_specializations]],
+        # validator/aggregation/wrap_index.hpp specializes is_floating_point/is_signed
+        SET(HATN_COMPILE_OPTIONS ${HATN_COMPILE_OPTIONS} -Wno-invalid-specialization)
+    ENDIF()
 ENDIF()
 
 IF(WIN32)

@@ -47,7 +47,7 @@ ECHO "do-build.bat: Created working directory %WORKING_DIR%"
 cd %WORKING_DIR%
 
 IF NOT EXIST scripts mkdir scripts
-IF NOT EXIST scripts\%HATN_LIB% (
+IF NOT EXIST scripts\%HATN_LIB%\%HATN_COMPILER%-%HATN_ARCH% (
 	call %HATN_PATH%\build\lib\windows\generate-build-scripts.bat %HATN_LIB% %HATN_COMPILER%
     if %errorlevel% neq 0 exit /b %errorlevel%
 )

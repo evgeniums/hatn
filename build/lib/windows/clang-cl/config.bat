@@ -43,16 +43,16 @@ IF "%ADDRESS_SPACE%"=="arm64" (
 
 REM Default to the LLVM bundled with Visual Studio ("C++ Clang tools for Windows" component).
 REM Override LLVM_ROOT for a standalone install, e.g. SET LLVM_ROOT=C:\Program Files\LLVM
-IF NOT DEFINED LLVM_ROOT SET LLVM_ROOT=%MSVC_ROOT%\VC\Tools\Llvm\%LLVM_HOST_DIR%
-SET PATH=%LLVM_ROOT%\bin;%PATH%
+IF NOT DEFINED LLVM_ROOT SET "LLVM_ROOT=%MSVC_ROOT%\VC\Tools\Llvm\%LLVM_HOST_DIR%"
+SET "PATH=%LLVM_ROOT%\bin;%PATH%"
 ECHO "Using LLVM_ROOT=%LLVM_ROOT%"
 
 REM Hybrid mode: dependencies are built with MSVC, keep msvc-named deps root.
 IF "%DEPS_ROOT%"=="" (
 	IF "%DEPS_UNIVERSAL_ROOT%"==""	(
-		SET DEPS_ROOT=%WORKING_DIR%\..\deps\root-msvc-%MSVC_COMPILER_VERSION%-%MSVC_FULL_ARCH%
+		SET "DEPS_ROOT=%WORKING_DIR%\..\deps\root-msvc-%MSVC_COMPILER_VERSION%-%MSVC_FULL_ARCH%"
 	) ELSE (
-		SET DEPS_ROOT=%DEPS_UNIVERSAL_ROOT%\root-msvc-%MSVC_COMPILER_VERSION%-%MSVC_FULL_ARCH%
+		SET "DEPS_ROOT=%DEPS_UNIVERSAL_ROOT%\root-msvc-%MSVC_COMPILER_VERSION%-%MSVC_FULL_ARCH%"
 	)
 )
 
