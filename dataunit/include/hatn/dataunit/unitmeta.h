@@ -45,7 +45,7 @@ HATN_DATAUNIT_META_NAMESPACE_BEGIN
 HATN_IGNORE_STRING_LITERAL_BEGIN
 
 template <typename CharT, CharT ...s>
-constexpr auto operator"" _s() {
+constexpr auto operator""_s() {
     return hana::string_c<s...>;
 }
 
