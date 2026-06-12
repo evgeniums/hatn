@@ -253,7 +253,7 @@ IF (BUILD_DEBUG)
 ENDIF()
 
 IF ((${CMAKE_CXX_COMPILER_ID} MATCHES "Clang"))
-    SET(HATN_COMPILE_OPTIONS ${HATN_COMPILE_OPTIONS} -Wno-unused-function -Qunused-arguments)
+    SET(HATN_COMPILE_OPTIONS ${HATN_COMPILE_OPTIONS} -Wno-unused-function -Qunused-arguments -Wno-deprecated-declarations)
 ENDIF()
 
 IF(WIN32)
