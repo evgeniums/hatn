@@ -98,7 +98,7 @@ class WithPrepareClose : public WithTraits<Traits>,
     public:
 
         //! Ctor
-        template <typename ... Args>
+        template <typename ... Args, typename=std::enable_if_t<detail::NotSelfArg<WithPrepareClose,Args...>::value>>
         WithPrepareClose(Args&& ...traitsArgs) noexcept
             : WithTraits<Traits>(std::forward<Args>(traitsArgs)...)
         {}
@@ -194,7 +194,7 @@ class Stream : public WithPrepareClose<Traits>
 {
     public:
 
-        template <typename ... Args>
+        template <typename ... Args, typename=std::enable_if_t<detail::NotSelfArg<Stream,Args...>::value>>
         Stream(Args&& ...traitsArgs) : WithPrepareClose<Traits>(std::forward<Args>(traitsArgs)...)
         {}
 

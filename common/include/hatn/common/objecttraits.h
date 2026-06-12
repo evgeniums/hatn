@@ -25,6 +25,20 @@
 
 HATN_COMMON_NAMESPACE_BEGIN
 
+namespace detail {
+
+//! Excludes variadic forwarding ctors from copy/move construction: false when the single
+//! argument is the class itself or derived from it, true otherwise.
+template <typename SelfT, typename ...Args>
+struct NotSelfArg : std::true_type {};
+
+template <typename SelfT, typename Arg0>
+struct NotSelfArg<SelfT,Arg0> : std::integral_constant<bool,
+    !std::is_base_of<SelfT,std::decay_t<Arg0>>::value>
+{};
+
+} // namespace detail
+
 template <typename Traits, typename=void>
 class WithTraits
 {};
@@ -42,7 +56,7 @@ class WithTraits<Traits,
         using TraitsT=Traits;
 
         //! Ctor
-        template <typename ... Args>
+        template <typename ... Args, typename=std::enable_if_t<detail::NotSelfArg<WithTraits,Args...>::value>>
         WithTraits(Args&& ...traitsArgs) : m_traits(std::forward<Args>(traitsArgs)...)
         {}
 
@@ -99,7 +113,7 @@ public:
     using TraitsT=Traits;
 
     //! Ctor
-    template <typename ... Args>
+    template <typename ... Args, typename=std::enable_if_t<detail::NotSelfArg<WithTraits,Args...>::value>>
     WithTraits(Args&& ...traitsArgs) : m_traits(std::forward<Args>(traitsArgs)...)
     {}
 
@@ -147,7 +161,7 @@ public:
     using TraitsT=Traits;
 
     //! Ctorsb
-    template <typename ... Args>
+    template <typename ... Args, typename=std::enable_if_t<detail::NotSelfArg<WithTraits,Args...>::value>>
     WithTraits(Args&& ...traitsArgs) : m_traits(std::forward<Args>(traitsArgs)...)
     {}
 
@@ -182,7 +196,7 @@ class WithImpl
 {
     public:
 
-        template <typename ...Args>
+        template <typename ...Args, typename=std::enable_if_t<detail::NotSelfArg<WithImpl,Args...>::value>>
         WithImpl(Args&&... args)
             : m_impl(std::forward<Args>(args)...)
         {}
