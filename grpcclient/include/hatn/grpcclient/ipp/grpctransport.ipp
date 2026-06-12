@@ -363,7 +363,9 @@ public:
         return HATN_CLIENT_SERVER_NAMESPACE::ProtoMessageMap::instance().findCppByProto(pb);
     }
 
-    Result<clientapi::Response> handleResponse(
+    // Must be exported: sendRequest is a header template instantiated in caller DLLs,
+    // and its body calls handleResponse, so the symbol must be visible across DLL boundaries.
+    HATN_GRPCCLIENT_EXPORT Result<clientapi::Response> handleResponse(
         std::shared_ptr<grpc::ClientContext> context,
         grpc::Status status,
         const grpc::ByteBuffer& respBuffer,
