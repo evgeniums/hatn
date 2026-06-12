@@ -23,6 +23,7 @@
 
 #include <hatn/common/common.h>
 #include <hatn/common/makeshared.h>
+#include <hatn/common/objecttraits.h>
 #include <hatn/common/meta/decaytuple.h>
 #include <hatn/common/meta/tupletypec.h>
 #include <hatn/common/meta/foreachif.h>
@@ -109,7 +110,7 @@ class EnvContextT : public T,
 
         using Base=T;
 
-        template <typename ...Args>
+        template <typename ...Args, typename=std::enable_if_t<detail::NotSelfArg<EnvContextT,Args...>::value>>
         EnvContextT(
                 Args&& ...args
             ) : T(std::forward<Args>(args)...)
@@ -163,7 +164,7 @@ class EnvT : public BaseT
              * @param tts Tuple of tuples to forward to constructors of contexts of this class.
              * @param baseTs Arguments to forward to base class.
              */
-        template <typename Tts, typename ...BaseTs>
+        template <typename Tts, typename ...BaseTs, typename=std::enable_if_t<detail::NotSelfArg<EnvT,Tts,BaseTs...>::value>>
         EnvT(Tts&& tts, BaseTs&& ...baseTs):
             BaseT(std::forward<BaseTs>(baseTs)...),
             m_contexts(std::forward<Tts>(tts)),
