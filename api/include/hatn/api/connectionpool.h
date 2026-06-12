@@ -384,7 +384,7 @@ class ConnectionPool
 
         const std::string& name() const noexcept
         {
-            return m_name;m_name;
+            return m_name;
         }
 
     private:
