@@ -18,11 +18,11 @@ cd %build_dir%
 REM Use crashpad backend for maximum reliability on desktop.
 IF DEFINED CMAKE_MSVC_GENERATOR (
 SET ARCH_CMAKE=-G "%CMAKE_MSVC_GENERATOR%" -A %MSVC_BUILD_ARCH% -T %MSVC_TOOLSET%
-) ELSE {
+) ELSE (
 
 SET ARCH_CMAKE=-G Ninja
 
-}
+)
 
 
 cmake %ARCH_CMAKE% -DCMAKE_INSTALL_PREFIX=%DEPS_PREFIX% ^

@@ -8,7 +8,8 @@ source $scripts_root/scripts/clonegit.sh
 
 cd $lib_build_dir
 
-cmake -DCMAKE_INSTALL_PREFIX=$root_dir \
+cmake -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=$root_dir \
         -DCMAKE_PREFIX_PATH=$root_dir \
         -DgRPC_INSTALL=ON \
         -DgRPC_BUILD_TESTS=OFF \
