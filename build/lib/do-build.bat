@@ -36,6 +36,7 @@ IF "%HATN_PATH%"=="" (
 ECHO "do-build.bat: HATN_PATH=%HATN_PATH%"
 
 IF "%HATN_COMPILER%" == "gcc" SET HATN_COMPILER=mingw
+IF "%HATN_COMPILER%" == "clang" SET HATN_COMPILER=clang-cl
 
 IF NOT EXIST %WORKING_DIR% (
 ECHO "do-build.bat: Creating working directory %WORKING_DIR%"

@@ -131,4 +131,4 @@ GOTO:EOF
 GOTO:EOF
 
 :error
-echo "Usage: %0 <lib> [msvc|mingw] [x86|x86_64|arm64]"
+echo "Usage: %0 <lib> [msvc|mingw|clang-cl] [x86|x86_64|arm64]"
