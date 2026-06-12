@@ -37,7 +37,7 @@ class GrpcTransport_p;
 }
 
 class HATN_GRPCCLIENT_EXPORT GrpcStream : public grpc::ClientBidiReactor<grpc::ByteBuffer, grpc::ByteBuffer>,
-                                          public clientapi::StreamChannel::StreamChannel,
+                                          public clientapi::StreamChannel,
                                           public std::enable_shared_from_this<GrpcStream>
 {
     public:

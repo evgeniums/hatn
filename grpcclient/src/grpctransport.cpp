@@ -16,6 +16,17 @@
 #include <mutex>
 #include <string>
 
+#ifdef _WIN32
+namespace {
+    inline int hatn_setenv(const char* name, const char* value, int overwrite) {
+        if (!overwrite && std::getenv(name)) return 0;
+        return _putenv_s(name, value);
+    }
+}
+#else
+#  define hatn_setenv ::setenv
+#endif
+
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/generic/generic_stub.h>
 
@@ -57,10 +68,10 @@ void initGrpcTraceFromEnv()
         traceVal="http_keepalive,connectivity_state,subchannel";
     }
 
-    ::setenv("GRPC_TRACE",traceVal.c_str(),0);
+    hatn_setenv("GRPC_TRACE",traceVal.c_str(),0);
 
     const char* verbosity=std::getenv("HATN_GRPC_VERBOSITY");
-    ::setenv("GRPC_VERBOSITY",(verbosity!=nullptr && verbosity[0]!='\0') ? verbosity : "DEBUG",0);
+    hatn_setenv("GRPC_VERBOSITY",(verbosity!=nullptr && verbosity[0]!='\0') ? verbosity : "DEBUG",0);
 
     std::cout << "gRPC tracing enabled: GRPC_TRACE=" << std::getenv("GRPC_TRACE")
               << " GRPC_VERBOSITY=" << std::getenv("GRPC_VERBOSITY") << std::endl;
