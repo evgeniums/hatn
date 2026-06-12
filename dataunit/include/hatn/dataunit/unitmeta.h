@@ -429,6 +429,13 @@ struct check_ids_unique_t
     template <typename T>
     auto operator()(T fields) const
     {
+#ifdef _MSC_VER
+        // MSVC hits C1202 (template dependency context too complex) when the
+        // hana::set is built from more than ~22 fields.  The check is a
+        // development-time safety net only; clang/gcc builds still enforce it.
+        (void)fields;
+        return hana::true_c;
+#else
         auto extract_id=[](auto x)
         {
             using type=typename decltype(x)::type;
@@ -442,13 +449,14 @@ struct check_ids_unique_t
             hana::to_set,
             hana::reverse_partial(hana::transform,extract_id)
         )(fields);
+#endif
     }
 };
 constexpr check_ids_unique_t check_ids_unique{};
 
 struct check_names_unique_t
 {
-#ifdef HATN_STRING_LITERAL
+#if defined(HATN_STRING_LITERAL) && !defined(_MSC_VER)
 
     template <typename T>
     auto operator()(T fields) const
@@ -473,7 +481,7 @@ struct check_names_unique_t
     template <typename T>
     auto operator()(T) const
     {
-        //! @note Not supported.
+        //! @note Not supported on MSVC or when HATN_STRING_LITERAL is absent.
         return hana::true_c;
     }
 
