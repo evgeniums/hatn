@@ -47,6 +47,9 @@ class BridgeMethod : public ServiceMethod<ServiceT>,
 
         using ServiceMethod<ServiceT>::ServiceMethod;
 
+        // Member template: not instantiated by dllexport/explicit class instantiation,
+        // so ServiceT may be incomplete until the method is actually called.
+        template <typename T=ServiceT>
         auto controller() const
         {
             return this->service()->controller();
