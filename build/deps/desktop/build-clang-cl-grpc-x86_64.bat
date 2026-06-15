@@ -72,6 +72,13 @@ REM --- cmake args for clang-cl (compiler + linker) ---
 SET "COMPILER_CMAKE=-DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl -DCMAKE_C_COMPILER_TARGET=%CLANG_TARGET% -DCMAKE_CXX_COMPILER_TARGET=%CLANG_TARGET%"
 SET LINKER_CMAKE="-DCMAKE_LINKER=%MSVC_LINKER%"
 
+REM With clang-cl, /Zi does not produce .pdb files for static libs; use /Z7 so debug info
+REM is embedded in the .obj files.  MSVC link.exe then merges it all into hatngrpcclient.pdb
+REM when the DLL is linked — no separate gRPC .pdb files required.
+IF "%GRPC_BUILD_TYPE%"=="RelWithDebInfo" (
+    SET DEBUG_INFO_CMAKE="-DCMAKE_C_FLAGS_RELWITHDEBINFO=/O2 /Z7 /DNDEBUG" "-DCMAKE_CXX_FLAGS_RELWITHDEBINFO=/O2 /Z7 /DNDEBUG"
+)
+
 REM --- Force Ninja; MSBuild generator is incompatible with clang-cl ---
 SET CMAKE_MSVC_GENERATOR=
 

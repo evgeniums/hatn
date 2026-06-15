@@ -41,7 +41,12 @@ REM Build type — override with GRPC_BUILD_TYPE=RelWithDebInfo to get debug sym
 REM keeping /MD (matching a Release client).  Default is Release.
 IF NOT DEFINED GRPC_BUILD_TYPE SET GRPC_BUILD_TYPE=Release
 
-cmake %ARCH_CMAKE% %COMPILER_CMAKE% %LINKER_CMAKE% -DCMAKE_BUILD_TYPE=%GRPC_BUILD_TYPE% -DCMAKE_INSTALL_PREFIX=%DEPS_PREFIX% ^
+REM Debug-info format override.  With clang-cl, /Zi does not produce .pdb files for static
+REM libs; use /Z7 instead to embed CodeView info in the .obj files so that MSVC link.exe can
+REM pull it into hatngrpcclient.pdb at DLL link time.  Set by the caller; empty by default.
+IF NOT DEFINED DEBUG_INFO_CMAKE SET DEBUG_INFO_CMAKE=
+
+cmake %ARCH_CMAKE% %COMPILER_CMAKE% %LINKER_CMAKE% %DEBUG_INFO_CMAKE% -DCMAKE_BUILD_TYPE=%GRPC_BUILD_TYPE% -DCMAKE_INSTALL_PREFIX=%DEPS_PREFIX% ^
         -DCMAKE_PREFIX_PATH=%SYSTEM_DEPS_PREFIX% ^
         -DgRPC_INSTALL=ON ^
         -DgRPC_BUILD_TESTS=OFF ^
