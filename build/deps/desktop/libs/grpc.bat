@@ -37,12 +37,20 @@ REM When building gRPC with clang-cl but c-ares/OpenSSL were built with MSVC, se
 REM the MSVC deps root so that the lookup paths stay correct.  Defaults to DEPS_PREFIX.
 IF NOT DEFINED SYSTEM_DEPS_PREFIX SET "SYSTEM_DEPS_PREFIX=%DEPS_PREFIX%"
 
-cmake %ARCH_CMAKE% %COMPILER_CMAKE% %LINKER_CMAKE% -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=%DEPS_PREFIX% ^
+REM Build type — override with GRPC_BUILD_TYPE=RelWithDebInfo to get debug symbols while
+REM keeping /MD (matching a Release client).  Default is Release.
+IF NOT DEFINED GRPC_BUILD_TYPE SET GRPC_BUILD_TYPE=Release
+
+cmake %ARCH_CMAKE% %COMPILER_CMAKE% %LINKER_CMAKE% -DCMAKE_BUILD_TYPE=%GRPC_BUILD_TYPE% -DCMAKE_INSTALL_PREFIX=%DEPS_PREFIX% ^
         -DCMAKE_PREFIX_PATH=%SYSTEM_DEPS_PREFIX% ^
         -DgRPC_INSTALL=ON ^
         -DgRPC_BUILD_TESTS=OFF ^
         -DgRPC_BUILD_CSHARP_EXT=OFF ^
         -DCMAKE_CXX_STANDARD=17 ^
+        -Dprotobuf_INSTALL=ON ^
+        -DABSL_ENABLE_INSTALL=ON ^
+        -Dre2_INSTALL=ON ^
+        -Dutf8_range_INSTALL=ON ^
         -DgRPC_BUILD_GRPC_PHP_PLUGIN=OFF ^
         -DgRPC_BUILD_GRPC_RUBY_PLUGIN=OFF ^
         -DgRPC_BUILD_GRPC_PYTHON_PLUGIN=OFF ^
@@ -57,12 +65,12 @@ if %errorlevel% neq 0 exit %errorlevel%
 
 IF NOT DEFINED CMAKE_MSVC_GENERATOR (
 
-cmake --build . --target install --config Release -- -j %BUILD_WORKERS%
+cmake --build . --target install --config %GRPC_BUILD_TYPE% -- -j %BUILD_WORKERS%
 if %errorlevel% neq 0 exit %errorlevel%
 
 ) ELSE (
 
-cmake --build . --target install --config Release -- /m:1 /p:UseMultiToolTask=true /p:MultiProcMaxCount=%BUILD_WORKERS% /fileLogger
+cmake --build . --target install --config %GRPC_BUILD_TYPE% -- /m:1 /p:UseMultiToolTask=true /p:MultiProcMaxCount=%BUILD_WORKERS% /fileLogger
 if %errorlevel% neq 0 exit %errorlevel%
 
 )

@@ -14,6 +14,8 @@ REM   COMPILER_VERSION     MSVC toolset version used to name the deps root, e.g.
 REM                        default: value from config.bat (14.51)
 REM   GRPC_VERSION         gRPC tag to build, e.g. 1.78.1
 REM                        default: value from config.bat
+REM   GRPC_BUILD_TYPE      cmake build type: Release (default) or RelWithDebInfo.
+REM                        Use RelWithDebInfo to get debug symbols while keeping /MD.
 REM   DEPS_UNIVERSAL_ROOT  Universal deps base; both the MSVC root (c-ares/OpenSSL) and the
 REM                        clang-cl gRPC root are derived from it.
 REM                        If unset, roots are located inside the local  deps\  subfolder.
