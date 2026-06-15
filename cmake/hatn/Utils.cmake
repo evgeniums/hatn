@@ -141,12 +141,26 @@ ENDMACRO(HATN_STRIP_RELEASE)
 
 MACRO(HATN_GEN_VERSION Project SrcDir TargetDir)
 
+    IF(NOT GIT_EXECUTABLE)
+        FIND_PACKAGE(Git QUIET)
+    ENDIF()
+    IF(GIT_EXECUTABLE)
+        SET(_HATN_GIT_CMD "${GIT_EXECUTABLE}")
+    ELSE()
+        SET(_HATN_GIT_CMD "git")
+    ENDIF()
+
     EXECUTE_PROCESS(
-        COMMAND git rev-parse --short HEAD
+        COMMAND "${_HATN_GIT_CMD}" rev-parse --short HEAD
         WORKING_DIRECTORY ${SrcDir}
         OUTPUT_VARIABLE GIT_REV
         OUTPUT_STRIP_TRAILING_WHITESPACE
+        ERROR_QUIET
+        RESULT_VARIABLE _HATN_GIT_RESULT
     )
+    IF(NOT _HATN_GIT_RESULT EQUAL 0)
+        SET(GIT_REV "")
+    ENDIF()
 
     string(TIMESTAMP BUILD_TIME "%Y-%m-%dT%H:%M:%SZ" UTC)
 

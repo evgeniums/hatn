@@ -24,6 +24,21 @@ LIST(APPEND CMAKE_MODULE_PATH ${DEPS_ROOT}/cmake ${DEPS_ROOT}/lib/cmake)
 SET(HATN_INCLUDE_DIRECTORIES ${DEPS_ROOT}/include CACHE STRING "Include folder of dependencies")
 SET(HATN_LINK_DIRECTORIES ${DEPS_ROOT}/lib CACHE STRING "Library folder of dependencies")
 
+# Optional separate root for a gRPC (+ protobuf/abseil/re2) build that was compiled with a
+# different toolchain than the rest of the deps — typically clang-cl gRPC against MSVC deps.
+# When set, cmake find_package(gRPC/Protobuf CONFIG) resolves here first; abseil/re2/utf8_range
+# installed alongside gRPC are found transitively from the same prefix.
+# Set via -DGRPC_DEPS_ROOT=<path> or the GRPC_DEPS_ROOT environment variable.
+IF (NOT GRPC_DEPS_ROOT AND NOT "$ENV{GRPC_DEPS_ROOT}" STREQUAL "")
+    SET(GRPC_DEPS_ROOT "$ENV{GRPC_DEPS_ROOT}")
+ENDIF()
+IF (GRPC_DEPS_ROOT)
+    FILE(TO_CMAKE_PATH "${GRPC_DEPS_ROOT}" GRPC_DEPS_ROOT)
+    MESSAGE(STATUS "Using GRPC_DEPS_ROOT: ${GRPC_DEPS_ROOT}")
+    LIST(APPEND CMAKE_MODULE_PATH "${GRPC_DEPS_ROOT}/cmake" "${GRPC_DEPS_ROOT}/lib/cmake")
+    LIST(APPEND CMAKE_PREFIX_PATH "${GRPC_DEPS_ROOT}")
+ENDIF()
+
 IF (MSVC)
     STRING(TOLOWER "${CMAKE_GENERATOR}" gen)
     IF ("${gen}" STREQUAL "ninja")

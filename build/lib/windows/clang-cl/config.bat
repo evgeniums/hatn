@@ -56,8 +56,21 @@ IF "%DEPS_ROOT%"=="" (
 	)
 )
 
+REM Separate root for gRPC (+ protobuf/abseil/re2) built with clang-cl.
+REM Produced by build-clang-cl-grpc-x86_64.bat (or arm64 equivalent) into
+REM root-clang-cl-<MSVC_COMPILER_VERSION>-<arch> next to the MSVC deps root.
+REM Override by setting GRPC_DEPS_ROOT before invoking the build; set to empty to disable.
+IF "%GRPC_DEPS_ROOT%"=="" (
+	IF "%DEPS_UNIVERSAL_ROOT%"=="" (
+		SET "GRPC_DEPS_ROOT=%WORKING_DIR%\..\deps\root-clang-cl-%MSVC_COMPILER_VERSION%-%MSVC_FULL_ARCH%"
+	) ELSE (
+		SET "GRPC_DEPS_ROOT=%DEPS_UNIVERSAL_ROOT%\root-clang-cl-%MSVC_COMPILER_VERSION%-%MSVC_FULL_ARCH%"
+	)
+)
+
 ECHO "WORKING_DIR="%WORKING_DIR%"
 ECHO "DEPS_ROOT="%DEPS_ROOT%"
+ECHO "GRPC_DEPS_ROOT="%GRPC_DEPS_ROOT%"
 
 IF "%BOOST_ROOT%"=="" SET BOOST_ROOT=%DEPS_ROOT%
 IF "%OPENSSL_ROOT_DIR%"=="" SET OPENSSL_ROOT_DIR=%DEPS_ROOT%

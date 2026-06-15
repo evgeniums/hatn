@@ -22,8 +22,23 @@ SET ARCH_CMAKE=-G Ninja
 
 )
 
-cmake %ARCH_CMAKE% -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=%DEPS_PREFIX% ^
-        -DCMAKE_PREFIX_PATH=%DEPS_PREFIX% ^
+REM Optional: compiler-selection cmake args injected by the caller.
+REM Set COMPILER_CMAKE to e.g. "-DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl
+REM -DCMAKE_C_COMPILER_TARGET=x86_64-pc-windows-msvc -DCMAKE_CXX_COMPILER_TARGET=..."
+REM when building with clang-cl.  Empty (default) means use the ambient MSVC compiler.
+IF NOT DEFINED COMPILER_CMAKE SET COMPILER_CMAKE=
+
+REM Optional: linker cmake arg.  Set to e.g. "-DCMAKE_LINKER=C:\path\link.exe" (outer
+REM quotes required when the path contains spaces).  Empty by default.
+IF NOT DEFINED LINKER_CMAKE SET LINKER_CMAKE=
+
+REM Optional: prefix where system deps (c-ares, OpenSSL) live.
+REM When building gRPC with clang-cl but c-ares/OpenSSL were built with MSVC, set this to
+REM the MSVC deps root so that the lookup paths stay correct.  Defaults to DEPS_PREFIX.
+IF NOT DEFINED SYSTEM_DEPS_PREFIX SET "SYSTEM_DEPS_PREFIX=%DEPS_PREFIX%"
+
+cmake %ARCH_CMAKE% %COMPILER_CMAKE% %LINKER_CMAKE% -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=%DEPS_PREFIX% ^
+        -DCMAKE_PREFIX_PATH=%SYSTEM_DEPS_PREFIX% ^
         -DgRPC_INSTALL=ON ^
         -DgRPC_BUILD_TESTS=OFF ^
         -DgRPC_BUILD_CSHARP_EXT=OFF ^
@@ -33,10 +48,10 @@ cmake %ARCH_CMAKE% -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=%DEPS_PREFI
         -DgRPC_BUILD_GRPC_PYTHON_PLUGIN=OFF ^
         -DgRPC_CARES_PROVIDER=package ^
         -DgRPC_SSL_PROVIDER=package ^
-        "-Dc-ares_DIR=%DEPS_PREFIX%/lib/cmake/c-ares" ^
-        "-DOPENSSL_INCLUDE_DIR=%DEPS_PREFIX%/include" ^
-        "-DOPENSSL_CRYPTO_LIBRARY=%DEPS_PREFIX%/lib/libcrypto.lib" ^
-        "-DOPENSSL_SSL_LIBRARY=%DEPS_PREFIX%/lib/libssl.lib" ^
+        "-Dc-ares_DIR=%SYSTEM_DEPS_PREFIX%/lib/cmake/c-ares" ^
+        "-DOPENSSL_INCLUDE_DIR=%SYSTEM_DEPS_PREFIX%/include" ^
+        "-DOPENSSL_CRYPTO_LIBRARY=%SYSTEM_DEPS_PREFIX%/lib/libcrypto.lib" ^
+        "-DOPENSSL_SSL_LIBRARY=%SYSTEM_DEPS_PREFIX%/lib/libssl.lib" ^
         %folder%
 if %errorlevel% neq 0 exit %errorlevel%
 
