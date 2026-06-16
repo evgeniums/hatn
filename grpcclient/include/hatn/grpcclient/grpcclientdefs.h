@@ -35,6 +35,10 @@
 #define HATN_GRPCCLIENT_NAMESPACE_END }}
 
 HATN_GRPCCLIENT_NAMESPACE_BEGIN
+
+// Returns GRPC_CPP_VERSION_STRING without exposing any gRPC header to consumers.
+HATN_GRPCCLIENT_EXPORT const char* grpcVersionString() noexcept;
+
 HATN_GRPCCLIENT_NAMESPACE_END
 
 #define HATN_GRPCCLIENT_NAMESPACE hatn::grpcclient
