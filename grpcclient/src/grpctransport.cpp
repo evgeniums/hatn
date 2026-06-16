@@ -16,9 +16,6 @@
 #include <mutex>
 #include <string>
 
-#include <hatn/dataunit/ipp/syntax.ipp>
-#include <hatn/dataunit/ipp/wirebuf.ipp>
-
 #ifdef _WIN32
 namespace {
     inline int hatn_setenv(const char* name, const char* value, int overwrite) {
@@ -40,6 +37,8 @@ namespace {
 #include <hatn/grpcclient/grpctransport.h>
 
 #include "grpctransport_p.h"
+
+#include <hatn/grpcclient/ipp/grpctransport.ipp>
 
 #include <hatn/dataunit/ipp/syntax.ipp>
 #include <hatn/dataunit/ipp/wirebuf.ipp>
