@@ -25,6 +25,8 @@
 
 HATN_GRPCCLIENT_NAMESPACE_BEGIN
 
+HATN_GRPCCLIENT_EXPORT const char* grpcVersionString() noexcept;
+
 template <typename Router, typename Traits>
 using GrpcTransportWrapper=GrpcTransport;
 

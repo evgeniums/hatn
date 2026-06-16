@@ -13,6 +13,7 @@ SET (HEADERS
 )
 
 SET (SOURCES
+    src/grpcclient.cpp
     src/grpctransport.cpp
     src/grpcstream.cpp
 
