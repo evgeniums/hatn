@@ -19,8 +19,15 @@
 #ifndef HATNGRPCTRANSPORT_H
 #define HATNGRPCTRANSPORT_H
 
+#include <cstdint>
+#include <functional>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include <hatn/common/threadwithqueue.h>
 #include <hatn/common/singleton.h>
+#include <hatn/common/bytearray.h>
 
 #include <hatn/base/configobject.h>
 #include <hatn/dataunit/unitwrapper.h>
@@ -32,6 +39,8 @@
 #include <hatn/api/apiconstants.h>
 #include <hatn/api/priority.h>
 #include <hatn/api/client/defaulttraits.h>
+#include <hatn/api/client/clientresponse.h>
+#include <hatn/api/client/streamchannel.h>
 
 #include <hatn/grpcclient/grpcclientdefs.h>
 #include <hatn/grpcclient/grpcrouter.h>
@@ -43,6 +52,8 @@ HATN_API_NAMESPACE_END
 HATN_GRPCCLIENT_NAMESPACE_BEGIN
 
 namespace common=HATN_COMMON_NAMESPACE;
+namespace api=HATN_API_NAMESPACE;
+namespace clientapi=HATN_API_NAMESPACE::client;
 
 constexpr const uint32_t DefaultUnaryDeadlineTimeout=25;
 // Ping-response timeout. Worst-case dead-socket detection = keep_alive_period +
@@ -257,6 +268,39 @@ class HATN_GRPCCLIENT_EXPORT GrpcTransport : public base::ConfigObject<grpc_conf
         // changes (WiFi <-> cellular) so zombie sockets are replaced immediately instead of
         // waiting for keepalive timeout to fire.
         void reconnect();
+
+        // ---- gRPC-encapsulation boundary -----------------------------------
+        // These non-template methods own every gRPC type and are compiled only
+        // into hatngrpcclient.dll (exported via the class-level export macro).
+        // The header template sendRequest()/cancelRequest() (see grpctransport.ipp)
+        // extract grpc-free data from the request and call into these, so gRPC,
+        // abseil and protobuf never leak into consumer modules. reqAddr is
+        // reinterpret_cast<uintptr_t>(req.get()) and keys the pending-request /
+        // stream registries. onResponse/onMessage are constructed in the caller
+        // (capturing req + the user callback) and run on the transport thread.
+
+        void sendUnaryImpl(
+            api::Priority priority,
+            uintptr_t reqAddr,
+            std::string method,
+            std::vector<std::pair<std::string,std::string>> metadata,
+            common::ByteArrayShared message,
+            std::function<void(Result<clientapi::Response>)> onResponse
+        );
+
+        void sendStreamImpl(
+            api::Priority priority,
+            uintptr_t reqAddr,
+            std::string method,
+            std::vector<std::pair<std::string,std::string>> metadata,
+            common::ByteArrayShared message,
+            clientapi::StreamChannel::ReadCb onMessage
+        );
+
+        void cancelRequestImpl(
+            api::Priority priority,
+            uintptr_t reqAddr
+        );
 
     private:
 

@@ -27,12 +27,16 @@ namespace {
 #  define hatn_setenv ::setenv
 #endif
 
+#include <chrono>
+
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/generic/generic_stub.h>
 
 #include <hatn/common/meta/enumint.h>
+#include <hatn/network/networkerror.h>
 #include <hatn/grpcclient/grpctransport.h>
-#include <hatn/grpcclient/ipp/grpctransport.ipp>
+
+#include "grpctransport_p.h"
 
 #include <hatn/dataunit/ipp/syntax.ipp>
 #include <hatn/dataunit/ipp/wirebuf.ipp>
@@ -40,6 +44,7 @@ namespace {
 HATN_GRPCCLIENT_NAMESPACE_BEGIN
 
 namespace api=HATN_API_NAMESPACE;
+namespace network=HATN_NETWORK_NAMESPACE;
 
 namespace {
 
@@ -466,6 +471,129 @@ Result<clientapi::Response> detail::GrpcTransport_p::handleResponse(
     }
 
     return resp;
+}
+
+//--------------------------------------------------------------------------
+
+void GrpcTransport::sendUnaryImpl(
+        api::Priority priority,
+        uintptr_t reqAddr,
+        std::string method,
+        std::vector<std::pair<std::string,std::string>> metadata,
+        common::ByteArrayShared message,
+        std::function<void(Result<clientapi::Response>)> onResponse
+    )
+{
+    auto channel=pimpl->channel(priority);
+    if (channel->isDisconnected())
+    {
+        HATN_CTX_SCOPE_ERROR("network is disconnected")
+        onResponse(network::networkError(network::NetworkError::NETWORK_NOT_CONNECTED));
+        return;
+    }
+
+    // create context and register pending request
+    auto context=channel->addRequest(reqAddr);
+
+    // setup deadline
+    if (config().fieldValue(grpc_config::unary_deadline_timeout)!=0)
+    {
+        context->set_wait_for_ready(true);
+        std::chrono::system_clock::time_point deadline =
+            std::chrono::system_clock::now() + std::chrono::seconds(config().fieldValue(grpc_config::unary_deadline_timeout));
+        context->set_deadline(deadline);
+    }
+
+    // add metadata to context
+    for (const auto& h : metadata)
+    {
+        context->AddMetadata(h.first,h.second);
+    }
+
+    // prepare request and response buffers
+    grpc::Slice slice(message->data(),message->size());
+    grpc::ByteBuffer requestBuf(&slice,1);
+    auto responseBuf=std::make_shared<grpc::ByteBuffer>();
+
+    grpc::GenericStub* stub=channel->stub.get();
+    grpc::StubOptions opt;
+
+    // invoke unary call; the completion runs on a transport thread
+    stub->UnaryCall(
+        context.get(),
+        method,
+        opt,
+        &requestBuf,
+        responseBuf.get(),
+        [pimpl=pimpl,priority,reqAddr,responseBuf,context,message,onResponse{std::move(onResponse)}](grpc::Status status) mutable
+        {
+            auto response=pimpl->handleResponse(
+                context,
+                status,
+                *responseBuf
+            );
+
+            pimpl->channel(priority)->removeRequest(reqAddr);
+            onResponse(std::move(response));
+        }
+    );
+}
+
+//--------------------------------------------------------------------------
+
+void GrpcTransport::sendStreamImpl(
+        api::Priority priority,
+        uintptr_t reqAddr,
+        std::string method,
+        std::vector<std::pair<std::string,std::string>> metadata,
+        common::ByteArrayShared message,
+        clientapi::StreamChannel::ReadCb onMessage
+    )
+{
+    auto channel=pimpl->channel(priority);
+    if (channel->isDisconnected())
+    {
+        HATN_CTX_SCOPE_ERROR("network is disconnected")
+        onMessage(network::networkError(network::NetworkError::NETWORK_NOT_CONNECTED),{});
+        return;
+    }
+
+    // create stream (with its own context) and register it
+    auto stream=channel->addStream(reqAddr,priority,pimpl);
+    auto context=stream->context();
+
+    // add metadata to context
+    for (const auto& h : metadata)
+    {
+        context->AddMetadata(h.first,h.second);
+    }
+
+    // prepare request buffer
+    grpc::Slice slice(message->data(),message->size());
+    grpc::ByteBuffer requestBuf(&slice,1);
+
+    grpc::GenericStub* stub=channel->stub.get();
+    grpc::StubOptions opt;
+
+    // wrap the grpc-free read callback so the pending request is dropped on error
+    auto cb=[pimpl=pimpl,priority,reqAddr,onMessage{std::move(onMessage)}](const Error& ec, clientapi::Response response) mutable
+    {
+        if (ec)
+        {
+            pimpl->channel(priority)->removeRequest(reqAddr);
+        }
+        onMessage(ec,std::move(response));
+    };
+
+    stub->PrepareBidiStreamingCall(context.get(),method,opt,stream.get());
+    stream->startStream(&requestBuf,std::move(cb));
+}
+
+//--------------------------------------------------------------------------
+
+void GrpcTransport::cancelRequestImpl(api::Priority priority, uintptr_t reqAddr)
+{
+    pimpl->channel(priority)->cancelRequest(reqAddr);
 }
 
 //--------------------------------------------------------------------------

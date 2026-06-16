@@ -14,8 +14,8 @@
 
 #include <hatn/api/apiliberror.h>
 
-#include <hatn/grpcclient/grpcstream.h>
-#include <hatn/grpcclient/ipp/grpctransport.ipp>
+#include "grpcstream.h"
+#include "grpctransport_p.h"
 
 #include <hatn/dataunit/ipp/syntax.ipp>
 #include <hatn/dataunit/ipp/wirebuf.ipp>
