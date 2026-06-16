@@ -8,7 +8,7 @@
 
 #include <grpcpp/version_info.h>
 
-#include <hatn/grpcclient/grpcclient.h>
+#include <hatn/grpcclient/grpcclientdefs.h>
 
 HATN_GRPCCLIENT_NAMESPACE_BEGIN
 
