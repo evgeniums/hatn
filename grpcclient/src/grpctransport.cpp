@@ -16,6 +16,9 @@
 #include <mutex>
 #include <string>
 
+#include <hatn/dataunit/ipp/syntax.ipp>
+#include <hatn/dataunit/ipp/wirebuf.ipp>
+
 #ifdef _WIN32
 namespace {
     inline int hatn_setenv(const char* name, const char* value, int overwrite) {
