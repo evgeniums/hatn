@@ -86,8 +86,7 @@ class ObjectsCache_p
                 size_t ttlSeconds,
                 const common::pmr::AllocatorFactory* factory
             )
-            : derived(derived),
-              localCache(ttlSeconds*1000,
+            : localCache(ttlSeconds*1000,
                       factory,
                       thread
                       ),
@@ -100,6 +99,7 @@ class ObjectsCache_p
                         thread
                         ),
               factory(factory),
+              derived(derived),
               dbModelName(Traits::DbModel)
     {}
 #else
