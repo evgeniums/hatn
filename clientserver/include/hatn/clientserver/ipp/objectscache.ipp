@@ -966,7 +966,7 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
     auto asynGuard=Traits::asyncGuard(pimpl->derived);
 
     // update inmem cache
-    auto updateInmem=[ctx,callback,asynGuard,this,topic,uid,opt](auto cacheItem) mutable
+    auto updateInmem=[ctx,callback,asynGuard,this,uid,opt](auto cacheItem) mutable
     {
         HATN_CTX_STACK_BARRIER_ON("[updateinmem]")
         HATN_CTX_DEBUG(10,"update object in memory cache only")

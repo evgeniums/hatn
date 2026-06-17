@@ -417,7 +417,7 @@ Error RocksdbHandler::deleteTopic(Topic topic)
     ROCKSDB_NAMESPACE::WriteBatch batch;
 
     // handler to delete from column family using write batch
-    auto deleteFromCf=[&batch,&start,&stop,this](ROCKSDB_NAMESPACE::ColumnFamilyHandle* cf)
+    auto deleteFromCf=[&batch,&start,&stop](ROCKSDB_NAMESPACE::ColumnFamilyHandle* cf)
     {
         auto status=batch.DeleteRange(
                            cf,

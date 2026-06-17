@@ -280,7 +280,7 @@ IF (NOT MSVC)
         -Wall
         -Wnon-virtual-dtor
         -Wreorder-ctor
-        -Wno-unused-lambda-capture
+        -Wunused-lambda-capture
         -Wunused-variable
     )
     IF (NOT MINGW)

@@ -26,7 +26,7 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 //---------------------------------------------------------------
 
 bool SaveUniqueKey::Merge(
-    const ROCKSDB_NAMESPACE::Slice& key,
+    const ROCKSDB_NAMESPACE::Slice& /*key*/,
     const ROCKSDB_NAMESPACE::Slice* existing_value,
     const ROCKSDB_NAMESPACE::Slice& value,
     std::string* new_value,

@@ -867,8 +867,8 @@ Result<IndexKeys> HATN_ROCKSDB_SCHEMA_EXPORT indexKeys(
 
     IndexKeys keys{IndexKeyCompare{idxQuery},allocatorFactory->dataAllocator<IndexKey>()};
 
-    auto keyCallback=[&limit,&keys,&idxQuery,allocatorFactory,&single,
-        &partitionCount,partitionLimit,&partitions,skipBeforeOffset
+    auto keyCallback=[&limit,&keys,&idxQuery,
+        &partitionCount,partitionLimit,skipBeforeOffset
         ]
         (RocksdbPartition* partition,
          Topic topic,
