@@ -176,8 +176,22 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
                 if (m_currentScopeIdx>config::ScopeDepth)
                 {
                     std::cerr << "Mismatched number of enter/leave scope calls: currentScopeIdx=" << m_currentScopeIdx
-                              << " ctx="<<mainCtx().id()
-                              << std::endl;
+                              << " ctx=" << mainCtx().id()
+                              << " lockStack=" << m_lockStack
+                              << "\n  scope stack (" << m_scopeStack.size() << "):";
+                    for (size_t i=0;i<m_scopeStack.size();i++)
+                    {
+                        std::cerr << "\n    [" << i << "] " << m_scopeStack[i].first;
+                        if (m_scopeStack[i].second.error!=nullptr)
+                            std::cerr << "  error=" << m_scopeStack[i].second.error;
+                    }
+                    std::cerr << "\n  barrier stack (" << m_barrierStack.size() << "):";
+                    for (size_t i=0;i<m_barrierStack.size();i++)
+                    {
+                        std::cerr << "\n    [" << i << "] " << m_barrierStack[i].name
+                                  << "  scopeOffset=" << m_barrierStack[i].scopeStackOffset;
+                    }
+                    std::cerr << std::endl;
                 }
 
                 if (!m_lockStack)
@@ -191,8 +205,12 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
         template <typename T>
         void pushStackVar(const lib::string_view& key, T&& value)
         {
-            m_varStack.emplace_back(key,std::forward<T>(value));
             auto* scopeCursor=currentScope();
+            if (scopeCursor==nullptr)
+            {
+                return;
+            }
+            m_varStack.emplace_back(key,std::forward<T>(value));
             scopeCursor->second.varStackSize=m_varStack.size();
         }
 
@@ -200,9 +218,16 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
         {
             if (!m_lockStack)
             {
+                if (m_varStack.empty())
+                {
+                    return;
+                }
                 m_varStack.pop_back();
                 auto* scopeCursor=currentScope();
-                scopeCursor->second.varStackSize=m_varStack.size();
+                if (scopeCursor!=nullptr)
+                {
+                    scopeCursor->second.varStackSize=m_varStack.size();
+                }
             }
         }
 
@@ -403,7 +428,7 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
             {
                 return nullptr;
             }
-            return &m_scopeStack.at(idx-1);
+            return &m_scopeStack[idx-1];
         }
 
         void resetStacks()
