@@ -82,7 +82,7 @@ void GrpcStream::OnReadDone(bool ok)
     {
         // failed, wait for onDone
 #if 0
-        std::cout << "GrpcStream::OnReadDone failed" << std::endl;
+        std::cerr << "GrpcStream::OnReadDone failed" << std::endl;
 #endif
         return;
     }
@@ -196,7 +196,7 @@ void GrpcStream::OnReadDone(bool ok)
 void GrpcStream::OnDone(const grpc::Status& status)
 {
 #if 0
-    std::cout << "GrpcStream::OnDone status=" << status.error_message() << std::endl;
+    std::cerr << "GrpcStream::OnDone status=" << status.error_message() << std::endl;
 #endif
 
     m_mutex.lock();
@@ -273,7 +273,7 @@ void GrpcStream::OnDone(const grpc::Status& status)
 void GrpcStream::readNext(ReadCb callback)
 {
 #if 0
-    std::cout << "GrpcStream::readNext closed " << m_closed << std::endl;
+    std::cerr << "GrpcStream::readNext closed " << m_closed << std::endl;
 #endif
     if (m_closed)
     {
@@ -343,7 +343,9 @@ void GrpcStream::close(clientapi::StreamChannel::CloseCb callback)
         m_closeCallback=callback;
         m_mutex.unlock();
     }
-
+#if 0
+    std::cerr << "GrpcStream::close trying cancel" << std::endl;
+#endif
     m_context->TryCancel();
 }
 
