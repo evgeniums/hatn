@@ -727,10 +727,10 @@ std::vector<std::string> FileLoggerTraits::listFiles() const
     std::vector<std::string> files;
     if (!d->logFile)
     {
+        std::cerr << "FileLoggerTraits::listFiles() logFile undefined" << std::endl;
         return files;
     }
 
-    //! @todo Handle timestampFileName in one place
     lib::filesystem::path path{d->logFile->filename()};
     auto newExt=fmt::format("{}.ts",path.extension().string());
     path.replace_extension(newExt);
@@ -741,6 +741,9 @@ std::vector<std::string> FileLoggerTraits::listFiles() const
         lib::fs_error_code fsec1;
         lib::filesystem::path path(baseFilename);
         auto dir=path.parent_path();
+
+        std::cerr << "FileLoggerTraits::listFiles() listing dir " << dir.string() << std::endl;
+
         for (const auto& entry : lib::filesystem::directory_iterator(dir,fsec1))
         {
             auto fileName=entry.path().string();
@@ -753,10 +756,14 @@ std::vector<std::string> FileLoggerTraits::listFiles() const
             }
         }
         std::sort(files.begin(),files.end());
+
+        std::cerr << "FileLoggerTraits::listFiles() found files couunt: " << files.size() << std::endl;
     };
+    std::cerr << "FileLoggerTraits::listFiles() list " << d->logFile->filename() << std::endl;
     list(d->logFile->filename());
     if (d->errorLogFile)
     {
+        std::cerr << "FileLoggerTraits::listFiles() list error " << d->errorLogFile->filename() << std::endl;
         list(d->errorLogFile->filename());
     }
 
