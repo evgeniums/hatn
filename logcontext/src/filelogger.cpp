@@ -732,7 +732,6 @@ std::vector<std::string> FileLoggerTraits::listFiles() const
     std::vector<std::string> files;
     if (!d->logFile)
     {
-        std::cerr << "FileLoggerTraits::listFiles() logFile undefined" << std::endl;
         return files;
     }
 
@@ -752,8 +751,6 @@ std::vector<std::string> FileLoggerTraits::listFiles() const
         auto baseLeaf=basePath.filename().string();
         auto tsLeaf=lib::filesystem::path(timestampFileName).filename().string();
 
-        std::cerr << "FileLoggerTraits::listFiles() listing dir " << dir.string() << std::endl;
-
         for (const auto& entry : lib::filesystem::directory_iterator(dir,fsec1))
         {
             auto leaf=entry.path().filename().string();
@@ -766,14 +763,10 @@ std::vector<std::string> FileLoggerTraits::listFiles() const
             }
         }
         std::sort(files.begin(),files.end());
-
-        std::cerr << "FileLoggerTraits::listFiles() found files count: " << files.size() << std::endl;
     };
-    std::cerr << "FileLoggerTraits::listFiles() list " << d->logFile->filename() << std::endl;
     list(d->logFile->filename());
     if (d->errorLogFile)
     {
-        std::cerr << "FileLoggerTraits::listFiles() list error " << d->errorLogFile->filename() << std::endl;
         list(d->errorLogFile->filename());
     }
 
