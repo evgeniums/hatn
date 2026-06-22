@@ -560,6 +560,9 @@ Error FileLoggerTraits::loadLogConfig(
             HATN_CTX_ERROR(ec1,"failed to change permissions of logs folder");
         }
     }
+    // Allow other processes to read the log file while it is held open (Windows FILE_SHARE_READ).
+    // setShareMode is a no-op on non-Windows so this is safe everywhere.
+    d->logFile->setShareMode(common::File::Sharing::featureBit(common::File::Share::Read));
     ec=d->logFile->open(logFileName,common::PlainFile::Mode::append);
     HATN_CHECK_CHAIN_EC(ec,fmt::format(fmt::runtime(_TR("failed to open log file {}","logcontext")),logFileName))
 
@@ -612,6 +615,8 @@ Error FileLoggerTraits::loadLogConfig(
                 HATN_CTX_ERROR(ec1,"failed to change permissions of logs folder");
             }
         }
+        // Same read-sharing flag as the main log file.
+        d->errorLogFile->setShareMode(common::File::Sharing::featureBit(common::File::Share::Read));
         ec=d->errorLogFile->open(errorLogFileName,common::PlainFile::Mode::append);
         HATN_CHECK_CHAIN_EC(ec,fmt::format(fmt::runtime(_TR("failed to open error log file {}","logcontext")),errorLogFileName))
     }
@@ -739,25 +744,30 @@ std::vector<std::string> FileLoggerTraits::listFiles() const
     auto list=[&timestampFileName,&files](const std::string& baseFilename)
     {
         lib::fs_error_code fsec1;
-        lib::filesystem::path path(baseFilename);
-        auto dir=path.parent_path();
+        lib::filesystem::path basePath(baseFilename);
+        auto dir=basePath.parent_path();
+        // Use leaf filename comparison to stay robust against mixed path separators
+        // (e.g. Windows $data_dir substitution yields back-slashes while the config
+        // literal uses forward slashes, so a full-path starts_with check fails).
+        auto baseLeaf=basePath.filename().string();
+        auto tsLeaf=lib::filesystem::path(timestampFileName).filename().string();
 
         std::cerr << "FileLoggerTraits::listFiles() listing dir " << dir.string() << std::endl;
 
         for (const auto& entry : lib::filesystem::directory_iterator(dir,fsec1))
         {
-            auto fileName=entry.path().string();
+            auto leaf=entry.path().filename().string();
             if (
-                fileName!=timestampFileName
+                leaf!=tsLeaf
                 &&
-                boost::algorithm::starts_with(fileName,baseFilename))
+                boost::algorithm::starts_with(leaf,baseLeaf))
             {
-                files.push_back(fileName);
+                files.push_back(entry.path().string());
             }
         }
         std::sort(files.begin(),files.end());
 
-        std::cerr << "FileLoggerTraits::listFiles() found files couunt: " << files.size() << std::endl;
+        std::cerr << "FileLoggerTraits::listFiles() found files count: " << files.size() << std::endl;
     };
     std::cerr << "FileLoggerTraits::listFiles() list " << d->logFile->filename() << std::endl;
     list(d->logFile->filename());
