@@ -1160,7 +1160,7 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
                 std::move(ctx),
                 [callback,object]()
                 {
-                    HATN_CTX_STACK_BARRIER_OFF("[getAppDb]")
+                    HATN_CTX_STACK_BARRIER_OFF("objectscache::invokefetch")
                     if (callback)
                     {
                         callback({},std::move(object));
@@ -1194,6 +1194,7 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
             {
                 if (callback)
                 {
+                    HATN_CTX_STACK_BARRIER_OFF("objectscache::invokefetch")
                     callback(ec,{});
                 }
                 return;
