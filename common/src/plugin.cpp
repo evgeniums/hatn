@@ -394,7 +394,7 @@ void PluginLoader::closeDynamicPlugin(
 }
 
 //---------------------------------------------------------------
-void PluginLoader::registerPluginInfo(const PluginInfo *pluginInfo)
+void PluginLoader::registerPluginInfo(const PluginInfo *pluginInfo, bool ignoreDuplicate)
 {
     auto typePlugins=typedPlugins(pluginInfo->type);
     if (!typePlugins)
@@ -408,9 +408,12 @@ void PluginLoader::registerPluginInfo(const PluginInfo *pluginInfo)
     auto it1=typePlugins->find(pluginInfo->name);
     if (it1!=typePlugins->end())
     {
-        const auto& existing=it1->second;
-        HATN_WARN(plugin,HATN_FORMAT("Duplicate plugin: {}/{} ()",pluginInfo->type,pluginInfo->name,pluginInfo->description));
-        HATN_WARN(plugin,HATN_FORMAT("Previuos was: {}/{} ()",existing->type,existing->name,existing->description));
+        if (!ignoreDuplicate)
+        {
+            const auto& existing=it1->second;
+            HATN_WARN(plugin,HATN_FORMAT("Duplicate plugin: {}/{} ()",pluginInfo->type,pluginInfo->name,pluginInfo->description));
+            HATN_WARN(plugin,HATN_FORMAT("Previuos was: {}/{} ()",existing->type,existing->name,existing->description));
+        }
         return;
     }
     (*typePlugins)[pluginInfo->name]=new PluginInfo(*pluginInfo);
