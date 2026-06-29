@@ -14,9 +14,15 @@
   *
   * Routes to the active LogsProvider from the registry. Returns
   * LOGS_PROVIDER_NOT_CONFIGURED when no provider has been selected.
+  *
+  * The live client core log is always injected implicitly (first in the list).
+  * Additional paths from send_logs_request::file_names are appended after it.
   */
 
+#include <hatn/app/app.h>
+
 #include <hatn/clientapp/clientapperror.h>
+#include <hatn/clientapp/clientapp.h>
 #include <hatn/clientapp/logsprovider.h>
 #include <hatn/clientapp/bridgemethod.h>
 #include <hatn/clientapp/systemservice.h>
@@ -40,12 +46,7 @@ void MethodSendLogs::exec(
 
     auto msg = request.message.as<send_logs_request::managed>();
     auto comments = std::string(msg->fieldValue(send_logs_request::comments));
-
-    HATN_CTX_DEBUG_RECORDS(1, "send logs",
-        {"file_names_count",  static_cast<int>(msg->field(send_logs_request::file_names).count())},
-        {"comments_length",   static_cast<int>(comments.size())},
-        {"buffer_count",      static_cast<int>(request.buffers.size())}
-    )
+    const auto& extraNames = msg->field(send_logs_request::file_names);
 
     auto* ca = ContextApp::clientApp(env, ctx);
     if (!ca)
@@ -60,10 +61,35 @@ void MethodSendLogs::exec(
         return;
     }
 
+    // Build the file path list.
+    // First: the live client core log (identified by .txt/.log extension).
+    std::vector<std::string> filePaths;
+    for (const auto& f : ca->app().listLogFiles())
+    {
+        lib::filesystem::path p{f};
+        const auto ext = p.extension().string();
+        if (ext == ".txt" || ext == ".log")
+        {
+            filePaths.push_back(f);
+            break;
+        }
+    }
+    // Then: additional paths provided by the caller (e.g. iOS/Android platform logs).
+    for (size_t i = 0; i < extraNames.count(); ++i)
+    {
+        filePaths.emplace_back(extraNames.at(i).stringView());
+    }
+
+    HATN_CTX_DEBUG_RECORDS(1, "send logs",
+        {"core_log_found",    static_cast<int>(!filePaths.empty())},
+        {"extra_path_count",  static_cast<int>(extraNames.count())},
+        {"comments_length",   static_cast<int>(comments.size())}
+    )
+
     provider->sendLogs(
         std::move(ctx),
         std::move(comments),
-        std::move(request.buffers),
+        std::move(filePaths),
         [callback = std::move(callback)](const Error& ec)
         {
             callback(ec, Response{});

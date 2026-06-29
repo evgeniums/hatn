@@ -12,11 +12,12 @@
   *
   * Abstract logs provider and its registry.
   *
-  * A logs provider delivers collected application log data to an external
-  * destination (e.g. Sentry attachments). Log bytes arrive pre-assembled in
-  * logData buffers; compression is the caller's responsibility. If no provider
-  * is configured bridge callers must return
-  * ClientAppError::LOGS_PROVIDER_NOT_CONFIGURED.
+  * A logs provider delivers application log files to an external destination
+  * (e.g. Sentry attachments). It receives a list of filesystem paths — the
+  * live client core log first, followed by any additional paths supplied by
+  * the caller (e.g. platform-specific iOS/Android logs). The provider reads,
+  * packages, and uploads each file itself. If no provider is configured bridge
+  * callers must return ClientAppError::LOGS_PROVIDER_NOT_CONFIGURED.
   */
 
 /****************************************************************************/
@@ -31,7 +32,6 @@
 #include <memory>
 
 #include <hatn/common/error.h>
-#include <hatn/common/bytearray.h>
 #include <hatn/common/taskcontext.h>
 
 #include <hatn/clientapp/clientappdefs.h>
@@ -53,7 +53,7 @@ class HATN_CLIENTAPP_EXPORT LogsProvider
         virtual void sendLogs(
             common::SharedPtr<common::TaskContext> ctx,
             std::string comments,
-            std::vector<common::ByteArrayShared> logData,
+            std::vector<std::string> filePaths,
             std::function<void(const Error&)> callback
         ) = 0;
 };
