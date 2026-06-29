@@ -30,6 +30,7 @@
 #include <memory>
 
 #include <hatn/common/error.h>
+#include <hatn/common/taskcontext.h>
 
 #include <hatn/clientapp/clientappdefs.h>
 
@@ -48,6 +49,7 @@ class HATN_CLIENTAPP_EXPORT FeedbackProvider
         virtual Error init(ClientApp* clientApp, const std::string& section) = 0;
 
         virtual void sendFeedback(
+            common::SharedPtr<common::TaskContext> ctx,
             std::string recipientId,
             std::string text,
             std::function<void(const Error&)> callback

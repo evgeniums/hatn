@@ -61,6 +61,7 @@ void MethodSendLogs::exec(
     }
 
     provider->sendLogs(
+        std::move(ctx),
         std::move(comments),
         std::move(request.buffers),
         [callback = std::move(callback)](const Error& ec)

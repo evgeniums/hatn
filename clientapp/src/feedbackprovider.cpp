@@ -40,7 +40,8 @@ void FeedbackProvider::sendFeedbackDirect(
 
 void FeedbackProviderRegistry::registerProvider(std::shared_ptr<FeedbackProvider> provider)
 {
-    m_providers[provider->name()] = std::move(provider);
+    auto key = provider->name();
+    m_providers[key] = std::move(provider);
 }
 
 //--------------------------------------------------------------------------
@@ -69,8 +70,6 @@ void FeedbackProviderRegistry::selectProvider(ClientApp* clientApp,
     HATN_CTX_INFO_RECORDS("feedback provider selected",
         {"scheme", scheme})
 }
-
-//--------------------------------------------------------------------------
 
 //--------------------------------------------------------------------------
 
