@@ -750,21 +750,6 @@ void App::close()
         }
     }
 
-    //! @todo Register reset handlers for thread_local static variables
-#if 0
-    for (auto&& it: m_threads)
-    {
-        it->start();
-        std::ignore=it->execSync(
-            []()
-            {
-                common::ThreadSubcontext<common::TaskSubcontextT<HATN_LOGCONTEXT_NAMESPACE::Context>>::reset();
-            }
-            );
-        it->stop();
-    }
-#endif
-
     // std::cout << "Destroy env" << std::endl;
 
     // destroy env
