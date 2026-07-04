@@ -302,10 +302,6 @@ struct PriorityChannel
         streams.clear();
         mutex.unlock();
     }
-
-    void resetState()
-    {
-    }
 };
 
 class GrpcTransport_p

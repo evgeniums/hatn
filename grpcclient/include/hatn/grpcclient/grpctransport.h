@@ -142,6 +142,18 @@ constexpr const uint32_t DefaultInitialReconnectBackoffMs=1000;
 // at/below keep_alive_period so pings actually flow at the configured cadence.
 constexpr const uint32_t DefaultMinSentPingIntervalWithoutDataMs=5000;
 
+// Safety net for mobile backgrounding: if a channel somehow ends up with no active
+// calls (e.g. the event-listener stream was closed) but the app-level suspend() was
+// not invoked for some reason, gRPC's own idle-timeout will still drop the socket
+// after this many ms of inactivity instead of leaving it (and its keepalive pings)
+// alive indefinitely. 0 disables the arg entirely (desktop default). Set comfortably
+// above keep_alive_period so it never fights normal keepalive traffic.
+#if defined (BUILD_ANDROID) || defined (BUILD_IOS)
+constexpr const uint32_t DefaultClientIdleTimeoutMs=60000;
+#else
+constexpr const uint32_t DefaultClientIdleTimeoutMs=0;
+#endif
+
 HDU_UNIT(grpc_config,
     HDU_FIELD(maximum_concurrent_calls,TYPE_UINT32,1,false,100)
     HDU_REPEATED_FIELD(priority_channels,TYPE_UINT8,2)
@@ -165,6 +177,7 @@ HDU_UNIT(grpc_config,
     HDU_FIELD(max_pings_without_data,TYPE_UINT32,21,false,DefaultMaxPingsWithoutData)
     HDU_FIELD(max_reconnect_backoff_ms,TYPE_UINT32,22,false,DefaultMaxReconnectBackoffMs)
     HDU_FIELD(initial_reconnect_backoff_ms,TYPE_UINT32,23,false,DefaultInitialReconnectBackoffMs)
+    HDU_FIELD(client_idle_timeout_ms,TYPE_UINT32,24,false,DefaultClientIdleTimeoutMs)
 )
 
 namespace detail {
@@ -268,6 +281,16 @@ class HATN_GRPCCLIENT_EXPORT GrpcTransport : public base::ConfigObject<grpc_conf
         // changes (WiFi <-> cellular) so zombie sockets are replaced immediately instead of
         // waiting for keepalive timeout to fire.
         void reconnect();
+
+        // Mobile background/foreground lifecycle: unlike updateNetworkState(true), which only
+        // cancels in-flight RPCs/streams and marks the channel disconnected while leaving the
+        // underlying grpc::Channel/stub (and its socket + keepalive pings) alive, suspend()
+        // destroys the channel objects outright (same effect as closeChannels()), which is the
+        // only way to actually drop the TCP socket. resume() rebuilds them (same as
+        // initChannels()), symmetric with setRouter()'s init/close pairing. Call suspend() when
+        // the app enters background and resume() when it returns to foreground.
+        void suspend();
+        void resume();
 
         // ---- gRPC-encapsulation boundary -----------------------------------
         // These non-template methods own every gRPC type and are compiled only

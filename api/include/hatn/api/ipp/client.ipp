@@ -458,6 +458,14 @@ template <typename RouterT,
          typename Traits>
 void Client<RouterT,Transport,SessionWrapperT,Traits>::updateNetworkState(bool disconnected)
 {
+    if (m_suspended)
+    {
+        // Backgrounded: the transport's channels/sockets have been destroyed by suspend().
+        // Ignore network-state churn (e.g. a medium-switch notification) until resume()
+        // rebuilds them, otherwise this would touch destroyed channel objects.
+        return;
+    }
+
     m_networkDisconnected.store(disconnected);
 
     m_thread->execAsync(
@@ -520,8 +528,11 @@ template <typename RouterT,
          typename Traits>
 void Client<RouterT,Transport,SessionWrapperT,Traits>::updateForegroundState()
 {
-    if (m_networkDisconnected)
+    if (m_networkDisconnected || m_suspended)
     {
+        // While suspended the transport's channels/sockets are destroyed; the soft
+        // foreground path assumes they still exist. Callers must use resume() instead
+        // while suspended (see AccountEnv's mobile foreground handler).
         return;
     }
 
@@ -546,6 +557,14 @@ template <typename RouterT,
          typename Traits>
 void Client<RouterT,Transport,SessionWrapperT,Traits>::reconnect()
 {
+    if (m_suspended)
+    {
+        // Backgrounded: a transport-failure-driven retry (e.g. SyncController) must not
+        // silently re-open a socket while the app is suspended. resume() is the only way
+        // out of the suspended state.
+        return;
+    }
+
     m_networkDisconnected.store(false);
 
     m_thread->execAsync(
@@ -557,6 +576,56 @@ void Client<RouterT,Transport,SessionWrapperT,Traits>::reconnect()
             }
 
             m_transport.reconnect();
+        }
+    );
+}
+
+//---------------------------------------------------------------
+
+template <typename RouterT,
+         template <typename Router, typename Traits> class Transport,
+         typename SessionWrapperT,
+         typename Traits>
+void Client<RouterT,Transport,SessionWrapperT,Traits>::suspend()
+{
+    m_suspended.store(true);
+
+    m_thread->execAsync(
+        [this,clientCtx=sharedMainCtx()]()
+        {
+            if (m_closed)
+            {
+                return;
+            }
+
+            m_transport.suspend();
+        }
+    );
+}
+
+//---------------------------------------------------------------
+
+template <typename RouterT,
+         template <typename Router, typename Traits> class Transport,
+         typename SessionWrapperT,
+         typename Traits>
+void Client<RouterT,Transport,SessionWrapperT,Traits>::resume()
+{
+    m_thread->execAsync(
+        [this,clientCtx=sharedMainCtx()]()
+        {
+            if (m_closed)
+            {
+                return;
+            }
+
+            m_transport.resume();
+
+            // Clear the guard only after the transport has actually been rebuilt, so a
+            // reconnect()/updateNetworkState() racing in from another thread cannot land
+            // between "flag cleared" and "channels rebuilt" and touch a not-yet-existing
+            // channel.
+            m_suspended.store(false);
         }
     );
 }

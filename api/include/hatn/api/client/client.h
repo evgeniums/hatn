@@ -84,6 +84,7 @@ class Client : public common::TaskSubcontext,
                 m_thread(thread),
                 m_closed(false),
                 m_networkDisconnected(false),
+                m_suspended(false),
                 m_sessionWaitingQueues(factory->objectAllocator<typename SessionWaitingQueueMap::value_type>())
         {
             handlePriorities(
@@ -214,6 +215,15 @@ class Client : public common::TaskSubcontext,
 
         void reconnect();
 
+        // Mobile background/foreground lifecycle: suspend() tears the transport down hard
+        // (destroys sockets, not just cancels in-flight requests) and marks the client
+        // suspended so updateNetworkState()/reconnect() triggered by unrelated events (e.g. a
+        // transport-failure-driven retry) cannot silently re-open a connection while
+        // backgrounded. resume() clears the flag and rebuilds the transport.
+        void suspend();
+
+        void resume();
+
     private:
 
         void doExec(
@@ -250,6 +260,7 @@ class Client : public common::TaskSubcontext,
         common::ThreadQWithTaskContext* m_thread;
         std::atomic<bool> m_closed;
         std::atomic<bool> m_networkDisconnected;
+        std::atomic<bool> m_suspended;
 
         using SessionWaitingQueueMap=common::pmr::map<SessionId,SessionWaitingQueue,std::less<>>;
 

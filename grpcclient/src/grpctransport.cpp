@@ -209,6 +209,27 @@ void GrpcTransport::reconnect()
 
 //--------------------------------------------------------------------------
 
+void GrpcTransport::suspend()
+{
+    HATN_CTX_DEBUG(1,"GrpcTransport::suspend: closing channels for background")
+    closeChannels();
+}
+
+//--------------------------------------------------------------------------
+
+void GrpcTransport::resume()
+{
+    if (!pimpl->router || pimpl->router->hosts().empty())
+    {
+        return;
+    }
+
+    HATN_CTX_DEBUG(1,"GrpcTransport::resume: rebuilding channels for foreground")
+    initChannels();
+}
+
+//--------------------------------------------------------------------------
+
 common::SharedPtr<Router> GrpcTransport::router() const
 {
     return pimpl->router;
@@ -334,6 +355,20 @@ void detail::PriorityChannel::init(const GrpcTransport* cfg,
     // Cap reconnect backoff so the channel retries quickly after detecting a broken link.
     args.SetInt(GRPC_ARG_INITIAL_RECONNECT_BACKOFF_MS, cfg->config().fieldValue(grpc_config::initial_reconnect_backoff_ms));
     args.SetInt(GRPC_ARG_MAX_RECONNECT_BACKOFF_MS, cfg->config().fieldValue(grpc_config::max_reconnect_backoff_ms));
+
+    // Keep this channel's subchannel out of gRPC's process-wide subchannel pool, so that
+    // destroying the channel (suspend()/close()) deterministically tears down its subchannel
+    // and socket instead of the pool keeping it alive for reuse by an equivalent channel.
+    args.SetInt(GRPC_ARG_USE_LOCAL_SUBCHANNEL_POOL, 1);
+
+    // Safety net: if a channel is ever left with no active calls (e.g. suspend() was missed),
+    // drop its socket after this many idle ms instead of leaving it pinging indefinitely. 0
+    // (desktop default) disables the arg.
+    auto idleTimeoutMs=cfg->config().fieldValue(grpc_config::client_idle_timeout_ms);
+    if (idleTimeoutMs!=0)
+    {
+        args.SetInt(GRPC_ARG_CLIENT_IDLE_TIMEOUT_MS, idleTimeoutMs);
+    }
 
     if (!serverName.empty())
     {
