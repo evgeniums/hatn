@@ -110,6 +110,62 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
             return ec;
         }
 
+        // Mobile background-lifecycle hooks (see db::Client::pauseBackgroundWork()/
+        // resumeBackgroundWork()/flush()): posted onto the db thread like every other
+        // operation here, so callers on another thread (e.g. the app thread) never touch the
+        // Client directly.
+        template <typename ContextT, typename CallbackT>
+        void pauseBackgroundWork(
+                common::SharedPtr<ContextT> ctx,
+                CallbackT cb
+            )
+        {
+            common::postAsyncTask(
+                threads()->thread(),
+                ctx,
+                [ctx,this,self{shared_from_this()}](auto, auto cb)
+                {
+                    cb(std::move(ctx),m_client->pauseBackgroundWork());
+                },
+                std::move(cb)
+            );
+        }
+
+        template <typename ContextT, typename CallbackT>
+        void resumeBackgroundWork(
+                common::SharedPtr<ContextT> ctx,
+                CallbackT cb
+            )
+        {
+            common::postAsyncTask(
+                threads()->thread(),
+                ctx,
+                [ctx,this,self{shared_from_this()}](auto, auto cb)
+                {
+                    cb(std::move(ctx),m_client->resumeBackgroundWork());
+                },
+                std::move(cb)
+            );
+        }
+
+        template <typename ContextT, typename CallbackT>
+        void flush(
+                common::SharedPtr<ContextT> ctx,
+                CallbackT cb,
+                bool sync=true
+            )
+        {
+            common::postAsyncTask(
+                threads()->thread(),
+                ctx,
+                [ctx,this,self{shared_from_this()},sync](auto, auto cb)
+                {
+                    cb(std::move(ctx),m_client->flush(sync));
+                },
+                std::move(cb)
+            );
+        }
+
         template <typename ContextT, typename CallbackT>
         void createDb(
                 common::SharedPtr<ContextT> ctx,

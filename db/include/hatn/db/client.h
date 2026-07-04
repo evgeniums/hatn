@@ -155,6 +155,54 @@ class HATN_DB_EXPORT Client : public common::WithID
             return OK;
         }
 
+        /**
+         * @brief Pause backend background work (e.g. compaction) without closing the database.
+         *
+         * Mobile background-lifecycle hook: lets the app quiesce the database (so it holds no
+         * in-progress background writes/locks) while staying open, cheaper and faster to reverse
+         * than a full closeDb()/openDb() cycle. Backends that have no such concept (default here)
+         * simply no-op.
+         */
+        Error pauseBackgroundWork()
+        {
+            HATN_CTX_SCOPE("db::pausebackgroundwork")
+            if (m_open)
+            {
+                return doPauseBackgroundWork();
+            }
+            HATN_CTX_SCOPE_LOCK()
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
+        /**
+         * @brief Resume backend background work paused by pauseBackgroundWork().
+         */
+        Error resumeBackgroundWork()
+        {
+            HATN_CTX_SCOPE("db::resumebackgroundwork")
+            if (m_open)
+            {
+                return doResumeBackgroundWork();
+            }
+            HATN_CTX_SCOPE_LOCK()
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
+        /**
+         * @brief Flush any in-memory writes (e.g. WAL/memtables) to durable storage without closing.
+         * @param sync Wait for the flush to complete before returning.
+         */
+        Error flush(bool sync=true)
+        {
+            HATN_CTX_SCOPE("db::flush")
+            if (m_open)
+            {
+                return doFlush(sync);
+            }
+            HATN_CTX_SCOPE_LOCK()
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
         Error createDb(const ClientConfig& config, base::config_object::LogRecords& records)
         {
             HATN_CTX_SCOPE("db::createdb")
@@ -833,6 +881,23 @@ class HATN_DB_EXPORT Client : public common::WithID
 
         virtual void doOpenDb(const ClientConfig& config, Error& ec, base::config_object::LogRecords& records, bool creatIfNotExists)=0;
         virtual void doCloseDb(Error& ec)=0;
+
+        // Default no-ops (not pure virtual) so backends without a background-work/flush concept
+        // don't need to implement them — mirrors the doCloneEnvironment() precedent below.
+        virtual Error doPauseBackgroundWork()
+        {
+            return OK;
+        }
+
+        virtual Error doResumeBackgroundWork()
+        {
+            return OK;
+        }
+
+        virtual Error doFlush(bool /*sync*/)
+        {
+            return OK;
+        }
 
         virtual Error doSetSchema(std::shared_ptr<Schema> schema)=0;
         virtual Result<std::shared_ptr<Schema>> doGetSchema() const=0;

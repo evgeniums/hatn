@@ -668,6 +668,68 @@ void RocksdbClient::invokeCloseDb(Error &ec)
 
 //---------------------------------------------------------------
 
+Error RocksdbClient::doPauseBackgroundWork()
+{
+    HATN_CTX_SCOPE("rdb::pausebackgroundwork")
+
+    if (!d->handler)
+    {
+        return OK;
+    }
+
+    auto status=d->handler->p()->db->PauseBackgroundWork();
+    if (!status.ok())
+    {
+        return makeError(DbError::DB_PAUSE_BACKGROUND_WORK_FAILED,status);
+    }
+    return OK;
+}
+
+//---------------------------------------------------------------
+
+Error RocksdbClient::doResumeBackgroundWork()
+{
+    HATN_CTX_SCOPE("rdb::resumebackgroundwork")
+
+    if (!d->handler)
+    {
+        return OK;
+    }
+
+    auto status=d->handler->p()->db->ContinueBackgroundWork();
+    if (!status.ok())
+    {
+        return makeError(DbError::DB_RESUME_BACKGROUND_WORK_FAILED,status);
+    }
+    return OK;
+}
+
+//---------------------------------------------------------------
+
+Error RocksdbClient::doFlush(bool sync)
+{
+    HATN_CTX_SCOPE("rdb::flush")
+
+    if (!d->handler)
+    {
+        return OK;
+    }
+
+    // Flushes the write-ahead log to durable storage so a subsequent open/recovery has nothing
+    // left to replay. Does not flush memtables to SST files across all (dynamically created,
+    // per date-partition) column families — that would need enumerating every live CF handle,
+    // which RocksdbHandler does not currently expose; WAL durability is the primary goal for
+    // mobile background-lifecycle quiescing (fast, safe re-open after an OS-initiated kill).
+    auto status=d->handler->p()->db->FlushWAL(sync);
+    if (!status.ok())
+    {
+        return makeError(DbError::DB_FLUSH_FAILED,status);
+    }
+    return OK;
+}
+
+//---------------------------------------------------------------
+
 Error RocksdbClient::doSetSchema(std::shared_ptr<Schema> schema)
 {
     HATN_CTX_SCOPE("rdb::addschema")

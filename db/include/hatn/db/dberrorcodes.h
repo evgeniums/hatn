@@ -63,6 +63,9 @@
     Do(DbError,DB_PLUGIN_FAILED,_TR("failed to load requested database plugin","db")) \
     Do(DbError,INVALID_CONFIG,_TR("invalid database configuration","db")) \
     Do(DbError,BLOB_CONFIG_REQUIRED,_TR("schema contains blob models but client configuration missing blob flag","db")) \
+    Do(DbError,DB_PAUSE_BACKGROUND_WORK_FAILED,_TR("failed to pause database background work","db")) \
+    Do(DbError,DB_RESUME_BACKGROUND_WORK_FAILED,_TR("failed to resume database background work","db")) \
+    Do(DbError,DB_FLUSH_FAILED,_TR("failed to flush database","db")) \
 
 HATN_DB_NAMESPACE_BEGIN
 
