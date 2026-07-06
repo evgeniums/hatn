@@ -100,14 +100,25 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
 
         Error closeDbSync()
         {
-            Error ec;
-            std::ignore=threads()->thread()->execSync(
-                [&ec,this,self{shared_from_this()}]()
+            // ec is heap-allocated and kept alive via shared_ptr, not captured by reference: if
+            // execSync() below times out, closeDbSync() returns while the queued lambda may still
+            // be running on the db thread — a `&ec` capture would leave it writing through a
+            // dangling reference to a destroyed stack local. The shared_ptr keeps it valid
+            // regardless. Also: execSync()'s own return value (e.g. TIMEOUT) was previously
+            // discarded via std::ignore=, so a timed-out close silently reported OK; it is now
+            // surfaced and takes priority over whatever (possibly stale) value *ec holds.
+            auto ec=std::make_shared<Error>();
+            auto execEc=threads()->thread()->execSync(
+                [ec,this,self{shared_from_this()}]()
                 {
-                    ec=m_client->closeDb();
+                    *ec=m_client->closeDb();
                 }
             );
-            return ec;
+            if (execEc)
+            {
+                return execEc;
+            }
+            return *ec;
         }
 
         // Mobile background-lifecycle hooks (see db::Client::pauseBackgroundWork()/

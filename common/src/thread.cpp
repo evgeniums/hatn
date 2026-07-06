@@ -409,13 +409,15 @@ Error Thread::execSync(
     }
 
     //! @todo check if caller in the same thread
-    std::packaged_task<void ()> task(std::move(handler));
-    auto future=task.get_future();
-    auto taskPtr=&task;
+    // Heap-allocated + shared_ptr-kept-alive, not a raw pointer to this stack-local task: if
+    // this call times out below, the caller can return while the task is still queued on the
+    // target thread; a raw `taskPtr` would then dangle when the queued lambda eventually runs.
+    auto task=std::make_shared<std::packaged_task<void ()>>(std::move(handler));
+    auto future=task->get_future();
     execAsync(
-        [taskPtr]()
+        [task]()
         {
-            (*taskPtr)();
+            (*task)();
         }
     );
     if (timeoutMs==0)

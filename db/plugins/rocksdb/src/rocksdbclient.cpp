@@ -82,6 +82,17 @@ HDU_UNIT(rocksdb_options,
          HDU_FIELD(db_write_buffer_size,TYPE_UINT64,9)
          HDU_FIELD(delete_obsolete_files_period_micros,TYPE_UINT64,10)
 
+         // Mobile background-lifecycle tuning (see whitem/docs/background-lifecycle.md). Bare
+         // optional fields, no default: applied in doOpenDb() only when explicitly present in the
+         // JSONC config (guarded by .isSet()), so an unconfigured deployment gets rocksdb::Options'
+         // own compiled-in default, unchanged from today's behavior. Deliberately NOT compile-time
+         // defaults gated by BUILD_ANDROID/BUILD_IOS: mobile-vs-desktop tuning is instead a property
+         // of which config each platform ships with, and a bad choice is correctable via a config
+         // push rather than an app rebuild.
+         HDU_FIELD(max_open_files,TYPE_INT32,11)
+         HDU_FIELD(avoid_flush_during_recovery,TYPE_BOOL,12)
+         HDU_FIELD(max_background_jobs,TYPE_INT32,13)
+
          HDU_FIELD(blob_min_size,TYPE_UINT32,30,false,0x4000)
          HDU_FIELD(blob_max_size,TYPE_UINT32,31)
          HDU_FIELD(blob_write_buffer_size,TYPE_UINT32,32)
@@ -275,6 +286,21 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
     if (d->opt.config().field(rocksdb_options::delete_obsolete_files_period_micros).isSet())
     {
         options.delete_obsolete_files_period_micros=d->opt.config().fieldValue(rocksdb_options::delete_obsolete_files_period_micros);
+    }
+    // Mobile background-lifecycle tuning: applied only if explicitly configured (see field
+    // comments above); rocksdb::Options' own compiled-in defaults (e.g. max_open_files=-1) apply
+    // otherwise, identical to today's behavior for every deployment that doesn't set these keys.
+    if (d->opt.config().field(rocksdb_options::max_open_files).isSet())
+    {
+        options.max_open_files=d->opt.config().fieldValue(rocksdb_options::max_open_files);
+    }
+    if (d->opt.config().field(rocksdb_options::avoid_flush_during_recovery).isSet())
+    {
+        options.avoid_flush_during_recovery=d->opt.config().fieldValue(rocksdb_options::avoid_flush_during_recovery);
+    }
+    if (d->opt.config().field(rocksdb_options::max_background_jobs).isSet())
+    {
+        options.max_background_jobs=d->opt.config().fieldValue(rocksdb_options::max_background_jobs);
     }
 
     //! @todo Add CompactOnDeletionCollector with corresponding options for faster space reclaiming

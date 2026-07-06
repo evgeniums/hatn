@@ -370,21 +370,30 @@ Error ClientApp::closeData()
         && common::Thread::currentThread()!=appThread)
     {
         // Post doCloseData to the app thread and block on completion via std::future.
-        std::promise<Error> promise;
-        auto future=promise.get_future();
+        // The promise is heap-allocated and kept alive via shared_ptr (not captured by
+        // reference): if the wait below times out, closeData() returns and this stack frame
+        // unwinds while doCloseData() may still be running on appThread. A `&promise` capture
+        // would leave the completion callback holding a dangling reference to a destroyed
+        // std::promise — a later promise.set_value(err) would be UB. The shared_ptr keeps the
+        // promise valid regardless of when (or whether) the callback eventually fires; a
+        // "late" set_value() on a promise nobody is still waiting on is well-defined.
+        auto promise=std::make_shared<std::promise<Error>>();
+        auto future=promise->get_future();
         appThread->execAsync(
-            [this,ctx,&promise]()
+            [this,ctx,promise]()
             {
                 doCloseData(ctx,
-                    [&promise](common::SharedPtr<Context>, const Error& err)
+                    [promise](common::SharedPtr<Context>, const Error& err)
                     {
-                        promise.set_value(err);
+                        promise->set_value(err);
                     });
             }
         );
         if (future.wait_for(std::chrono::milliseconds(pimpl->closeDataTimeoutMs))==std::future_status::timeout)
         {
             ec=commonError(CommonError::TIMEOUT);
+            HATN_CTX_WARN("closeData timed out waiting for doCloseData; proceeding with locking/db "
+                           "close while derived-class close may still be running in the background")
         }
         else
         {

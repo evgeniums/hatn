@@ -46,6 +46,19 @@
 #include <hatn/common/error.h>
 #include <hatn/common/fixedbytearray.h>
 
+// Default timeout for execSync() calls. The prior hardcoded 180000ms (3 min) default is far too
+// long for a client app to hold as a fallback — observed real closes take at most a few seconds,
+// and on iOS the ENTIRE background-execution budget is only ~30s, so a wedged execSync() call
+// could alone blow through the whole window. Platform presets below; override at configure time
+// via -DHATN_EXECSYNC_TIMEOUT_MS=<ms> or the HATN_EXECSYNC_TIMEOUT_MS env var (see CMakeLists.txt).
+#ifndef HATN_EXECSYNC_TIMEOUT_MS
+    #if defined(BUILD_ANDROID) || defined(BUILD_IOS)
+        #define HATN_EXECSYNC_TIMEOUT_MS 10000
+    #else
+        #define HATN_EXECSYNC_TIMEOUT_MS 30000
+    #endif
+#endif
+
 HATN_COMMON_NAMESPACE_BEGIN
 
 using ThreadId=FixedByteArrayThrow16;
@@ -91,18 +104,18 @@ class HATN_COMMON_EXPORT Thread : public std::enable_shared_from_this<Thread>
         /**
          * @brief Exec sync function in thread without returning any result
          * @param handler Handler to invoke
-         * @param timeoutMs Period to wait for, default is 3 minutes
+         * @param timeoutMs Period to wait for, default is HATN_EXECSYNC_TIMEOUT_MS
          * @return Execution status
          */
         Error execSync(
             std::function<void()> handler,
-            size_t timeoutMs=180000
+            size_t timeoutMs=HATN_EXECSYNC_TIMEOUT_MS
         );
 
         /**
          * @brief Exec sync function in thread returning some result
          * @param handler Handler to invoke
-         * @param timeoutMs Period to wait the result for, default is 3 minutes
+         * @param timeoutMs Period to wait the result for, default is HATN_EXECSYNC_TIMEOUT_MS
          * @return T result
          *
          * @throws ErrorException on timeout
@@ -110,7 +123,7 @@ class HATN_COMMON_EXPORT Thread : public std::enable_shared_from_this<Thread>
         template <typename T>
         T execSync(
                 std::function<T ()> handler,
-                size_t timeoutMs=180000
+                size_t timeoutMs=HATN_EXECSYNC_TIMEOUT_MS
             )
         {
             auto currentThread=currentThreadOrMain();
@@ -120,13 +133,18 @@ class HATN_COMMON_EXPORT Thread : public std::enable_shared_from_this<Thread>
                 return handler();
             }
 
-            std::packaged_task<T ()> task(std::move(handler));
-            auto future=task.get_future();
-            auto taskPtr=&task;
+            // Task is heap-allocated and kept alive via shared_ptr (not a stack-local pointed to
+            // by a raw `taskPtr`): if this call times out below, the caller may return/unwind
+            // while the task is still queued on the target thread. A raw pointer to a stack
+            // object would then be a use-after-free when the queued lambda eventually runs;
+            // the shared_ptr keeps the task valid regardless of how long it takes to drain.
+            // Mirrors the existing execFuture() pattern below.
+            auto task=std::make_shared<std::packaged_task<T ()>>(std::move(handler));
+            auto future=task->get_future();
             execAsync(
-                [taskPtr]()
+                [task]()
                 {
-                    (*taskPtr)();
+                    (*task)();
                 }
             );
             if (timeoutMs==0)
