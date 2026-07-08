@@ -352,6 +352,12 @@ void detail::PriorityChannel::init(const GrpcTransport* cfg,
     // Allow unlimited pings on idle connections. gRPC default is 2, which stops pinging
     // after 2 unanswered pings and defeats the shorter keep_alive_period on idle channels.
     args.SetInt(GRPC_ARG_HTTP2_MAX_PINGS_WITHOUT_DATA, cfg->config().fieldValue(grpc_config::max_pings_without_data));
+    // Lower the floor for keepalive pings on connections with no outgoing DATA frames.
+    // The event stream half-closes its write side and never sends data again, so without
+    // this arg gRPC's own floor overrides keep_alive_period and delays zombie-socket
+    // detection by minutes. This only lowers a floor, it never raises the ping rate, so
+    // it cannot trigger the server's too_many_pings enforcement on its own.
+    args.SetInt(GRPC_ARG_HTTP2_MIN_SENT_PING_INTERVAL_WITHOUT_DATA_MS, cfg->config().fieldValue(grpc_config::min_sent_ping_interval_without_data_ms));
     // Cap reconnect backoff so the channel retries quickly after detecting a broken link.
     args.SetInt(GRPC_ARG_INITIAL_RECONNECT_BACKOFF_MS, cfg->config().fieldValue(grpc_config::initial_reconnect_backoff_ms));
     args.SetInt(GRPC_ARG_MAX_RECONNECT_BACKOFF_MS, cfg->config().fieldValue(grpc_config::max_reconnect_backoff_ms));

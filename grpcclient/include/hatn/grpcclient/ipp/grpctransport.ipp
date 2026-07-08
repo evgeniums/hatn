@@ -137,6 +137,15 @@ void GrpcTransport::sendRequest(
     {
         HATN_CTX_DEBUG(1,"stream call")
 
+        // advertise application-level heartbeat support and the period we want; the server
+        // only sends heartbeats to clients that send this header, so older servers that
+        // don't understand it simply ignore it and behave as before.
+        auto heartbeatPeriod=config().fieldValue(grpc_config::stream_heartbeat_period);
+        if (heartbeatPeriod!=0)
+        {
+            metadata.emplace_back(std::string{config().fieldValue(grpc_config::stream_heartbeat_header)},std::to_string(heartbeatPeriod));
+        }
+
         sendStreamImpl(
             priority,
             reqAddr,

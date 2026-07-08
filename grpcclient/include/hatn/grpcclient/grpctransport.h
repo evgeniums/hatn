@@ -135,12 +135,27 @@ constexpr const uint32_t DefaultMaxReconnectBackoffMs=10000;
 constexpr const uint32_t DefaultInitialReconnectBackoffMs=1000;
 
 // Minimum interval the client allows between keepalive pings sent on a connection
-// with NO data frames flowing (e.g. a stuck stream after a WiFi<->VPN switch).
-// gRPC's default floor here is tens of seconds and OVERRIDES keep_alive_period,
-// so a zombie socket is only detected after that floor + keep_alive_timeout
-// (observed ~60-70 s) instead of keep_alive_period + keep_alive_timeout. Keep this
-// at/below keep_alive_period so pings actually flow at the configured cadence.
+// with NO data frames flowing (e.g. a stuck stream after a WiFi<->VPN switch). This
+// is exactly the situation of the event-listener stream: it half-closes its write
+// side right after the subscribe message and never sends data again, so without
+// this arg gRPC's own floor (tens of seconds, observed default ~300 s) overrides
+// keep_alive_period and a zombie socket is only detected after that floor +
+// keep_alive_timeout instead of keep_alive_period + keep_alive_timeout. Fed into
+// GRPC_ARG_HTTP2_MIN_SENT_PING_INTERVAL_WITHOUT_DATA_MS in PriorityChannel::init().
+// Keep at/below keep_alive_period so pings actually flow at the configured cadence.
 constexpr const uint32_t DefaultMinSentPingIntervalWithoutDataMs=5000;
+
+// Application-level stream heartbeat message type sent by the server inside
+// stream_response wrappers on server-streaming calls. Liveness only: consumed and
+// discarded by the app-level stream reader, never surfaced as a real event.
+constexpr const char* StreamHeartbeatMessageType="hatn.stream.heartbeat";
+
+// Heartbeat period (seconds) the client requests from the server for streaming
+// calls, sent as the stream_heartbeat_header request metadata. The server sends
+// heartbeats at min(its own configured period, this value), so this value alone
+// bounds how stale a client-side stall watchdog can safely be. 0 disables the
+// request entirely (client gets no heartbeats, e.g. talking to an older server).
+constexpr const uint32_t DefaultStreamHeartbeatPeriod=20;
 
 // Safety net for mobile backgrounding: if a channel somehow ends up with no active
 // calls (e.g. the event-listener stream was closed) but the app-level suspend() was
@@ -168,6 +183,7 @@ HDU_UNIT(grpc_config,
     HDU_FIELD(auth_tag_header,TYPE_STRING,11,false,"x-hatn-atag")
     HDU_FIELD(config_json,TYPE_STRING,12,false,DefaultConfigJson)
     HDU_FIELD(unary_deadline_timeout,TYPE_UINT32,13,false,DefaultUnaryDeadlineTimeout)
+    HDU_FIELD(min_sent_ping_interval_without_data_ms,TYPE_UINT32,14,false,DefaultMinSentPingIntervalWithoutDataMs)
     HDU_FIELD(error_response_type,TYPE_STRING,15,false,"grpc_api_server.Error")
     HDU_FIELD(keep_alive_period,TYPE_UINT32,16,false,DefaultKeepAlivePeriod)
     HDU_FIELD(keep_alive_timeout,TYPE_UINT32,17,false,DefaultKeepAliveTimeout)
@@ -178,6 +194,8 @@ HDU_UNIT(grpc_config,
     HDU_FIELD(max_reconnect_backoff_ms,TYPE_UINT32,22,false,DefaultMaxReconnectBackoffMs)
     HDU_FIELD(initial_reconnect_backoff_ms,TYPE_UINT32,23,false,DefaultInitialReconnectBackoffMs)
     HDU_FIELD(client_idle_timeout_ms,TYPE_UINT32,24,false,DefaultClientIdleTimeoutMs)
+    HDU_FIELD(stream_heartbeat_header,TYPE_STRING,25,false,"x-hatn-stream-hb")
+    HDU_FIELD(stream_heartbeat_period,TYPE_UINT32,26,false,DefaultStreamHeartbeatPeriod)
 )
 
 namespace detail {
