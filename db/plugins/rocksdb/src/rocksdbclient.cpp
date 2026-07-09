@@ -15,6 +15,8 @@
 
 /****************************************************************************/
 
+#include <chrono>
+
 #include <boost/algorithm/string.hpp>
 
 #include <hatn/logcontext/contextlogger.h>
@@ -671,9 +673,25 @@ void RocksdbClient::invokeCloseDb(Error &ec)
         rocksdb::Status status;
         if (d->cfg.config().field(rocksdb_config::wait_compact_shutdown).value())
         {
+            // WaitForCompactOptions::timeout defaults to zero, which per rocksdb's own
+            // documented contract means "wait as long as there's background work to finish" —
+            // i.e. indefinitely if compaction is backlogged. An unbounded wait here risks
+            // App::close()'s later Thread::stop()->join() on this same (still-running) db
+            // thread blocking forever, leaving the process unable to exit at all. Bound the
+            // wait and fall back to a plain Close() below if it doesn't finish in time, so
+            // shutdown always makes bounded, deterministic progress.
             auto opt = rocksdb::WaitForCompactOptions{};
             opt.close_db = true;
+            opt.timeout = std::chrono::seconds(10);
             status = d->handler->p()->db->WaitForCompact(opt);
+            if (!status.ok())
+            {
+                // WaitForCompact may not have actually closed the db if the wait didn't
+                // complete (timed out / aborted) — close explicitly either way.
+                HATN_CTX_WARN("wait_compact_shutdown did not complete within the bound, "
+                               "falling back to a plain db close")
+                status = d->handler->p()->db->Close();
+            }
         }
         else
         {
