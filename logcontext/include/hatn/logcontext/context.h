@@ -87,6 +87,13 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
         using config=Config;
         using self=ContextT<Config>;
 
+        // Hard cap on m_scopeStack growth while locked (see enterScope()). Generous headroom
+        // over normal nesting depth (config::ScopeDepth) so it never engages during legitimate
+        // deep-but-still-locked scenarios, but bounds the otherwise-unbounded growth if a lock
+        // is left set across many enter/leave cycles on a reused context (a missing
+        // HATN_CTX_SCOPE_UNLOCK()/setStackLocked(false) call).
+        constexpr static const size_t MaxLockedScopeStackSize=8*config::ScopeDepth;
+
         using LoggerHandler=LoggerHandlerT<ContextT<Config>>;
         using Logger=LoggerWithHandler<ContextT<Config>>;
 
@@ -100,12 +107,13 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
         using tagRecordT=std::pair<tagT,LogLevel>;
 
         ContextT()
-            :   m_currentScopeIdx(0),                
+            :   m_currentScopeIdx(0),
                 m_lockStack(false),
                 m_lockScopeIdx(0),
                 m_logLevel(LogLevel::Default),
                 m_enableStackLocking(true),
                 m_debugVerbosity(0),
+                m_scopeStackCapWarned(false),
                 m_parentLogCtx(nullptr),
                 m_logger(nullptr)
         {}
@@ -123,6 +131,29 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
         void enterScope(const char* name)
         {
             m_currentScopeIdx++;
+
+            // Defensive cap: while m_lockStack is true, leaveScope() skips pop_back() (see
+            // below), so a context reused across many enter/leave cycles without an
+            // intervening HATN_CTX_SCOPE_UNLOCK()/setStackLocked(false) call would otherwise
+            // grow m_scopeStack unboundedly (this was the root cause of a real multi-minute
+            // hang destroying a scope stack with thousands of entries at context teardown; see
+            // whitem/docs — fixed at the actual lock trigger too, this is belt-and-suspenders).
+            // currentScope()'s existing idx>size() clamp already tolerates m_currentScopeIdx
+            // outrunning m_scopeStack.size(), so simply not growing past the cap is safe.
+            if (m_scopeStack.size()>=MaxLockedScopeStackSize)
+            {
+                if (!m_scopeStackCapWarned)
+                {
+                    m_scopeStackCapWarned=true;
+                    std::cerr << "logcontext scope stack exceeded " << MaxLockedScopeStackSize
+                              << " entries (lockStack=" << m_lockStack
+                              << ", currentScopeIdx=" << m_currentScopeIdx
+                              << ") - capping growth; likely a missing scope-unlock on a "
+                                 "repeatedly-locked, reused context" << std::endl;
+                }
+                return;
+            }
+
             m_scopeStack.emplace_back(std::make_pair(name,scopeCursorDataT{m_scopeStack.size(),m_varStack.size(),m_varStack.size(),common::Thread::currentThreadID(),nullptr}));
         }
 
@@ -571,6 +602,7 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
 
         bool m_enableStackLocking;
         uint8_t m_debugVerbosity;
+        bool m_scopeStackCapWarned;
 
         ContextT* m_parentLogCtx;
 
