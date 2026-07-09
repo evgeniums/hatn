@@ -152,6 +152,15 @@ void Client<RouterT,Transport,SessionWrapperT,Traits>::doExec(
     else if (m_networkDisconnected)
     {
         HATN_CTX_SCOPE_ERROR("network is disconnected")
+        // "network is disconnected" is a routine, expected, non-fatal condition hit on every
+        // queued exec() attempt during any outage — not the kind of rare/fatal error that
+        // warrants freezing the scope stack for forensic inspection. Without this unlock, a
+        // long-lived context reused across many retry attempts during an extended outage
+        // accumulates one un-popped scope-stack entry per attempt forever (leaveScope() skips
+        // pop_back() while locked), since nothing else on this retry path ever unlocks it.
+        // Mirrors the existing HATN_CTX_ERROR+HATN_CTX_SCOPE_UNLOCK pattern already used for
+        // exactly this reason in contactlist/syncchat.cpp.
+        HATN_CTX_SCOPE_UNLOCK()
         ec=network::networkError(network::NetworkError::NETWORK_NOT_CONNECTED);
     }
     else if (req->priority()!=Priority::Highest
