@@ -197,7 +197,12 @@ struct PriorityChannel
             common::MutexScopedLock l{mutex};
 
             disconnected=false;
-            channel->GetState(true);
+            // channel can be null if close() ran and init()/reconnect() hasn't republished
+            // it yet (e.g. a stray updateNetworkState(false) racing a reconnect in progress).
+            if (channel)
+            {
+                channel->GetState(true);
+            }
         }
     }
 

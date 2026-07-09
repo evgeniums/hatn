@@ -381,8 +381,16 @@ void detail::PriorityChannel::init(const GrpcTransport* cfg,
         args.SetSslTargetNameOverride(serverName);
     }
 
-    channel = grpc::CreateCustomChannel(address,creds,args);
-    stub= std::make_shared<grpc::GenericStub>(channel);
+    auto newChannel = grpc::CreateCustomChannel(address,creds,args);
+    auto newStub = std::make_shared<grpc::GenericStub>(newChannel);
+
+    // publish under the mutex so concurrent readers (sendUnaryImpl/sendStreamImpl on other
+    // transport threads) never observe a half-written channel/stub pair during reconnect()/resume()
+    {
+        common::MutexScopedLock l{mutex};
+        channel = std::move(newChannel);
+        stub = std::move(newStub);
+    }
 }
 
 //--------------------------------------------------------------------------
@@ -535,6 +543,21 @@ void GrpcTransport::sendUnaryImpl(
         return;
     }
 
+    // hold the stub alive for the duration of the call; a concurrent close()/reconnect()
+    // can reset channel->stub, so copy it under the channel mutex and bail if the channel
+    // has been torn down (close() does not set the disconnected flag).
+    std::shared_ptr<grpc::GenericStub> stub;
+    {
+        common::MutexScopedLock l{channel->mutex};
+        stub = channel->stub;
+    }
+    if (!stub)
+    {
+        HATN_CTX_SCOPE_ERROR("grpc channel not initialized")
+        onResponse(network::networkError(network::NetworkError::NETWORK_NOT_CONNECTED));
+        return;
+    }
+
     // create context and register pending request
     auto context=channel->addRequest(reqAddr);
 
@@ -558,7 +581,6 @@ void GrpcTransport::sendUnaryImpl(
     grpc::ByteBuffer requestBuf(&slice,1);
     auto responseBuf=std::make_shared<grpc::ByteBuffer>();
 
-    grpc::GenericStub* stub=channel->stub.get();
     grpc::StubOptions opt;
 
     // invoke unary call; the completion runs on a transport thread
@@ -601,6 +623,21 @@ void GrpcTransport::sendStreamImpl(
         return;
     }
 
+    // hold the stub alive for the duration of the call; a concurrent close()/reconnect()
+    // can reset channel->stub, so copy it under the channel mutex and bail if the channel
+    // has been torn down (close() does not set the disconnected flag).
+    std::shared_ptr<grpc::GenericStub> stub;
+    {
+        common::MutexScopedLock l{channel->mutex};
+        stub = channel->stub;
+    }
+    if (!stub)
+    {
+        HATN_CTX_SCOPE_ERROR("grpc channel not initialized")
+        onMessage(network::networkError(network::NetworkError::NETWORK_NOT_CONNECTED),{});
+        return;
+    }
+
     // create stream (with its own context) and register it
     auto stream=channel->addStream(reqAddr,priority,pimpl);
     auto context=stream->context();
@@ -615,7 +652,6 @@ void GrpcTransport::sendStreamImpl(
     grpc::Slice slice(message->data(),message->size());
     grpc::ByteBuffer requestBuf(&slice,1);
 
-    grpc::GenericStub* stub=channel->stub.get();
     grpc::StubOptions opt;
 
     // wrap the grpc-free read callback so the pending request is dropped on error
