@@ -271,6 +271,36 @@ void LockingController::setForeground()
 
 //---------------------------------------------------------------
 
+void LockingController::setSystemSleeping()
+{
+    auto event=std::make_shared<Event>();
+    event->category=SleepWakeEventCategory;
+    event->event=SleepEvent;
+    auto ctx=m_app->bridge().defaultContextBuilder()->makeContext(m_app->app().env());
+    m_app->eventDispatcher().publish(
+        m_app->app().env(),
+        ctx,
+        std::move(event)
+    );
+}
+
+//---------------------------------------------------------------
+
+void LockingController::setSystemAwake()
+{
+    auto event=std::make_shared<Event>();
+    event->category=SleepWakeEventCategory;
+    event->event=WakeEvent;
+    auto ctx=m_app->bridge().defaultContextBuilder()->makeContext(m_app->app().env());
+    m_app->eventDispatcher().publish(
+        m_app->app().env(),
+        ctx,
+        std::move(event)
+    );
+}
+
+//---------------------------------------------------------------
+
 void LockingController::updateLastActivity()
 {
     if (isLocked())
