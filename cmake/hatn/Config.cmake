@@ -267,12 +267,20 @@ IF (NOT STATIC_BUILD)
     ENDIF (NOT WIN32)
 ENDIF (NOT STATIC_BUILD)
 
-IF (BUILD_ANDROID)    
+IF (BUILD_ANDROID)
     SET(HATN_COMPILE_DEFINITIONS ${HATN_COMPILE_DEFINITIONS} -DBUILD_ANDROID)
     SET(HATN_COMPILE_OPTIONS ${HATN_COMPILE_OPTIONS} -Os -fPIC)
     SET(CMAKE_CXX_VISIBILITY_PRESET hidden)
     SET(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
 ENDIF (BUILD_ANDROID)
+
+# Symmetric with BUILD_ANDROID/BUILD_IOS above: emitted for every non-mobile build (macOS,
+# Windows, Linux desktop) so app-lifecycle code that should apply to "any desktop platform" (e.g.
+# system sleep/wake network-suspend, see whitem/docs/background-lifecycle.md) can gate on one
+# explicit macro instead of inverting the mobile checks.
+IF (NOT BUILD_ANDROID AND NOT BUILD_IOS)
+    SET(HATN_COMPILE_DEFINITIONS ${HATN_COMPILE_DEFINITIONS} -DBUILD_DESKTOP)
+ENDIF (NOT BUILD_ANDROID AND NOT BUILD_IOS)
 
 IF (NOT MSVC)
     SET(HATN_COMPILE_EXTRA_WARNINGS ${HATN_COMPILE_EXTRA_WARNINGS}
