@@ -23,6 +23,9 @@ fi
 echo "Android platform is $platform, toolchain $toolchain_name, compiler $toolchain_clangpp, folder \"$folder\""
 
 C_FLAGS=(
+  # Overrides the NDK toolchain's default -g (last flag wins): line tables only — all that
+  # crash-report symbolizers need; drops the type/variable DWARF that dominates size.
+  "-gline-tables-only"
   "-Wno-macro-redefined"
   "-Wno-error=incompatible-function-pointer-types"
   "-Wno-implicit-function-declaration"
@@ -67,7 +70,7 @@ cmake \
     -DOPENSSL_CRYPTO_LIBRARY="$toolchain_install_path/lib/libcrypto.a" \
     -DOPENSSL_SSL_LIBRARY="$toolchain_install_path/lib/libssl.a" \
     -DOPENSSL_USE_STATIC_LIBS=TRUE \
-    -DCMAKE_CXX_FLAGS="-DSSL_get_peer_certificate=SSL_get1_peer_certificate" \
+    -DCMAKE_CXX_FLAGS="-DSSL_get_peer_certificate=SSL_get1_peer_certificate -gline-tables-only" \
     $folder
 
 cmake --build . -j$build_workers --target install
