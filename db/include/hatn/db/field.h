@@ -116,7 +116,10 @@ struct makePathT
                     using type=std::decay_t<decltype(val)>;
                     if constexpr (hana::is_a<du::FieldTag,type>)
                     {
-                        path.emplace_back(val.id(),val.name(),val.id());
+                        // idx=-1 marks this path element as not indexed, i.e. the field
+                        // was not wrapped with array(). Traversal code must reject an
+                        // attempt to descend into an array field via such an element.
+                        path.emplace_back(val.id(),val.name(),-1);
                     }
                     else
                     {

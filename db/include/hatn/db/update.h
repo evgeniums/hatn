@@ -47,6 +47,27 @@ using Vector=query::Vector<T>;
 using Bytes=common::ConstDataBuf;
 using Subunit=common::SharedPtr<du::Unit>;
 
+//! View over the wire bytes of a serialized subunit (as produced by du::UnitSer::serialize).
+/**
+ * Used as the operand type when an update request holding a Subunit/VectorSubunit
+ * operand is deserialized from the wire: the concrete unit type is not known at that
+ * point, so the raw already-serialized bytes are carried through as-is and re-serialized
+ * verbatim (see update::serialization::serializeFieldT / deserializeT), or applied
+ * directly to the target field via du::UnitSer::deserialize (see update::HandleFieldT).
+ */
+struct SubunitBuf : public common::ConstDataBuf
+{
+    SubunitBuf() noexcept =default;
+
+    // Deliberately not inheriting common::ConstDataBuf's constructors: it has a
+    // templated single-argument constructor (from any container-like type) that,
+    // if inherited, makes SubunitBuf an implicit conversion target for unrelated
+    // types and creates ambiguous overload resolution wherever SubunitBuf appears
+    // alongside other operand types (e.g. update::serialization::SerializeScalar's
+    // per-type operator() overloads).
+    SubunitBuf(const char* data, size_t size) noexcept : common::ConstDataBuf(data,size) {}
+};
+
 #define HATN_DB_UPDATE_VALUE_TYPES(DO) \
     DO(bool), \
     DO(int8_t), \
@@ -65,7 +86,8 @@ using Subunit=common::SharedPtr<du::Unit>;
     DO(common::Time), \
     DO(common::DateRange), \
     DO(ObjectId), \
-    DO(Subunit)
+    DO(Subunit), \
+    DO(SubunitBuf)
 
 #define HATN_DB_UPDATE_VALUE_TYPE_IDS(DO) \
     DO(Bool), \
@@ -85,7 +107,8 @@ using Subunit=common::SharedPtr<du::Unit>;
     DO(Time), \
     DO(DateRange), \
     DO(ObjectId), \
-    DO(Subunit)
+    DO(Subunit), \
+    DO(SubunitBuf)
 
 #define HATN_DB_UPDATE_VALUE_TYPE(Type) \
     Type, \
@@ -171,7 +194,13 @@ struct Field
             Assert(firstFieldPathItem.fieldId!=CreatedAtFieldId,"Cannot update object::created_at");
             Assert(firstFieldPathItem.fieldId!=UpdatedAtFieldId,"Cannot update object::created_at");
 
-            //! @todo Check combination of operator and operand
+            // element operators address a specific array element, so the last path
+            // item must be built with array(field,idx), i.e. carry a real index and
+            // not the idx=-1 sentinel that makePath uses for a plain field reference.
+            if (op==Operator::replace_element || op==Operator::erase_element || op==Operator::inc_element)
+            {
+                Assert(path.back().idx>=0,"Element update operator requires an indexed path, use db::array()");
+            }
         }
 };
 
@@ -282,7 +311,6 @@ class Request : public FieldsVector
         using FieldsVector::FieldsVector;
 };
 
-//! @todo Implement operations with repeated subunits
 struct makeRequestT
 {
     template <typename ...Fields>
@@ -357,5 +385,3 @@ constexpr auto ReturnBefore=ModifyReturn::Before;
 HATN_DB_NAMESPACE_END
 
 #endif // HATNDBUPDATE_H
-
-//! @todo Test updating subunit fields as a whole

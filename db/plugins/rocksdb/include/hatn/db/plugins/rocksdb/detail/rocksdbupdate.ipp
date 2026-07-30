@@ -183,8 +183,9 @@ Result<typename ModelT::SharedPtr> updateSingle(
         RocksdbModelT<modelType>::updatingKeys(keys,request,topic,objectIdS,obj.get(),oldKeys,ttlUpdated);
 
         // apply request to object
-        update::ApplyRequest(obj.get(),request);
-        obj->field(object::updated_at).set(common::DateTime::currentUtc());        
+        ec=update::ApplyRequest(obj.get(),request);
+        HATN_CHECK_EC(ec)
+        obj->field(object::updated_at).set(common::DateTime::currentUtc());
 
         // serialize object
         dataunit::WireBufSolid buf{factory};

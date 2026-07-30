@@ -131,6 +131,17 @@ struct SerializeScalar
         return OK;
     }
 
+    Error operator () (const SubunitBuf& val) const
+    {
+        // val already holds the exact bytes that du::UnitSer::serialize would
+        // produce (this is how a deserialized update request carries a
+        // Subunit/VectorSubunit operand whose concrete unit type was unknown at
+        // deserialization time, see update::SubunitBuf), so copy them through as-is.
+        buf.mainContainer()->append(val.data(),val.size());
+        buf.incSize(static_cast<int>(val.size()));
+        return OK;
+    }
+
     Error operator () (const ObjectId& val) const
     {
         if (!du::OidTraits::serialize(val,buf))
@@ -183,6 +194,20 @@ struct serializeFieldT
     {
         auto valueType=updateField.value.typeId();
 
+        // SubunitBuf/VectorSubunitBuf are internal carrier types used only in-process
+        // when a request was deserialized from the wire without knowing the concrete
+        // unit type (see update::SubunitBuf); on the wire they are indistinguishable
+        // from a genuine Subunit/VectorSubunit operand, so re-serializing a
+        // deserialized request reproduces the original wire tag.
+        if (valueType==ValueType::SubunitBuf)
+        {
+            valueType=ValueType::Subunit;
+        }
+        else if (valueType==ValueType::VectorSubunitBuf)
+        {
+            valueType=ValueType::VectorSubunit;
+        }
+
         auto& field = msg.field(message::the_fields).createAndAppendValue();
         field.setFieldValue(a_field::op,updateField.op);
         field.setFieldValue(a_field::value_type,valueType);
@@ -191,7 +216,10 @@ struct serializeFieldT
         {
             auto& item=path.createAndAppendValue();
             item.setFieldValue(field_id::id,it.fieldId);
-            item.setFieldValue(field_id::idx,it.idx);
+            // idx==-1 marks a path element as not indexed (see db::makePathT); cast
+            // explicitly so the sentinel round-trips as the fixed bit pattern
+            // 0xFFFFFFFF through the wire's uint32 idx field.
+            item.setFieldValue(field_id::idx,static_cast<uint32_t>(it.idx));
             item.setFieldValue(field_id::field_name,it.name);
         }
 
@@ -264,7 +292,8 @@ using VectorsHolder=lib::variant<
     VectorHolderT<common::Date>,
     VectorHolderT<common::Time>,
     VectorHolderT<common::DateRange>,
-    VectorHolderT<ObjectId>
+    VectorHolderT<ObjectId>,
+    VectorHolderT<SubunitBuf>
 >;
 
 template <typename T, typename T1=T>
@@ -307,6 +336,19 @@ constexpr fixedDeserT<T,T1> fixedDeser{};
 
 struct deserializeT
 {
+    //! Deserialize an update request from a wire message.
+    /**
+     * @param msg Wire message to deserialize from.
+     * @param request Resulting request.
+     * @param vectorsHolder Storage for the vector operands referenced by request (must
+     *        outlive request, see update::Field::value / update::ValueVariant).
+     * @param factory Allocator factory used for vectorsHolder's elements.
+     *
+     * Note: a Subunit/VectorSubunit operand is carried through as a raw-bytes
+     * SubunitBuf/Vector<SubunitBuf> view into msg's own storage (the concrete unit
+     * type is not known at this point), so msg must also outlive request whenever it
+     * contains such an operand.
+     */
     Error operator() (const message::type& msg, Request& request,
                                              common::pmr::vector<VectorsHolder>& vectorsHolder,
                                              const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
@@ -334,7 +376,7 @@ struct deserializeT
             {
                 path.emplace_back(it1.fieldValue(field_id::id),
                                 it1.field(field_id::field_name).c_str(),
-                                it1.fieldValue(field_id::idx)
+                                static_cast<int>(it1.fieldValue(field_id::idx))
                                );
             }
 
@@ -424,10 +466,22 @@ struct deserializeT
 
                     case(ValueType::Subunit): HATN_FALLTHROUGH
                         case(ValueType::VectorSubunit):
+                        // SubunitBuf/VectorSubunitBuf never actually appear on the wire
+                        // (serializeFieldT remaps them to Subunit/VectorSubunit, see
+                        // update::SubunitBuf), but handle them the same way regardless
+                        // in case a message is ever re-deserialized from an in-process
+                        // Request that still carries the internal tag.
+                        case(ValueType::SubunitBuf): HATN_FALLTHROUGH
+                        case(ValueType::VectorSubunitBuf):
                     {
-                        //! @todo Implement
-                        //! @todo Deserealize to bytearray, then when applying call setV() for uint foeld with raw data in bytearray
-                        return commonError(CommonError::NOT_IMPLEMENTED);
+                        // the concrete unit type is not known at this point, so hand
+                        // the raw already-serialized bytes through as SubunitBuf;
+                        // du::UnitSer::deserialize (used by update::HandleFieldT)
+                        // parses them once the target field's type is known. The
+                        // referenced bytes are owned by msg, which must therefore
+                        // outlive the resulting request (see deserializeT's docs).
+                        handler(SubunitBuf{buf.data(),buf.size()});
+                        return Error{};
                     }
                     break;
 
@@ -656,6 +710,14 @@ struct deserializeT
                     case(ValueType::VectorDateTime):
                     {
                         HATN_CHECK_RETURN(vectorHandler(factory->createObjectVector<common::DateTime>()));
+                    }
+                    break;
+                    case(ValueType::VectorSubunit):
+                    {
+                        // the concrete unit type is not known here, so the vector
+                        // holds raw serialized-bytes views (see the Subunit/VectorSubunit
+                        // case in parseValue above).
+                        HATN_CHECK_RETURN(vectorHandler(factory->createObjectVector<SubunitBuf>()));
                     }
                     break;
 
