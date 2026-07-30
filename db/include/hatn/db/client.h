@@ -119,6 +119,15 @@ class HATN_DB_EXPORT Client : public common::WithID
             if (m_open)
             {
                 HATN_CTX_SCOPE_LOCK()
+                // DB_ALREADY_OPEN is a routine, idempotent-open condition, not the kind of
+                // rare/fatal error that warrants freezing the scope stack for forensic
+                // inspection. Without this unlock, a long-lived context that calls openDb()
+                // more than once (e.g. one context reused across several openAdditionalDatabase
+                // calls) accumulates one un-popped scope-stack entry per call forever
+                // (leaveScope() skips pop_back() while locked). Mirrors the existing
+                // HATN_CTX_SCOPE_ERROR+HATN_CTX_SCOPE_UNLOCK pattern used for the same reason
+                // in api/ipp/client.ipp and contactlist/syncchat.cpp.
+                HATN_CTX_SCOPE_UNLOCK()
                 return dbError(DbError::DB_ALREADY_OPEN);
             }
 

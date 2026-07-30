@@ -48,7 +48,7 @@ void GrpcTransport::sendRequest(
         CallbackT callback
     )
 {
-    HATN_CTX_SCOPE_WITH_BARRIER("grpctransport::sendrequest")
+    HATN_CTX_SCOPE_WITH_BARRIER_GUARD("grpctransport::sendrequest")
 
     const auto reqAddr=reinterpret_cast<uintptr_t>(req.get());
     const auto priority=req->priority();
@@ -119,7 +119,7 @@ void GrpcTransport::sendRequest(
             std::move(method),
             std::move(metadata),
             std::move(message),
-            [req,callback{std::move(callback)}](Result<clientapi::Response> response) mutable
+            [req,callback{std::move(callback)},_ctxBarrier](Result<clientapi::Response> response) mutable
             {
                 if (response)
                 {
@@ -128,7 +128,6 @@ void GrpcTransport::sendRequest(
                 }
 
                 req->setResponse(response.takeValue());
-                HATN_CTX_STACK_BARRIER_OFF("grpctransport::sendrequest")
                 callback({});
             }
         );
@@ -152,7 +151,7 @@ void GrpcTransport::sendRequest(
             std::move(method),
             std::move(metadata),
             std::move(message),
-            [req,callback{std::move(callback)}](const Error& ec, clientapi::Response response) mutable
+            [req,callback{std::move(callback)},_ctxBarrier](const Error& ec, clientapi::Response response) mutable
             {
                 if (ec)
                 {
@@ -161,7 +160,6 @@ void GrpcTransport::sendRequest(
                 }
 
                 req->setResponse(std::move(response));
-                HATN_CTX_STACK_BARRIER_OFF("grpctransport::sendrequest")
                 callback({});
             }
         );

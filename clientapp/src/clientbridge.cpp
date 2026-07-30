@@ -102,7 +102,7 @@ void Service::exec(
         ctx->onAsyncHandlerEnter();
 
         {
-            HATN_CTX_SCOPE_WITH_BARRIER("service::exec")
+            HATN_CTX_SCOPE_WITH_BARRIER_GUARD("service::exec")
 
             HATN_CTX_SCOPE_PUSH("bridge_srv",name())
             HATN_CTX_SCOPE_PUSH("bridge_mthd",mthd->name())
@@ -110,7 +110,11 @@ void Service::exec(
             HATN_CTX_SCOPE_PUSH("bridge_topic",request.topic)
             HATN_CTX_SCOPE_PUSH("bridge_msg_type",request.messageTypeName)
 
-            auto cb=[callback=std::move(callback)](const Error& ec, Response response)
+            // _ctxBarrier is captured here so the "service::exec" barrier is released when
+            // this callback (or its unfired copy) is destroyed, even if mthd->exec() never
+            // invokes it - previously the barrier was lifted only from inside this lambda,
+            // so a dropped callback leaked the whole per-request scope stack forever.
+            auto cb=[callback=std::move(callback),_ctxBarrier](const Error& ec, Response response)
             {
                 if (ec)
                 {
@@ -120,8 +124,6 @@ void Service::exec(
                 {
                     HATN_CTX_DEBUG_RECORDS(1,"BRIDGE-EXEC",{"status","success"})
                 }
-
-                HATN_CTX_STACK_BARRIER_OFF("service::exec")
 
                 callback(ec,std::move(response));
             };

@@ -21,6 +21,11 @@
 #ifndef HATNLOGCONTEXT_H
 #define HATNLOGCONTEXT_H
 
+#include <iostream>
+#include <sstream>
+#include <mutex>
+#include <memory>
+
 #include <hatn/common/flatmap.h>
 #include <hatn/common/allocatoronstack.h>
 #include <hatn/common/thread.h>
@@ -67,10 +72,12 @@ struct BarrierCursorData
 {
     const char* name;
     size_t scopeStackOffset;
+    size_t id;
 
-    BarrierCursorData(const char* name="", size_t scopeStackOffset=0)
+    BarrierCursorData(const char* name="", size_t scopeStackOffset=0, size_t id=0)
         : name(name),
-          scopeStackOffset(scopeStackOffset)
+          scopeStackOffset(scopeStackOffset),
+          id(id)
     {}
 };
 
@@ -94,6 +101,12 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
         // HATN_CTX_SCOPE_UNLOCK()/setStackLocked(false) call).
         constexpr static const size_t MaxLockedScopeStackSize=8*config::ScopeDepth;
 
+        // Same idea for m_barrierStack: a stack barrier (HATN_CTX_STACK_BARRIER_ON /
+        // HATN_CTX_SCOPE_WITH_BARRIER) that is never lifted with a matching OFF pins every
+        // scope pushed at or below it forever, and on a long-lived/reused context each missed
+        // OFF adds up. Bound the growth the same way enterScope() bounds m_scopeStack.
+        constexpr static const size_t MaxBarrierStackSize=8*config::BarrierDepth;
+
         using LoggerHandler=LoggerHandlerT<ContextT<Config>>;
         using Logger=LoggerWithHandler<ContextT<Config>>;
 
@@ -114,6 +127,8 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
                 m_enableStackLocking(true),
                 m_debugVerbosity(0),
                 m_scopeStackCapWarned(false),
+                m_barrierStackCapWarned(false),
+                m_nextBarrierId(1),
                 m_parentLogCtx(nullptr),
                 m_logger(nullptr)
         {}
@@ -145,11 +160,13 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
                 if (!m_scopeStackCapWarned)
                 {
                     m_scopeStackCapWarned=true;
-                    std::cerr << "logcontext scope stack exceeded " << MaxLockedScopeStackSize
-                              << " entries (lockStack=" << m_lockStack
-                              << ", currentScopeIdx=" << m_currentScopeIdx
-                              << ") - capping growth; likely a missing scope-unlock on a "
-                                 "repeatedly-locked, reused context" << std::endl;
+                    std::ostringstream oss;
+                    oss << "logcontext scope stack exceeded " << MaxLockedScopeStackSize
+                        << " entries (lockStack=" << m_lockStack
+                        << ", currentScopeIdx=" << m_currentScopeIdx
+                        << ") - capping growth; likely a missing scope-unlock on a "
+                           "repeatedly-locked, reused context";
+                    emitDiagnostic(oss.str());
                 }
                 return;
             }
@@ -204,25 +221,15 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
                 {
                     m_currentScopeIdx--;
                 }
-                if (m_currentScopeIdx>config::ScopeDepth)
+
+                // The real invariant is that the index tracks the stack size exactly once
+                // nothing is holding it back (no lock, no barrier). A plain depth heuristic
+                // (m_currentScopeIdx>config::ScopeDepth) both false-fires on legitimate deep
+                // nesting and stays silent on a real mismatch that keeps the index low, so
+                // check the actual invariant instead.
+                if (!m_lockStack && m_barrierStack.empty() && m_currentScopeIdx!=m_scopeStack.size())
                 {
-                    std::cerr << "Mismatched number of enter/leave scope calls: currentScopeIdx=" << m_currentScopeIdx
-                              << " ctx=" << mainCtx().id()
-                              << " lockStack=" << m_lockStack
-                              << "\n  scope stack (" << m_scopeStack.size() << "):";
-                    for (size_t i=0;i<m_scopeStack.size();i++)
-                    {
-                        std::cerr << "\n    [" << i << "] " << m_scopeStack[i].first;
-                        if (m_scopeStack[i].second.error!=nullptr)
-                            std::cerr << "  error=" << m_scopeStack[i].second.error;
-                    }
-                    std::cerr << "\n  barrier stack (" << m_barrierStack.size() << "):";
-                    for (size_t i=0;i<m_barrierStack.size();i++)
-                    {
-                        std::cerr << "\n    [" << i << "] " << m_barrierStack[i].name
-                                  << "  scopeOffset=" << m_barrierStack[i].scopeStackOffset;
-                    }
-                    std::cerr << std::endl;
+                    dumpScopeMismatch();
                 }
 
                 if (!m_lockStack)
@@ -279,9 +286,30 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
             m_globalVarMap.erase(key);
         }
 
-        inline void stackBarrierOn(const char* name)
+        // Returns the id of the newly pushed barrier, or 0 if the barrier stack is capped (see
+        // MaxBarrierStackSize) and the barrier was not tracked at all. 0 is never a real id
+        // (m_nextBarrierId starts at 1), so callers of stackBarrierOffId() can treat it as a
+        // harmless no-op sentinel.
+        size_t stackBarrierOn(const char* name)
         {
-            m_barrierStack.emplace_back(name,m_currentScopeIdx);
+            if (m_barrierStack.size()>=MaxBarrierStackSize)
+            {
+                if (!m_barrierStackCapWarned)
+                {
+                    m_barrierStackCapWarned=true;
+                    std::ostringstream oss;
+                    oss << "logcontext barrier stack exceeded " << MaxBarrierStackSize
+                        << " entries - capping growth; likely a barrier that is never lifted "
+                           "with a matching HATN_CTX_STACK_BARRIER_OFF on a long-lived/reused "
+                           "context";
+                    emitDiagnostic(oss.str());
+                }
+                return 0;
+            }
+
+            auto id=m_nextBarrierId++;
+            m_barrierStack.emplace_back(name,m_currentScopeIdx,id);
+            return id;
         }
 
         void stackBarrierOff(const char* name)
@@ -296,6 +324,44 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
             for (;idx>=0;idx--)
             {
                 if (std::strcmp(m_barrierStack[idx].name,name)==0)
+                {
+                    restore=true;
+                    break;
+                }
+            }
+            if (restore)
+            {
+                m_barrierStack.resize(idx);
+                if (m_barrierStack.empty())
+                {
+                    m_currentScopeIdx=0;
+                }
+                else
+                {
+                    m_currentScopeIdx=m_barrierStack.back().scopeStackOffset;
+                }
+                restoreStackCursors();
+            }
+        }
+
+        // Id-based counterpart of stackBarrierOff(): matches the barrier pushed by the
+        // stackBarrierOn() call that returned this id, regardless of how many other barriers
+        // share the same name. This is what ScopeBarrier (see below) uses, so releasing one of
+        // several identically-named nested barriers (e.g. repeated
+        // "grpctransport::sendrequest" retries on a reused context) always collapses the
+        // correct frame instead of the topmost name match.
+        void stackBarrierOffId(size_t id)
+        {
+            if (id==0 || m_barrierStack.empty())
+            {
+                return;
+            }
+
+            bool restore=false;
+            int idx=static_cast<int>(m_barrierStack.size())-1;
+            for (;idx>=0;idx--)
+            {
+                if (m_barrierStack[idx].id==id)
                 {
                     restore=true;
                     break;
@@ -469,6 +535,16 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
             m_scopeStack.clear();
             m_varStack.clear();
             m_barrierStack.clear();
+
+            // A context reset while still locked previously stayed locked forever - reset()
+            // is meant to bring the context back to a clean, reusable state, so it must also
+            // clear the lock and the one-shot cap warnings, and restart barrier id allocation
+            // (1, not 0: 0 is the reserved "not tracked" sentinel returned by stackBarrierOn()
+            // when the barrier stack is capped, see ScopeBarrier).
+            m_lockStack=false;
+            m_scopeStackCapWarned=false;
+            m_barrierStackCapWarned=false;
+            m_nextBarrierId=1;
         }
 
         void reset()
@@ -587,6 +663,39 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
             }
         }
 
+        // Single, mutex-guarded write so a multi-line diagnostic dump is never interleaved
+        // with concurrent writes to the same stream (e.g. the logger thread writing the
+        // console sink) and never shows up shredded mid-token in the log file.
+        static void emitDiagnostic(const std::string& msg)
+        {
+            static std::mutex mutex;
+            std::lock_guard<std::mutex> lk(mutex);
+            std::cerr << msg << std::endl;
+        }
+
+        void dumpScopeMismatch()
+        {
+            std::ostringstream oss;
+            oss << "Mismatched number of enter/leave scope calls: currentScopeIdx=" << m_currentScopeIdx
+                << " ctx=" << mainCtx().id()
+                << " lockStack=" << m_lockStack
+                << "\n  scope stack (" << m_scopeStack.size() << "):";
+            for (size_t i=0;i<m_scopeStack.size();i++)
+            {
+                oss << "\n    [" << i << "] " << m_scopeStack[i].first;
+                if (m_scopeStack[i].second.error!=nullptr)
+                    oss << "  error=" << m_scopeStack[i].second.error;
+            }
+            oss << "\n  barrier stack (" << m_barrierStack.size() << "):";
+            for (size_t i=0;i<m_barrierStack.size();i++)
+            {
+                oss << "\n    [" << i << "] " << m_barrierStack[i].name
+                    << "  id=" << m_barrierStack[i].id
+                    << "  scopeOffset=" << m_barrierStack[i].scopeStackOffset;
+            }
+            emitDiagnostic(oss.str());
+        }
+
         size_t m_currentScopeIdx;
         bool m_lockStack;
         size_t m_lockScopeIdx;
@@ -603,6 +712,8 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
         bool m_enableStackLocking;
         uint8_t m_debugVerbosity;
         bool m_scopeStackCapWarned;
+        bool m_barrierStackCapWarned;
+        size_t m_nextBarrierId;
 
         ContextT* m_parentLogCtx;
 
@@ -611,6 +722,99 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
 using Context=ContextT<>;
 using Subcontext=Context;
 using LogContext=Context;
+
+/**
+ * @brief RAII counterpart of HATN_CTX_STACK_BARRIER_ON()/HATN_CTX_STACK_BARRIER_OFF().
+ *
+ * A stack barrier pins its own scope frame and everything pushed below it until a matching
+ * OFF is issued, so an async continuation can resume logging at that frame later. In practice
+ * every OFF has to be reached by hand on every exit path - including error early-returns and a
+ * callback that is captured but never invoked - and a single missed one pins the frame (and
+ * everything under it) on that context forever. Nothing bounds how many times this can happen
+ * on a long-lived or reused context, which is exactly the "scope stack (28): ..." growth this
+ * type exists to prevent.
+ *
+ * ScopeBarrier turns the barrier into a movable, non-copyable token: construct it where the
+ * barrier is raised, capture it by value (its copy ctor is deleted, so this really means move
+ * or shared_ptr) into every continuation that can run instead of the original, and the barrier
+ * is released exactly once - whichever copy is destroyed last - regardless of which path was
+ * taken to get there. Release is id-based (see ContextT::stackBarrierOffId()), so it collapses
+ * the exact frame it raised even when several identically-named barriers are nested (e.g.
+ * repeated retries reusing one context).
+ */
+class ScopeBarrier
+{
+    public:
+
+        ScopeBarrier() noexcept : m_ctx(nullptr), m_id(0)
+        {}
+
+        ScopeBarrier(Context* ctx, const char* name) : m_ctx(ctx), m_id(0)
+        {
+            if (m_ctx!=nullptr)
+            {
+                m_id=m_ctx->stackBarrierOn(name);
+            }
+        }
+
+        ~ScopeBarrier()
+        {
+            release();
+        }
+
+        ScopeBarrier(const ScopeBarrier&)=delete;
+        ScopeBarrier& operator=(const ScopeBarrier&)=delete;
+
+        ScopeBarrier(ScopeBarrier&& other) noexcept
+            : m_ctx(other.m_ctx), m_id(other.m_id)
+        {
+            other.m_ctx=nullptr;
+            other.m_id=0;
+        }
+
+        ScopeBarrier& operator=(ScopeBarrier&& other) noexcept
+        {
+            if (this!=&other)
+            {
+                release();
+                m_ctx=other.m_ctx;
+                m_id=other.m_id;
+                other.m_ctx=nullptr;
+                other.m_id=0;
+            }
+            return *this;
+        }
+
+        //! @brief Release the barrier now instead of waiting for the destructor. Idempotent.
+        void release() noexcept
+        {
+            if (m_ctx!=nullptr)
+            {
+                m_ctx->stackBarrierOffId(m_id);
+                m_ctx=nullptr;
+                m_id=0;
+            }
+        }
+
+    private:
+
+        Context* m_ctx;
+        size_t m_id;
+};
+
+struct makeScopeBarrierT
+{
+    //! @brief Returns nullptr if ctx is null, so it is safe to call unconditionally from macros.
+    std::shared_ptr<ScopeBarrier> operator()(Context* ctx, const char* name) const
+    {
+        if (ctx==nullptr)
+        {
+            return std::shared_ptr<ScopeBarrier>{};
+        }
+        return std::make_shared<ScopeBarrier>(ctx,name);
+    }
+};
+constexpr makeScopeBarrierT makeScopeBarrier{};
 
 struct makeLogCtxT
 {
@@ -778,6 +982,20 @@ HATN_COMMON_NAMESPACE_END
     HATN_CTX_SCOPE(Name) \
     HATN_CTX_IF() \
         HATN_CTX_CURRENT()->stackBarrierOn(Name);
+
+// RAII counterpart of HATN_CTX_SCOPE_WITH_BARRIER(): the barrier is released by ScopeBarrier's
+// destructor instead of a hand-written HATN_CTX_STACK_BARRIER_OFF(). _ctxBarrier is declared
+// after HATN_CTX_SCOPE(Name)'s own scope guard, so on a purely synchronous exit it is
+// destroyed first - barrier lifted, then leaveScope() can actually pop the scope instead of
+// being blocked by its own barrier. For an async continuation, capture _ctxBarrier by value
+// (it is move-only/shared, never copied implicitly) into every lambda that can run instead of
+// falling off the end of the current scope; whichever copy is destroyed last releases the
+// barrier exactly once, on every path - including early returns, exceptions, and a callback
+// that ends up never being invoked.
+#define HATN_CTX_SCOPE_WITH_BARRIER_GUARD(Name) \
+    HATN_CTX_SCOPE(Name) \
+    auto _ctxBarrier=HATN_LOGCONTEXT_NAMESPACE::makeScopeBarrier(ScopeCtx,Name); \
+    std::ignore=_ctxBarrier;
 
 
 #endif // HATNLOGCONTEXT_H
