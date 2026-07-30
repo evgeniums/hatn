@@ -375,7 +375,8 @@ BOOST_AUTO_TEST_CASE(UpdateFloatingPoint)
         auto req1=update::request(
             update::field(update::path(path),update::set,vec1)
         );
-        update::apply(&o,req1);
+        auto ec=update::apply(&o,req1);
+        BOOST_REQUIRE(!ec);
         BOOST_CHECK(o.fieldAtPath(path).isSet());
         BOOST_REQUIRE_EQUAL(o.fieldAtPath(path).count(),vec1.size());
         for (size_t i=0;i<vec1.size();i++)
@@ -388,7 +389,8 @@ BOOST_AUTO_TEST_CASE(UpdateFloatingPoint)
         auto req2=update::request(
             update::field(update::path(path),update::push,val2)
         );
-        update::apply(&o,req2);
+        ec=update::apply(&o,req2);
+        BOOST_REQUIRE(!ec);
         BOOST_CHECK(o.fieldAtPath(path).isSet());
         BOOST_REQUIRE_EQUAL(o.fieldAtPath(path).count(),vec1.size()+1);
         for (size_t i=0;i<vec1.size();i++)
@@ -401,7 +403,8 @@ BOOST_AUTO_TEST_CASE(UpdateFloatingPoint)
         auto req3=update::request(
                 update::field(update::path(path),update::pop)
             );
-        update::apply(&o,req3);
+        ec=update::apply(&o,req3);
+        BOOST_REQUIRE(!ec);
         BOOST_CHECK(o.fieldAtPath(path).isSet());
         BOOST_REQUIRE_EQUAL(o.fieldAtPath(path).count(),vec1.size());
         for (size_t i=0;i<vec1.size();i++)
@@ -415,7 +418,8 @@ BOOST_AUTO_TEST_CASE(UpdateFloatingPoint)
         auto req4=update::request(
                 update::field(update::path(array(field,incIdx)),update::inc_element,inc4)
             );
-        update::apply(&o,req4);
+        ec=update::apply(&o,req4);
+        BOOST_REQUIRE(!ec);
         BOOST_CHECK(o.fieldAtPath(path).isSet());
         BOOST_REQUIRE_EQUAL(o.fieldAtPath(path).count(),vec1.size());
         for (size_t i=0;i<vec1.size();i++)
@@ -436,7 +440,8 @@ BOOST_AUTO_TEST_CASE(UpdateFloatingPoint)
         auto req5=update::request(
             update::field(update::path(array(field,replIdx)),update::replace_element,repl5)
             );
-        update::apply(&o,req5);
+        ec=update::apply(&o,req5);
+        BOOST_REQUIRE(!ec);
         BOOST_CHECK(o.fieldAtPath(path).isSet());
         BOOST_REQUIRE_EQUAL(o.fieldAtPath(path).count(),vec1.size());
         for (size_t i=0;i<vec1.size();i++)
@@ -460,7 +465,8 @@ BOOST_AUTO_TEST_CASE(UpdateFloatingPoint)
         auto req6=update::request(
             update::field(update::path(array(field,eraseIdx)),update::erase_element)
             );
-        update::apply(&o,req6);
+        ec=update::apply(&o,req6);
+        BOOST_REQUIRE(!ec);
         BOOST_CHECK(o.fieldAtPath(path).isSet());
         BOOST_REQUIRE_EQUAL(o.fieldAtPath(path).count(),vec1.size()-1);
         for (size_t i=0;i<vec1.size();i++)
@@ -506,7 +512,8 @@ BOOST_AUTO_TEST_CASE(UpdateBytes)
         auto req1=update::request(
             update::field(update::path(path),update::set,vec1)
             );
-        update::apply(&o,req1);
+        auto ec=update::apply(&o,req1);
+        BOOST_REQUIRE(!ec);
         BOOST_CHECK(o.fieldAtPath(path).isSet());
         BOOST_REQUIRE_EQUAL(o.fieldAtPath(path).count(),vec1.size());
         for (size_t i=0;i<vec1.size();i++)
@@ -519,7 +526,8 @@ BOOST_AUTO_TEST_CASE(UpdateBytes)
         auto req2=update::request(
             update::field(update::path(path),update::push,val2)
             );
-        update::apply(&o,req2);
+        ec=update::apply(&o,req2);
+        BOOST_REQUIRE(!ec);
         BOOST_CHECK(o.fieldAtPath(path).isSet());
         BOOST_REQUIRE_EQUAL(o.fieldAtPath(path).count(),vec1.size()+1);
         for (size_t i=0;i<vec1.size();i++)
@@ -534,7 +542,8 @@ BOOST_AUTO_TEST_CASE(UpdateBytes)
         auto req3=update::request(
             update::field(update::path(path),update::pop)
             );
-        update::apply(&o,req3);
+        ec=update::apply(&o,req3);
+        BOOST_REQUIRE(!ec);
         BOOST_CHECK(o.fieldAtPath(path).isSet());
         BOOST_REQUIRE_EQUAL(o.fieldAtPath(path).count(),vec1.size());
         for (size_t i=0;i<vec1.size();i++)
@@ -549,7 +558,8 @@ BOOST_AUTO_TEST_CASE(UpdateBytes)
         auto req5=update::request(
             update::field(update::path(array(field,replIdx)),update::replace_element,repl5)
             );
-        update::apply(&o,req5);
+        ec=update::apply(&o,req5);
+        BOOST_REQUIRE(!ec);
         BOOST_CHECK(o.fieldAtPath(path).isSet());
         BOOST_REQUIRE_EQUAL(o.fieldAtPath(path).count(),vec1.size());
         for (size_t i=0;i<vec1.size();i++)
@@ -570,7 +580,8 @@ BOOST_AUTO_TEST_CASE(UpdateBytes)
         auto req6=update::request(
             update::field(update::path(array(field,eraseIdx)),update::erase_element)
             );
-        update::apply(&o,req6);
+        ec=update::apply(&o,req6);
+        BOOST_REQUIRE(!ec);
         BOOST_CHECK(o.fieldAtPath(path).isSet());
         BOOST_REQUIRE_EQUAL(o.fieldAtPath(path).count(),vec1.size()-1);
         for (size_t i=0;i<vec1.size();i++)

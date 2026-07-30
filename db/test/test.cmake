@@ -24,6 +24,7 @@ SET (TEST_SOURCES
 
     ${DB_TEST_SRC}/testupdate.cpp
     ${DB_TEST_SRC}/testupdatenested.cpp
+    ${DB_TEST_SRC}/testupdaterepeatedsub.cpp
 
     ${DB_TEST_SRC}/testrepeated.cpp
     ${DB_TEST_SRC}/modelsrep.cpp

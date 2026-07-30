@@ -66,6 +66,8 @@
     Do(DbError,DB_PAUSE_BACKGROUND_WORK_FAILED,_TR("failed to pause database background work","db")) \
     Do(DbError,DB_RESUME_BACKGROUND_WORK_FAILED,_TR("failed to resume database background work","db")) \
     Do(DbError,DB_FLUSH_FAILED,_TR("failed to flush database","db")) \
+    Do(DbError,UPDATE_FIELD_NOT_FOUND,_TR("update path does not match object schema","db")) \
+    Do(DbError,UPDATE_INVALID_SUBUNIT,_TR("invalid subunit value in update request","db")) \
 
 HATN_DB_NAMESPACE_BEGIN
 
