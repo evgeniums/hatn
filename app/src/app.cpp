@@ -1488,7 +1488,7 @@ std::shared_ptr<db::EncryptionManager> App::dbEncryptionManager() const
 
 std::shared_ptr<db::ClientEnvironment> App::dbEnvironment() const
 {
-    if (d->dbClient->isOpen())
+    if (d->dbClient && d->dbClient->isOpen())
     {
         return d->dbClient->cloneEnvironment();
     }
