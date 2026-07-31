@@ -222,20 +222,27 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
                     m_currentScopeIdx--;
                 }
 
-                // The real invariant is that the index tracks the stack size exactly once
-                // nothing is holding it back (no lock, no barrier). A plain depth heuristic
-                // (m_currentScopeIdx>config::ScopeDepth) both false-fires on legitimate deep
-                // nesting and stays silent on a real mismatch that keeps the index low, so
-                // check the actual invariant instead.
-                if (!m_lockStack && m_barrierStack.empty() && m_currentScopeIdx!=m_scopeStack.size())
-                {
-                    dumpScopeMismatch();
-                }
-
                 if (!m_lockStack)
                 {
                     m_varStack.resize(scopeCursor->second.varStackOffset);
                     m_scopeStack.pop_back();
+                }
+
+                // The real invariant is that the index tracks the stack size exactly - but
+                // only once m_scopeStack has actually been popped above (a plain depth
+                // heuristic like m_currentScopeIdx>config::ScopeDepth both false-fires on
+                // legitimate deep nesting and stays silent on a real mismatch that keeps the
+                // index low, so this checks the actual invariant instead). Checking this
+                // BEFORE the pop_back() above compares a not-yet-decremented stack size
+                // against the already-decremented index, so it would be off by one on every
+                // single normal, correctly-paired call - that was a real bug in an earlier
+                // version of this check, not a heuristic false-positive: it fired on every
+                // shallow, barrier-free leaveScope() (e.g. plain scopes with scope stack (1)-
+                // (4) and barrier stack (0), as seen from TestFiles2Queue), which is exactly
+                // the class of call this diagnostic must stay silent on.
+                if (!m_lockStack && m_barrierStack.empty() && m_currentScopeIdx!=m_scopeStack.size())
+                {
+                    dumpScopeMismatch();
                 }
             }
         }
