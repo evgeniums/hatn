@@ -151,6 +151,10 @@ struct PriorityChannel
 
         {
             common::MutexScopedLock l{mutex};
+            // Mark the channel disconnected here too, so isDisconnected() reflects reality
+            // between close() and the matching init()/reconnect() instead of leaving
+            // sendUnaryImpl()/sendStreamImpl() to rely solely on their null-stub fallback.
+            disconnected=true;
             stub.reset();
             channel.reset();
             pendingRequests.clear();
@@ -170,7 +174,7 @@ struct PriorityChannel
                     return;
                 }
 
-                disconnect=true;
+                disconnected=true;
                 auto& ctxIdx = pendingRequests.get<by_shared_ptr>();
                 for (const auto& entry : ctxIdx)
                 {
@@ -193,16 +197,22 @@ struct PriorityChannel
             return;
         }
 
+        std::shared_ptr<grpc::Channel> currentChannel;
         {
             common::MutexScopedLock l{mutex};
 
             disconnected=false;
             // channel can be null if close() ran and init()/reconnect() hasn't republished
             // it yet (e.g. a stray updateNetworkState(false) racing a reconnect in progress).
-            if (channel)
-            {
-                channel->GetState(true);
-            }
+            currentChannel=channel;
+        }
+        // GetState(true) can kick off connectivity work and run gRPC callbacks that may
+        // call back into this PriorityChannel, so it must not be invoked while mutex (a
+        // non-recursive lock) is held. The shared_ptr copy above keeps the channel alive
+        // even if close() runs concurrently and resets the member.
+        if (currentChannel)
+        {
+            currentChannel->GetState(true);
         }
     }
 

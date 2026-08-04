@@ -345,6 +345,14 @@ class HATN_GRPCCLIENT_EXPORT GrpcTransport : public base::ConfigObject<grpc_conf
 
     private:
 
+        // Creates the per-priority PriorityChannel map entries (structure only, no gRPC
+        // channel objects yet). Called once from setRouter(), before any traffic exists.
+        // Must never be called again afterwards: the map is read without synchronization
+        // from gRPC reactor/callback threads (see GrpcTransport_p::channel()), so mutating
+        // its structure (e.g. from resume()) concurrently with those reads is undefined
+        // behavior. Existing PriorityChannel entries are never erased, only closed, so
+        // "populate once, then only touch existing entries" is sufficient.
+        void populateChannels();
         void initChannels();
         void closeChannels();
 

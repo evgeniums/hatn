@@ -144,6 +144,7 @@ void GrpcTransport::setRouter(common::SharedPtr<Router> router)
     if (pimpl->router)
     {
         HATN_CTX_DEBUG_RECORDS(1,"GrpcTransport::setRouter",{"insecure",pimpl->router->isInsecure()})
+        populateChannels();
         initChannels();
     }
     else
@@ -275,6 +276,33 @@ Error GrpcTransport::loadLogConfig(
 
 //--------------------------------------------------------------------------
 
+void GrpcTransport::populateChannels()
+{
+    // Structure-only step: create the map entries once, before any traffic exists. Must
+    // not run again after that (see the declaration comment in grpctransport.h) since
+    // pimpl->channels is read without synchronization from gRPC reactor/callback threads
+    // (GrpcTransport_p::channel()), and mutating a std::map's structure concurrently with
+    // an unsynchronized find() on it is undefined behavior.
+    if (!pimpl->channels.empty())
+    {
+        return;
+    }
+
+    auto maxPriotity=static_cast<uint8_t>(api::Priority::Highest);
+    for (size_t i=0;i<config().field(grpc_config::priority_channels).count();i++)
+    {
+        auto p=config().field(grpc_config::priority_channels).at(i);
+        if (p<maxPriotity)
+        {
+            auto priority=static_cast<api::Priority>(p);
+            pimpl->channels.emplace(std::piecewise_construct,std::forward_as_tuple(priority),
+                                    std::forward_as_tuple());
+        }
+    }
+}
+
+//--------------------------------------------------------------------------
+
 void GrpcTransport::initChannels()
 {
     // construct server address from router
@@ -298,18 +326,12 @@ void GrpcTransport::initChannels()
 
     auto serverName=pimpl->router->serverName();
 
-    // init priority channels
-    auto maxPriotity=static_cast<uint8_t>(api::Priority::Highest);
-    for (size_t i=0;i<config().field(grpc_config::priority_channels).count();i++)
+    // init priority channels. The map's structure was already populated by
+    // populateChannels(); resume() calls only this method so it never mutates
+    // pimpl->channels itself, only the PriorityChannel objects already in it.
+    for (auto&& it: pimpl->channels)
     {
-        auto p=config().field(grpc_config::priority_channels).at(i);
-        if (p<maxPriotity)
-        {
-            auto priority=static_cast<api::Priority>(p);
-            auto it=pimpl->channels.emplace(std::piecewise_construct,std::forward_as_tuple(priority),
-                                    std::forward_as_tuple());
-            it.first->second.init(this,address,creds,name(),serverName);
-        }
+        it.second.init(this,address,creds,name(),serverName);
     }
 
     // init default priority channel
@@ -390,6 +412,13 @@ void detail::PriorityChannel::init(const GrpcTransport* cfg,
         common::MutexScopedLock l{mutex};
         channel = std::move(newChannel);
         stub = std::move(newStub);
+        // Clear the flag close() set (or the initial disconnected=false default), so a
+        // channel rebuilt by reconnect()/resume() is not left permanently rejecting requests
+        // with NETWORK_NOT_CONNECTED (see isDisconnected() and the callers in
+        // sendUnaryImpl/sendStreamImpl). Callers that rebuild without an intervening
+        // updateNetworkState(false) (e.g. AccountEnv's medium-switch handler -> reconnect())
+        // otherwise have no other path that resets this.
+        disconnected = false;
     }
 }
 
