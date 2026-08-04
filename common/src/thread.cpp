@@ -317,7 +317,12 @@ void Thread::run()
     }
     catch(std::exception &e)
     {
-        HATN_FATAL(thread,"Uncaught exception in beforeRun() in thread " << id().c_str() << ": " << e.what());
+        HATN_FATAL(thread,"Uncaught exception in beforeRun() in thread " << id().c_str() << " [" << typeid(e).name() << "]: " << e.what());
+        throw;
+    }
+    catch(...)
+    {
+        HATN_FATAL(thread,"Uncaught non-standard exception in beforeRun() in thread " << id().c_str());
         throw;
     }
     d->nativeID=std::this_thread::get_id();
@@ -356,7 +361,12 @@ void Thread::run()
     }
     catch(std::exception &e)
     {
-        HATN_FATAL(thread,"Uncaught exception in thread " << id().c_str() << ": " << e.what());
+        HATN_FATAL(thread,"Uncaught exception in thread " << id().c_str() << " [" << typeid(e).name() << "]: " << e.what());
+        throw;
+    }
+    catch(...)
+    {
+        HATN_FATAL(thread,"Uncaught non-standard exception in thread " << id().c_str());
         throw;
     }
 
@@ -366,7 +376,12 @@ void Thread::run()
     }
     catch(std::exception &e)
     {
-        HATN_FATAL(thread,"Uncaught exception in afterRun() in thread " << id().c_str() << ": " << e.what());
+        HATN_FATAL(thread,"Uncaught exception in afterRun() in thread " << id().c_str() << " [" << typeid(e).name() << "]: " << e.what());
+        throw;
+    }
+    catch(...)
+    {
+        HATN_FATAL(thread,"Uncaught non-standard exception in afterRun() in thread " << id().c_str());
         throw;
     }
     ThisThread=nullptr;
