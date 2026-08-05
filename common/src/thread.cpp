@@ -45,6 +45,7 @@
 
 #include <hatn/common/utils.h>
 #include <hatn/common/logger.h>
+#include <hatn/common/terminatehandler.h>
 #include <hatn/common/thread.h>
 
 #include <hatn/common/ipp/threadcategoriespool.ipp>
@@ -257,6 +258,9 @@ boost::asio::io_context& Thread::asioContextRef() noexcept
 //---------------------------------------------------------------
 void Thread::start(bool waitForStarted)
 {
+    // fallback installation in case the application did not install the handler explicitly
+    TerminateHandler::install();
+
     if (d->running.load())
     {
         return;
@@ -311,20 +315,15 @@ void Thread::stop()
 //---------------------------------------------------------------
 void Thread::run()
 {
-    try
-    {
-        beforeRun();
-    }
-    catch(std::exception &e)
-    {
-        HATN_FATAL(thread,"Uncaught exception in beforeRun() in thread " << id().c_str() << " [" << typeid(e).name() << "]: " << e.what());
-        throw;
-    }
-    catch(...)
-    {
-        HATN_FATAL(thread,"Uncaught non-standard exception in beforeRun() in thread " << id().c_str());
-        throw;
-    }
+    /* Exceptions are deliberately not caught in this method. Any catch block here would make the
+     * runtime unwind the stack down to that block and destroy all frames between the throw point
+     * and this method, so an external crash reporter would collect a call stack of just a few
+     * frames of Thread::run() instead of the call stack of the code that actually threw.
+     * With no catch block the runtime invokes std::terminate() right at the throw point keeping
+     * the whole stack intact. Diagnostic context is reported by TerminateHandler using the names
+     * of thread sections set below.
+     */
+
     d->nativeID=std::this_thread::get_id();
 
     ThisThread=this;
@@ -334,8 +333,14 @@ void Thread::run()
         memcpy(&ThisThreadId[0],d->id.constData(),d->id.size());
     }
 
-    try
     {
+        ThreadSectionGuard section{"Thread::beforeRun()"};
+        beforeRun();
+    }
+
+    {
+        ThreadSectionGuard section{"thread event loop"};
+
         if (!d->firstRun.load())
         {
             d->asioContext->restart();
@@ -359,31 +364,12 @@ void Thread::run()
             d->running.store(false,std::memory_order_release);
         }
     }
-    catch(std::exception &e)
-    {
-        HATN_FATAL(thread,"Uncaught exception in thread " << id().c_str() << " [" << typeid(e).name() << "]: " << e.what());
-        throw;
-    }
-    catch(...)
-    {
-        HATN_FATAL(thread,"Uncaught non-standard exception in thread " << id().c_str());
-        throw;
-    }
 
-    try
     {
+        ThreadSectionGuard section{"Thread::afterRun()"};
         afterRun();
     }
-    catch(std::exception &e)
-    {
-        HATN_FATAL(thread,"Uncaught exception in afterRun() in thread " << id().c_str() << " [" << typeid(e).name() << "]: " << e.what());
-        throw;
-    }
-    catch(...)
-    {
-        HATN_FATAL(thread,"Uncaught non-standard exception in afterRun() in thread " << id().c_str());
-        throw;
-    }
+
     ThisThread=nullptr;
 }
 

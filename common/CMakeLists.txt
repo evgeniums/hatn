@@ -89,6 +89,7 @@ SET (HEADERS
     include/hatn/common/memorylockeddata.h
     include/hatn/common/bytearray.h
     include/hatn/common/fixedbytearray.h
+    include/hatn/common/terminatehandler.h
     include/hatn/common/thread.h
     include/hatn/common/queue.h
     include/hatn/common/queuetmpl.h
@@ -242,6 +243,7 @@ SET (SOURCES
     src/bytearray.cpp
     src/locker.cpp
     src/sharedlocker.cpp
+    src/terminatehandler.cpp
     src/thread.cpp
     src/interface.cpp
     src/environment.cpp
