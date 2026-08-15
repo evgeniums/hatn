@@ -30,6 +30,7 @@
 #include <hatn/common/allocatoronstack.h>
 #include <hatn/common/thread.h>
 #include <hatn/common/taskcontext.h>
+#include <hatn/common/weakptr.h>
 #include <hatn/common/runonscopeexit.h>
 
 #include <hatn/logcontext/logcontext.h>
@@ -748,19 +749,42 @@ using LogContext=Context;
  * taken to get there. Release is id-based (see ContextT::stackBarrierOffId()), so it collapses
  * the exact frame it raised even when several identically-named barriers are nested (e.g.
  * repeated retries reusing one context).
+ *
+ * The last token can also outlive the context itself: a pending callback that captured it may
+ * be destroyed - without ever running - after the task context is gone (cancelled request,
+ * transport shutdown draining its queues). ScopeBarrier therefore keeps a weak reference to
+ * the SharedPtr-owned TaskContext of the log context and silently skips the release when that
+ * context is already destroyed, instead of dereferencing a dangling pointer.
  */
 class ScopeBarrier
 {
     public:
 
-        ScopeBarrier() noexcept : m_ctx(nullptr), m_id(0)
+        ScopeBarrier() noexcept : m_ctx(nullptr), m_id(0), m_guarded(false)
         {}
 
-        ScopeBarrier(Context* ctx, const char* name) : m_ctx(ctx), m_id(0)
+        ScopeBarrier(Context* ctx, const char* name) : m_ctx(ctx), m_id(0), m_guarded(false)
         {
             if (m_ctx!=nullptr)
             {
                 m_id=m_ctx->stackBarrierOn(name);
+
+                // m_ctx is a raw pointer into a log subcontext owned by a SharedPtr-managed
+                // TaskContext, while the last barrier token typically dies inside an async
+                // callback whose destruction the context owner does not control - the pending
+                // callback can be dropped (cancelled request, transport shutdown) long after
+                // the task context itself is gone. Take a weak reference to the owning
+                // TaskContext so release() can detect that and skip the (otherwise
+                // use-after-free) stackBarrierOffId() call.
+                if (m_ctx->hasMainCtx())
+                {
+                    auto mainCtx=m_ctx->sharedMainCtx();
+                    if (!mainCtx.isNull())
+                    {
+                        m_mainCtxGuard=mainCtx;
+                        m_guarded=true;
+                    }
+                }
             }
         }
 
@@ -773,10 +797,12 @@ class ScopeBarrier
         ScopeBarrier& operator=(const ScopeBarrier&)=delete;
 
         ScopeBarrier(ScopeBarrier&& other) noexcept
-            : m_ctx(other.m_ctx), m_id(other.m_id)
+            : m_ctx(other.m_ctx), m_id(other.m_id),
+              m_guarded(other.m_guarded), m_mainCtxGuard(std::move(other.m_mainCtxGuard))
         {
             other.m_ctx=nullptr;
             other.m_id=0;
+            other.m_guarded=false;
         }
 
         ScopeBarrier& operator=(ScopeBarrier&& other) noexcept
@@ -786,8 +812,11 @@ class ScopeBarrier
                 release();
                 m_ctx=other.m_ctx;
                 m_id=other.m_id;
+                m_guarded=other.m_guarded;
+                m_mainCtxGuard=std::move(other.m_mainCtxGuard);
                 other.m_ctx=nullptr;
                 other.m_id=0;
+                other.m_guarded=false;
             }
             return *this;
         }
@@ -797,9 +826,27 @@ class ScopeBarrier
         {
             if (m_ctx!=nullptr)
             {
-                m_ctx->stackBarrierOffId(m_id);
+                if (m_guarded)
+                {
+                    // lock() keeps the TaskContext alive for the duration of the call;
+                    // if it fails the context is already destroyed and there is nothing
+                    // to release.
+                    auto mainCtx=m_mainCtxGuard.lock();
+                    if (!mainCtx.isNull())
+                    {
+                        m_ctx->stackBarrierOffId(m_id);
+                    }
+                }
+                else
+                {
+                    // Context without a SharedPtr-owned main TaskContext (e.g. created on
+                    // the stack): its creator controls the lifetime, keep the direct call.
+                    m_ctx->stackBarrierOffId(m_id);
+                }
+                m_mainCtxGuard.reset();
                 m_ctx=nullptr;
                 m_id=0;
+                m_guarded=false;
             }
         }
 
@@ -807,6 +854,8 @@ class ScopeBarrier
 
         Context* m_ctx;
         size_t m_id;
+        bool m_guarded;
+        common::WeakPtr<common::TaskContext> m_mainCtxGuard;
 };
 
 struct makeScopeBarrierT
