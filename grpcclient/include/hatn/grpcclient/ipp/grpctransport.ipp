@@ -121,6 +121,20 @@ void GrpcTransport::sendRequest(
             std::move(message),
             [req,callback{std::move(callback)},_ctxBarrier](Result<clientapi::Response> response) mutable
             {
+                // Lift the barrier BEFORE invoking the callback. This lambda runs on a gRPC
+                // transport thread and the callback hands the task context to the client thread
+                // (api client posts "apiclientresp" there), so releasing the barrier by simply
+                // letting this lambda's captures die would write to the context's scope stack -
+                // stackBarrierOffId() moves the cursor and resizes the stack - from the
+                // transport thread while the client thread is already pushing scopes onto the
+                // same context. release() is idempotent, so a stream callback invoked per
+                // message lifts it once, on the first message.
+                if (_ctxBarrier)
+                {
+                    _ctxBarrier->release();
+                    _ctxBarrier.reset();
+                }
+
                 if (response)
                 {
                     callback(response.takeError());
@@ -153,6 +167,14 @@ void GrpcTransport::sendRequest(
             std::move(message),
             [req,callback{std::move(callback)},_ctxBarrier](const Error& ec, clientapi::Response response) mutable
             {
+                // see the comment in the unary branch above: the barrier must be lifted on this
+                // thread before the task context is handed to the client thread
+                if (_ctxBarrier)
+                {
+                    _ctxBarrier->release();
+                    _ctxBarrier.reset();
+                }
+
                 if (ec)
                 {
                     callback(ec);
