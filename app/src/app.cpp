@@ -166,6 +166,17 @@ constexpr static const char* DbPluginsFolder="db";
 constexpr static const char* ThreadTagAppThread="app_default";
 constexpr static const char* ThreadTagNetworkThread="network_default";
 constexpr static const char* ThreadTagNotMappedThread="not_mapped";
+constexpr static const char* ThreadTagPoolThread="pool";
+
+constexpr static const char* DefaultThreadPoolName="default";
+// Conservative on purpose: an unconfigured platform (today, every mobile config) keeps
+// exactly today's single-worker-per-pool behaviour until it opts in with a "thread_pools"
+// config entry - see whitemdesktop/todos/todo-files2-cpu-worker-pool.md's "Desktop vs
+// mobile" question and whitem/docs/background-lifecycle.md (a wider pool needs its own
+// background-admission gate, which is a whitemclient-level concern, not this default).
+constexpr static const uint8_t DefaultThreadPoolThreadCount=1;
+constexpr static const uint8_t DefaultThreadPoolMinCount=1;
+constexpr static const uint8_t DefaultThreadPoolMaxCount=4;
 
 //---------------------------------------------------------------
 
@@ -176,12 +187,25 @@ HDU_UNIT(thread_config,
     HDU_REPEATED_FIELD(tags,TYPE_STRING,4)
 )
 
+//! Named CPU worker pool, e.g. "f2crypto"/"f2image"/"f2imagebg" for files2. Mirrors
+//! thread_config's percent/min/max shape but is sized independently per pool (a pool is not
+//! a slice of app.thread_count/threads[], it is additional capacity next to them) and is
+//! looked up by name via App::threadPool(), not folded into an unnamed round-robin sequence.
+HDU_UNIT(thread_pool_config,
+    HDU_FIELD(name,TYPE_STRING,1,true)
+    HDU_FIELD(thread_count,TYPE_UINT8,2,false,DefaultThreadPoolThreadCount) // 0 = auto: hardware_concurrency() * count_percent / 100
+    HDU_FIELD(count_percent,TYPE_UINT8,3)
+    HDU_FIELD(min_count,TYPE_UINT8,4,false,DefaultThreadPoolMinCount)
+    HDU_FIELD(max_count,TYPE_UINT8,5,false,DefaultThreadPoolMaxCount)
+)
+
 HDU_UNIT(app_config,
     HDU_FIELD(thread_count,TYPE_UINT8,1,false,DefaultThreadCount)
     HDU_FIELD(data_folder,TYPE_STRING,2)
     HDU_REPEATED_FIELD(plugin_folders,TYPE_STRING,3)
     HDU_REPEATED_FIELD(threads,thread_config::TYPE,4)
     HDU_FIELD(reserve_thread_count,TYPE_UINT8,5,false,ReserveThreadCount)
+    HDU_REPEATED_FIELD(thread_pools,thread_pool_config::TYPE,6)
 )
 
 HDU_UNIT(logger_config,
@@ -245,6 +269,26 @@ class App_p
 
         common::SharedPtr<log::TaskLogContext> currentThreadLogCtx;
         std::map<std::string,common::SharedPtr<log::TaskLogContext>> threadLogCtxs;
+
+        // Named CPU worker pools (files2 crypto/image work etc, see App::threadPool()).
+        // Populated by App::initThreadPools(), called from initThreads() after m_appThread/
+        // m_networkThread are resolved so a pool thread can never be picked as either.
+        std::map<std::string,std::shared_ptr<App::ThreadPool>,std::less<>> threadPools;
+        std::shared_ptr<App::ThreadPool> defaultThreadPool;
+
+        // Shared by initThreads()' plain/group threads and initThreadPools()' pool threads -
+        // same fallback-log-context idiom for every kind of thread App owns. threadName is
+        // set by the caller just before each execSync() call (mirrors initThreads()' original
+        // local-lambda-with-captured-reference pattern).
+        std::string threadName;
+        void createThreadLogFallback()
+        {
+            auto taskCtx=log::makeLogCtx();
+            auto& currentLogCtx=taskCtx->get<log::Context>();
+            currentLogCtx.setLogger(logger.get());
+            log::ThreadLocalFallbackContext::set(&currentLogCtx);
+            threadLogCtxs[threadName]=taskCtx;
+        }
 
         Result<std::shared_ptr<crypt::CipherSuites>> initCipherSuites();
 
@@ -542,14 +586,9 @@ Error App::initThreads()
         threadGroupCounts.push_back(groupCount);
     }
 
-    std::string threadName;
-    auto createThreadLogFallback=[this,&threadName]()
+    auto createThreadLogFallback=[this]()
     {
-        auto taskCtx=log::makeLogCtx();
-        auto& currentLogCtx=taskCtx->get<log::Context>();
-        currentLogCtx.setLogger(d->logger.get());
-        log::ThreadLocalFallbackContext::set(&currentLogCtx);
-        d->threadLogCtxs[threadName]=taskCtx;
+        d->createThreadLogFallback();
     };
 
     // create thread groups
@@ -559,8 +598,8 @@ Error App::initThreads()
         uint8_t groupCount=threadGroupCounts[i];
         for (size_t i=0;i<groupCount;i++)
         {
-            threadName=fmt::format("{}{}",threadConfig.fieldValue(thread_config::id_prefix),i);
-            auto thread=std::make_shared<common::TaskWithContextThread>(threadName);
+            d->threadName=fmt::format("{}{}",threadConfig.fieldValue(thread_config::id_prefix),i);
+            auto thread=std::make_shared<common::TaskWithContextThread>(d->threadName);
             const auto& threadTags=threadConfig.field(thread_config::tags);
             for (size_t j=0;j<threadTags.count();j++)
             {
@@ -587,8 +626,8 @@ Error App::initThreads()
     // create threads out of thread groups
     for (size_t i=0;i<count;i++)
     {
-        threadName=fmt::format("t{}",i);
-        auto thread=std::make_shared<common::TaskWithContextThread>(threadName);
+        d->threadName=fmt::format("t{}",i);
+        auto thread=std::make_shared<common::TaskWithContextThread>(d->threadName);
         m_threads.push_back(thread);
         thread->start();
 
@@ -611,8 +650,147 @@ Error App::initThreads()
         }
     }
 
+    // create named CPU worker pools (files2 etc) - after m_appThread/m_networkThread are
+    // resolved above, so a pool thread can never be mistaken for either.
+    auto poolEc=initThreadPools();
+    HATN_CHECK_EC(poolEc)
+
     // done
     return OK;
+}
+
+//---------------------------------------------------------------
+
+Error App::initThreadPools()
+{
+    // Same sizing basis "count" as initThreads()' own thread groups: the resolved
+    // thread_count (0 meaning hardware_concurrency(), unreduced by reserve_thread_count -
+    // pools are additional capacity next to app.thread_count/threads[], not a slice of it).
+    size_t baseCount=m_defaultThreadCount;
+    if (d->appConfig.config().field(app_config::thread_count).isSet())
+    {
+        auto configured=d->appConfig.config().field(app_config::thread_count).value();
+        baseCount=(configured!=0) ? configured : std::thread::hardware_concurrency();
+    }
+
+    auto resolveSize=[baseCount](const auto& poolConfig) -> uint8_t
+    {
+        uint8_t size=poolConfig.fieldValue(thread_pool_config::thread_count);
+        if (size==0)
+        {
+            uint8_t percent=poolConfig.fieldValue(thread_pool_config::count_percent);
+            size=static_cast<uint8_t>(baseCount*percent/100);
+        }
+        uint8_t minCount=poolConfig.fieldValue(thread_pool_config::min_count);
+        uint8_t maxCount=poolConfig.fieldValue(thread_pool_config::max_count);
+        if (size<minCount)
+        {
+            size=minCount;
+        }
+        if (maxCount!=0 && size>maxCount)
+        {
+            size=maxCount;
+        }
+        if (size==0)
+        {
+            size=1;
+        }
+        return size;
+    };
+
+    auto createPool=[this](std::string name, uint8_t size) -> Error
+    {
+        if (name.empty())
+        {
+            return appError(AppError::INVALID_THREAD_POOL_CONFIG);
+        }
+        // Base id is a FixedByteArrayThrow16 (throws on overflow) - the pool's own
+        // constructor only truncates the per-thread index digits it appends, not the base
+        // name itself, so truncate defensively here first.
+        if (name.size()>15)
+        {
+            name=name.substr(0,15);
+        }
+        if (d->threadPools.find(name)!=d->threadPools.end())
+        {
+            return appError(AppError::DUPLICATE_THREAD_POOL);
+        }
+
+        auto pool=std::make_shared<ThreadPool>(size,name);
+        pool->start();
+        for (size_t i=0;i<pool->threadCount();i++)
+        {
+            auto thread=pool->threadShared(i);
+
+            // Same reasons as makeDbMappedThreads()'s ThreadTagNotMappedThread use: pool
+            // threads must never be picked up by App::init()'s own generic mapped-threads
+            // loop (app_config::threads-derived) nor by the db mapped-thread selection -
+            // see makeDbMappedThreads() below, which now also excludes this tag.
+            thread->setTag(ThreadTagNotMappedThread);
+            thread->setTag(ThreadTagPoolThread);
+            m_threads.push_back(thread);
+
+            // fallback log context, same idiom as initThreads()' plain/group threads
+            d->threadName=std::string{thread->id().c_str()};
+            std::ignore=thread->execSync(
+                [this]()
+                {
+                    d->createThreadLogFallback();
+                }
+            );
+        }
+
+        d->threadPools[name]=pool;
+        return OK;
+    };
+
+    const auto& poolConfigs=d->appConfig.config().field(app_config::thread_pools);
+    for (size_t i=0;i<poolConfigs.count();i++)
+    {
+        const auto& poolConfig=poolConfigs.at(i);
+        std::string name{poolConfig.fieldValue(thread_pool_config::name)};
+        auto ec=createPool(name,resolveSize(poolConfig));
+        HATN_CHECK_EC(ec)
+    }
+
+    // implicit default pool, unless it was itself explicitly configured under that name
+    if (d->threadPools.find(DefaultThreadPoolName)==d->threadPools.end())
+    {
+        auto ec=createPool(DefaultThreadPoolName,DefaultThreadPoolThreadCount);
+        HATN_CHECK_EC(ec)
+    }
+    d->defaultThreadPool=d->threadPools[DefaultThreadPoolName];
+
+    return OK;
+}
+
+//---------------------------------------------------------------
+
+App::ThreadPool* App::threadPool(common::lib::string_view name) const
+{
+    if (!name.empty())
+    {
+        auto it=d->threadPools.find(std::string{name});
+        if (it!=d->threadPools.end())
+        {
+            return it->second.get();
+        }
+    }
+    return defaultThreadPool();
+}
+
+//---------------------------------------------------------------
+
+App::ThreadPool* App::defaultThreadPool() const
+{
+    return d->defaultThreadPool.get();
+}
+
+//---------------------------------------------------------------
+
+size_t App::threadPoolCount() const noexcept
+{
+    return d->threadPools.size();
 }
 
 //---------------------------------------------------------------
@@ -718,6 +896,16 @@ void App::close()
     std::ignore=closeDb();
 
     // std::cout << "Stop threads" << std::endl;
+
+    // Stop pools explicitly first. Thread::stop() is idempotent (compare_exchange guard in
+    // thread.cpp), so the m_threads loop below stopping the same pool threads a second time
+    // (they were also pushed into m_threads by initThreadPools(), for exactly this kind of
+    // convenience) is harmless - this just makes the pool-vs-plain-thread stop ordering
+    // explicit rather than incidental.
+    for (auto&& it: d->threadPools)
+    {
+        it.second->stop();
+    }
 
     // stop all threads
     for (auto&& it: m_threads)
@@ -1089,18 +1277,36 @@ std::shared_ptr<common::MappedThreadQWithTaskContext> App_p::makeDbMappedThreads
 {
     //! @todo Use thread tags
     auto mappedThreads=std::make_shared<common::MappedThreadQWithTaskContext>(common::MappedThreadMode::Default,thread);
-    uint8_t dbThreadCount=dbConfig.config().fieldValue(db_config::thread_count);
-    if (dbThreadCount>app->m_threads.size()-1)
+
+    // Exclude named CPU worker pool threads (files2 etc - tagged ThreadTagNotMappedThread by
+    // initThreadPools()) from db thread mapping: they are dedicated capacity for their own
+    // CPU-bound work, not general-purpose app threads a db.thread_count>1 config should be
+    // allowed to schedule db work onto.
+    std::vector<common::ThreadQWithTaskContext*> mappableThreads;
+    for (auto&& it:app->m_threads)
     {
-        dbThreadCount=static_cast<uint8_t>(app->m_threads.size()-1);
+        if (!it->hasTag(ThreadTagNotMappedThread))
+        {
+            mappableThreads.push_back(it.get());
+        }
+    }
+    if (mappableThreads.empty())
+    {
+        return mappedThreads;
+    }
+
+    uint8_t dbThreadCount=dbConfig.config().fieldValue(db_config::thread_count);
+    if (dbThreadCount>mappableThreads.size()-1)
+    {
+        dbThreadCount=static_cast<uint8_t>(mappableThreads.size()-1);
     }
     if (dbThreadCount>1)
     {
         mappedThreads->setThreadMode(common::MappedThreadMode::Mapped);
         size_t i=0;
-        for (auto&& it:app->m_threads)
+        for (auto&& it:mappableThreads)
         {
-            mappedThreads->addMappedThread(it.get());
+            mappedThreads->addMappedThread(it);
             i++;
             if (i==dbThreadCount)
             {

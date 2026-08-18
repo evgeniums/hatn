@@ -22,6 +22,7 @@
 #include <vector>
 
 #include <hatn/common/threadwithqueue.h>
+#include <hatn/common/threadpoolwithqueues.h>
 
 #include <hatn/base/configtree.h>
 #include <hatn/base/configtreeloader.h>
@@ -302,6 +303,29 @@ class HATN_APP_EXPORT App
             return fmt::format("t{}",idx);
         }
 
+        //! Named CPU worker pool, e.g. for files2 image codec/encryption work - see
+        //! HDU_UNIT(thread_pool_config,...) in app.cpp for the config schema ("thread_pools"
+        //! array under the app config section) and initThreadPools() for how pools are sized
+        //! and their member threads folded into m_threads for App::close()'s lifecycle.
+        using ThreadPool=common::ThreadPoolWithQueues<common::TaskWithContext>;
+
+        /**
+         * @brief Get a named thread pool.
+         * @param name Pool name as declared in config ("thread_pools"[].name). Empty falls
+         *        back to the default pool.
+         * @return The named pool, or the default pool if the name is empty or unknown. Never
+         *         null after init() - a "default" pool always exists (implicit 1-thread pool
+         *         if not configured).
+         */
+        ThreadPool* threadPool(common::lib::string_view name=common::lib::string_view{}) const;
+
+        //! Get the implicit/default thread pool (same as threadPool() with no argument).
+        ThreadPool* defaultThreadPool() const;
+
+        //! Number of configured named thread pools (not counting the implicit default pool
+        //! unless it was itself explicitly configured under that name).
+        size_t threadPoolCount() const noexcept;
+
         void setDefaultCipherSuiteId(std::string id);
         std::string defaultCipherSuiteId() const;
 
@@ -325,8 +349,9 @@ class HATN_APP_EXPORT App
 
     private:
 
-        Error applyConfig();        
+        Error applyConfig();
         Error initThreads();
+        Error initThreadPools();
         void logAppStart();
         void logAppStop();
 

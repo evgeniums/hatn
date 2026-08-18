@@ -35,7 +35,11 @@ class ThreadPoolWithQueuesTraits_p
             size_t minDepth=std::numeric_limits<size_t>::max();
             for (auto&& it:threads)
             {
-                auto depth=it->queueDepth();
+                // pendingDepth(), not queueDepth(): queueDepth() excludes the task a thread is
+                // currently executing (popped off the queue before running), so for
+                // long-running tasks every busy thread would read back 0 and this would always
+                // pick the same (first) thread - i.e. behave exactly like a single worker.
+                auto depth=it->pendingDepth();
                 if (depth==0)
                 {
                     return it;
@@ -231,11 +235,23 @@ size_t ThreadPoolWithQueues<TaskT>::threadCount() const
 template <typename TaskT>
 ThreadWithQueue<TaskT>* ThreadPoolWithQueues<TaskT>::thread(size_t num)
 {
-    if (num>this->traits().d->threadStorage.size())
+    if (num>=this->traits().d->threadStorage.size())
     {
         return nullptr;
     }
     return this->traits().d->threadStorage[num].get();
+}
+
+//---------------------------------------------------------------
+
+template <typename TaskT>
+std::shared_ptr<ThreadWithQueue<TaskT>> ThreadPoolWithQueues<TaskT>::threadShared(size_t num)
+{
+    if (num>=this->traits().d->threadStorage.size())
+    {
+        return std::shared_ptr<ThreadWithQueue<TaskT>>();
+    }
+    return this->traits().d->threadStorage[num];
 }
 
 //---------------------------------------------------------------

@@ -108,6 +108,45 @@ class ThreadPoolWithQueues : public ThreadQ<TaskT,ThreadPoolWithQueuesTraits>
 
         //! Get thread
         ThreadWithQueue<TaskT>* thread(size_t num);
+
+        //! Get shared pointer to thread, e.g. so an owner outside this pool (App) can co-own
+        //! the pool's own threads for its own bookkeeping (thread list, tagging, log context).
+        std::shared_ptr<ThreadWithQueue<TaskT>> threadShared(size_t num);
+
+        //! Post a plain handler to the pool's least-loaded thread.
+        /**
+         * Mirrors Thread::execAsync() for callers that only need "run this on some pool
+         * thread" and don't need a TaskContext. Unlike Thread::execAsync(), the handler goes
+         * through the target thread's task queue rather than boost::asio::post() directly -
+         * that is what lets the pool balance load at all (see
+         * ThreadPoolWithQueuesTraits_p::selectThread()).
+         *
+         * Posts with a null task context, deliberately reproducing Thread::execAsync()'s
+         * semantics exactly (no beforeThreadProcessing()/afterThreadProcessing() around the
+         * handler). If a caller needs those, use postTask()/prepare()+post() with an explicit
+         * context instead.
+         *
+         * Defined inline (not in threadpoolwithqueues.cpp) because HandlerT is a distinct
+         * closure type per call site - it cannot be covered by the class's explicit
+         * instantiations the way the TaskT-only methods above are.
+         */
+        template <typename HandlerT>
+        void execAsync(HandlerT handler)
+        {
+            if constexpr (std::is_same<TaskT,TaskWithContext>::value)
+            {
+                this->postTask(TaskWithContext{
+                    [h{std::move(handler)}](const SharedPtr<TaskContext>&) mutable
+                    {
+                        h();
+                    }
+                });
+            }
+            else
+            {
+                this->postTask(TaskT{std::move(handler)});
+            }
+        }
 };
 
 //---------------------------------------------------------------
