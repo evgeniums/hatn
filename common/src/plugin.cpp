@@ -411,8 +411,8 @@ void PluginLoader::registerPluginInfo(const PluginInfo *pluginInfo, bool ignoreD
         if (!ignoreDuplicate)
         {
             const auto& existing=it1->second;
-            HATN_WARN(plugin,HATN_FORMAT("Duplicate plugin: {}/{} ()",pluginInfo->type,pluginInfo->name,pluginInfo->description));
-            HATN_WARN(plugin,HATN_FORMAT("Previuos was: {}/{} ()",existing->type,existing->name,existing->description));
+            HATN_WARN(plugin,HATN_FORMAT("Duplicate plugin: {}/{} {}",pluginInfo->type,pluginInfo->name,pluginInfo->description));
+            HATN_WARN(plugin,HATN_FORMAT("Previuos was: {}/{} {}",existing->type,existing->name,existing->description));
         }
         return;
     }
