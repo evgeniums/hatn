@@ -25,6 +25,10 @@
 
 #include <hatn/app/appname.h>
 
+#include <hatn/common/error.h>
+#include <hatn/common/apierror.h>
+#include <hatn/common/stdwrappers.h>
+
 #include <hatn/clientapp/clientappdefs.h>
 #include <hatn/clientapp/confirmationdescriptor.h>
 
@@ -113,13 +117,49 @@ struct Error
     std::string codeString;
     std::string message;
 
+    //! App-defined user-presentable classification of this error, filled by the mapper
+    //! installed via setUserErrorMapper() - see fillError() below. 0 means "not classified"
+    //! (no mapper installed, or the mapper left it at its default). hatn itself does not define
+    //! what the values mean; whitemclient owns that vocabulary (whitemclient/usererrorcodes.h).
+    int userCode=0;
+    //! ApiErrorDisposition of the classified error - Unknown (0) when the server stated none.
+    common::ApiErrorDisposition disposition=common::ApiErrorDisposition::Unknown;
+    //! Seconds to wait before retrying; meaningful only when disposition==RetryAfter.
+    int retryAfter=0;
+
     void reset()
     {
         code=0;
         codeString.clear();
         message.clear();
+        userCode=0;
+        disposition=common::ApiErrorDisposition::Unknown;
+        retryAfter=0;
     }
 };
+
+//! App-installable hook that fills Error::userCode/disposition/retryAfter from an internal
+//! HATN_NAMESPACE::Error, optionally scoped by service/method (mirrors exec()'s own
+//! service/method parameters). hatn itself never interprets userCode - see Error::userCode
+//! above. Not thread-safe to call concurrently with fillError(); intended to be installed once,
+//! early, by app startup code (whitemclient's MobileApp constructor).
+using UserErrorMapper=std::function<void (const HATN_NAMESPACE::Error& ec,
+                                          lib::string_view service,
+                                          lib::string_view method,
+                                          Error& out)>;
+
+//! Installs the process-wide mapper used by fillError(). A default no-op mapper is installed
+//! initially, so hatn behaves exactly as before this hook existed until an app installs one.
+HATN_CLIENTAPP_EXPORT void setUserErrorMapper(UserErrorMapper mapper);
+
+//! Fills out's code/codeString/message from ec, then runs the installed UserErrorMapper (if any)
+//! to also fill userCode/disposition/retryAfter. The single place mobileapp.cpp turns an
+//! internal Error into the bridge-facing one - see its call sites for why: several of them are
+//! lambdas that capture neither `this` nor a MobileApp_p, so the mapper is looked up via this
+//! process-wide accessor rather than threaded through as a parameter.
+HATN_CLIENTAPP_EXPORT void fillError(Error& out, const HATN_NAMESPACE::Error& ec,
+                                     lib::string_view service={},
+                                     lib::string_view method={});
 
 using Callback=std::function<void (Error, Response response)>;
 

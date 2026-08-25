@@ -155,7 +155,14 @@ void GrpcStream::OnReadDone(bool ok)
              ==
              m_transport->transport->config().fieldValue(grpc_config::error_response_type))
     {
-        //! @todo Implement error handling
+        // No evgo producer ever sends a message_type=="grpc_api_server.Error" in-band frame
+        // (that proto message exists but has zero writers - see the taxonomy design notes),
+        // so this branch is unreachable against any server in this tree; kept only in case a
+        // future server or transport starts using it. The path this contract actually relies
+        // on for a late in-stream failure is GrpcStream::OnDone(), reached via the trailer
+        // metadata evgo's fillResponse(...,trailing=true) now sets - see
+        // whitemdesktop/docs/error-contract.md.
+        //! @todo Implement error handling if a producer for this frame type appears
         if (rcb)
         {
             ec=commonError(CommonError::SERVER_API_ERROR);
@@ -229,6 +236,44 @@ void GrpcStream::OnDone(const grpc::Status& status)
                 ccb(resp.error());
             }
         }
+        else if (resp->status() == HATN_API_NAMESPACE::protocol::ResponseStatus::AuthError)
+        {
+            // auth error not API error, it can be processed by client session
+            if (wcb)
+            {
+                wcb(commonError(CommonError::ABORTED));
+            }
+            if (rcb)
+            {
+                //! @todo handle API errors more gracefully
+                rcb({},resp.takeValue());
+            }
+            if (ccb)
+            {
+                ccb({});
+            }
+        }
+        else if (resp->error())
+        {
+            // The stream ended with a real error - possibly carrying the family/disposition
+            // this contract adds, via evgo's fillResponse(...,trailing=true) on a late
+            // in-stream failure (see whitemdesktop/docs/error-contract.md). Previously this
+            // branch discarded resp->error() entirely and reported a bare
+            // CommonError::ABORTED regardless of what the server had actually stated.
+            auto ec=resp->error();
+            if (wcb)
+            {
+                wcb(ec);
+            }
+            if (rcb)
+            {
+                rcb(ec,{});
+            }
+            if (ccb)
+            {
+                ccb(ec);
+            }
+        }
         else
         {
             auto ec=commonError(CommonError::ABORTED);
@@ -238,15 +283,7 @@ void GrpcStream::OnDone(const grpc::Status& status)
             }
             if (rcb)
             {
-                if (resp->status() == HATN_API_NAMESPACE::protocol::ResponseStatus::AuthError)
-                {
-                    //! @todo handle API errors more gracefully
-                    rcb({},resp.takeValue());
-                }
-                else
-                {
-                    rcb(ec,{});
-                }
+                rcb(ec,{});
             }
             if (ccb)
             {
