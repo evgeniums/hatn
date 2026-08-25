@@ -88,9 +88,17 @@ class HATN_COMMON_EXPORT ErrorStack
 
         const ApiError* apiError() const noexcept
         {
-            for (size_t i=m_stack.size()-1;i>0;i--)
+            // Was `for (i=m_stack.size()-1; i>0; i--)`: skipped index 0 (the oldest/innermost
+            // error) and, on an empty stack, underflowed size()-1 into a huge size_t, so .at()
+            // threw instead of returning nullptr. Walk newest-to-oldest inclusive of index 0
+            // instead, guarded by isNull() up front.
+            if (isNull())
             {
-                auto apiError=m_stack.at(i).apiError();
+                return nullptr;
+            }
+            for (size_t i=m_stack.size();i>0;i--)
+            {
+                auto apiError=m_stack.at(i-1).apiError();
                 if (apiError!=nullptr)
                 {
                     return apiError;

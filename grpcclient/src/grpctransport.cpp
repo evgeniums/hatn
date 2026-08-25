@@ -436,6 +436,7 @@ Result<clientapi::Response> detail::GrpcTransport_p::handleResponse(
     clientapi::Response resp;
     std::string appStatus;
     std::string grpcCode;
+    ErrorHeaders errorHeaders;
 
     if (messageData.isNull())
     {
@@ -475,6 +476,36 @@ Result<clientapi::Response> detail::GrpcTransport_p::handleResponse(
             if (!code.empty())
             {
                 grpcCode=code;
+            }
+            // family/description/details/disposition/retry_after: merged across BOTH initial
+            // and trailing metadata, same as status/grpc_code above - previously
+            // family/description were re-read from initial metadata only, inside makeError
+            // itself, so a server sending them only as trailers lost them entirely. See
+            // whitemdesktop/docs/error-contract.md.
+            auto family=findHeader(metadata,transport->config().fieldValue(grpc_config::error_family_header));
+            if (!family.empty())
+            {
+                errorHeaders.family=family;
+            }
+            auto description=findHeader(metadata,transport->config().fieldValue(grpc_config::error_description_header));
+            if (!description.empty())
+            {
+                errorHeaders.description=description;
+            }
+            auto details=findHeader(metadata,transport->config().fieldValue(grpc_config::error_details_header));
+            if (!details.empty())
+            {
+                errorHeaders.details=details;
+            }
+            auto disposition=findHeader(metadata,transport->config().fieldValue(grpc_config::error_disposition_header));
+            if (!disposition.empty())
+            {
+                errorHeaders.disposition=disposition;
+            }
+            auto retryAfter=findHeader(metadata,transport->config().fieldValue(grpc_config::error_retry_after_header));
+            if (!retryAfter.empty())
+            {
+                errorHeaders.retryAfter=retryAfter;
             }
 #if 0
             // dump response headers
@@ -531,6 +562,24 @@ Result<clientapi::Response> detail::GrpcTransport_p::handleResponse(
                 -status.error_code(),
                 &api::ApiLibErrorCategory::getCategory()
                 );
+
+            // The server never reached evgo's handler at all (wrong/unimplemented method,
+            // unavailable, deadline), so there is no x-hatn-status to build a real ApiError
+            // from - but the bare gRPC status code alone is still enough to state SOME
+            // disposition (UNIMPLEMENTED is always unsupported/terminal, for instance),
+            // closing the legacy-server gap ("no files2 endpoints at all") described in
+            // whitemdesktop/docs/error-contract.md without requiring any server-side change:
+            // grpc-go answers an unregistered method with UNIMPLEMENTED before the request
+            // ever reaches evgo. The outer code stays TRANSPORT_REQUEST_FAILED so existing
+            // consumers keyed on it (e.g. synccontroller.cpp) are unaffected.
+            auto disposition=dispositionFromGrpcCode(status.error_code());
+            if (disposition!=common::ApiErrorDisposition::Unknown)
+            {
+                common::ApiError apiError;
+                apiError.setDisposition(disposition);
+                nativeErr->setApiError(std::move(apiError));
+            }
+
             Error ec{
                 api::ApiLibError::TRANSPORT_REQUEST_FAILED,
                 std::move(nativeErr)
@@ -542,8 +591,7 @@ Result<clientapi::Response> detail::GrpcTransport_p::handleResponse(
         auto apiError=makeError(
             code,
             std::move(appStatus),
-            transport->config(),
-            context.get(),
+            errorHeaders,
             resp.messageType(),
             messageData
         );

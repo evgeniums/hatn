@@ -196,6 +196,11 @@ HDU_UNIT(grpc_config,
     HDU_FIELD(client_idle_timeout_ms,TYPE_UINT32,24,false,DefaultClientIdleTimeoutMs)
     HDU_FIELD(stream_heartbeat_header,TYPE_STRING,25,false,"x-hatn-stream-hb")
     HDU_FIELD(stream_heartbeat_period,TYPE_UINT32,26,false,DefaultStreamHeartbeatPeriod)
+    // See whitemdesktop/docs/error-contract.md. error_details_header existed on the wire (evgo
+    // always sends x-hatn-edetails) but this config had no field name for it until now.
+    HDU_FIELD(error_details_header,TYPE_STRING,27,false,"x-hatn-edetails")
+    HDU_FIELD(error_disposition_header,TYPE_STRING,28,false,"x-hatn-edisposition")
+    HDU_FIELD(error_retry_after_header,TYPE_STRING,29,false,"x-hatn-eretry-after")
 )
 
 namespace detail {

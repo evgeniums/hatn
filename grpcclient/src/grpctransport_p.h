@@ -26,6 +26,7 @@
 #define HATNGRPCTRANSPORT_P_H
 
 #include <memory>
+#include <charconv>
 
 #include <boost/multi_index_container.hpp>
 #include <boost/multi_index/ordered_index.hpp>
@@ -346,16 +347,29 @@ public:
         return &defaultChannel;
     }
 
+    // Error-mapping headers harvested by handleResponse's handleHeaders lambda from BOTH
+    // initial and trailing metadata (family/description previously came from initial metadata
+    // only, inside makeError itself - lost whenever a server sent them only as trailers). See
+    // whitemdesktop/docs/error-contract.md.
+    struct ErrorHeaders
+    {
+        std::string family;
+        std::string description;
+        std::string details;
+        std::string disposition;
+        std::string retryAfter;
+    };
+
     inline Error makeError(
         int grpcCode,
         std::string status,
-        const grpc_config::type& config,
-        const grpc::ClientContext* grpcCtx,
+        const ErrorHeaders& errorHeaders,
         std::string messageType,
         common::ByteArrayShared respData
     ) const;
 
     static inline HATN_API_NAMESPACE::ApiResponseStatus apiStatus(grpc::StatusCode grpcCode);
+    static inline common::ApiErrorDisposition dispositionFromGrpcCode(grpc::StatusCode grpcCode);
 
     inline std::string findHeader(const std::multimap<grpc::string_ref,grpc::string_ref>& metadata, lib::string_view headerName) const
     {
@@ -424,31 +438,67 @@ inline HATN_API_NAMESPACE::ApiResponseStatus GrpcTransport_p::apiStatus(grpc::St
 inline Error GrpcTransport_p::makeError(
         int grpcCode,
         std::string status,
-        const grpc_config::type& config,
-        const grpc::ClientContext* grpcCtx,
+        const ErrorHeaders& errorHeaders,
         std::string messageType,
         common::ByteArrayShared respData
     ) const
 {
     int code=-grpcCode;
-    const std::multimap<grpc::string_ref, grpc::string_ref>& metadata = grpcCtx->GetServerInitialMetadata();
-
-    auto family=findHeader(metadata,config.fieldValue(grpc_config::error_family_header));
-    auto description=findHeader(metadata,config.fieldValue(grpc_config::error_description_header));
 
     // make api error from response_error_message
     auto nativeError=std::make_shared<common::NativeError>(-1,&api::ApiLibErrorCategory::getCategory());
     common::ApiError apiError{code};
     nativeError->setApiError(std::move(apiError));
-    nativeError->mutableApiError()->setDescription(description);
-    nativeError->mutableApiError()->setFamily(family);
+    nativeError->mutableApiError()->setDescription(errorHeaders.description);
+    nativeError->mutableApiError()->setFamily(errorHeaders.family);
     nativeError->mutableApiError()->setStatus(status);
+    nativeError->mutableApiError()->setStringCode(status);
+    nativeError->mutableApiError()->setDetails(errorHeaders.details);
+    if (!errorHeaders.disposition.empty())
+    {
+        nativeError->mutableApiError()->setDisposition(common::apiErrorDispositionFromString(errorHeaders.disposition));
+        if (!errorHeaders.retryAfter.empty())
+        {
+            int retryAfter=0;
+            auto [ptr,ec]=std::from_chars(errorHeaders.retryAfter.data(),errorHeaders.retryAfter.data()+errorHeaders.retryAfter.size(),retryAfter);
+            if (ec==std::errc())
+            {
+                nativeError->mutableApiError()->setRetryAfter(retryAfter);
+            }
+        }
+    }
     if (!messageType.empty() && !respData->empty())
     {
         nativeError->mutableApiError()->setDataType(messageType);
         nativeError->mutableApiError()->setData(respData);
     }
     return Error{api::ApiLibError::SERVER_RESPONDED_WITH_ERROR,std::move(nativeError)};
+}
+
+//! Disposition inferable from the bare gRPC status code alone, for the transport-level case
+//! where the server never reached evgo's handler at all (wrong/unimplemented method, service
+//! unavailable, deadline) - so there is no x-hatn-status/x-hatn-edisposition to read. This is
+//! what lets a legacy server (no files2 endpoints, answering with UNIMPLEMENTED) classify as
+//! unsupported/terminal without any server-side change: grpc-go answers an unregistered method
+//! with UNIMPLEMENTED before the request ever reaches evgo. See
+//! whitemdesktop/docs/error-contract.md.
+inline common::ApiErrorDisposition GrpcTransport_p::dispositionFromGrpcCode(grpc::StatusCode grpcCode)
+{
+    switch (grpcCode)
+    {
+    case grpc::UNIMPLEMENTED: return common::ApiErrorDisposition::Unsupported;
+    case grpc::INVALID_ARGUMENT:
+    case grpc::NOT_FOUND:
+    case grpc::PERMISSION_DENIED:
+    case grpc::ALREADY_EXISTS: return common::ApiErrorDisposition::Permanent;
+    case grpc::UNAVAILABLE:
+    case grpc::INTERNAL:
+    case grpc::DEADLINE_EXCEEDED: return common::ApiErrorDisposition::Retry;
+    case grpc::RESOURCE_EXHAUSTED: return common::ApiErrorDisposition::RetryAfter;
+    case grpc::UNAUTHENTICATED: return common::ApiErrorDisposition::UserAction;
+    default: break;
+    }
+    return common::ApiErrorDisposition::Unknown;
 }
 
 } // namespace detail
