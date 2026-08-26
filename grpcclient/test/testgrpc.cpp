@@ -166,6 +166,37 @@ HDU_UNIT(repeated,
     HDU_REPEATED_FIELD(vbytes,TYPE_BYTES,14)
 )
 
+// Repeated TYPE_OBJECT_ID over a real protobuf peer (grpc_api.RepeatedOid, which declares the
+// matching field as `repeated string voids=1` -- an ObjectId is a 25-char id on the wire).
+//
+// Protobuf permits packed encoding only for numeric scalars; repeated string/bytes MUST be
+// unpacked, i.e. the tag is repeated per element. If ObjectId is classified as packed-
+// compatible, this unit instead emits one length-delimited blob holding both ids back to back,
+// each still carrying OidTraits' own 25-byte length prefix -- which the server reads as a
+// SINGLE string beginning with byte 0x19 (=ObjectId::Length) rather than two 25-char ids.
+HDU_UNIT(repeated_oid,
+    HDU_REPEATED_FIELD(voids,TYPE_OBJECT_ID,1)
+)
+
+// The same tag/type the server actually declares, used to read back exactly what it received:
+// two clean entries means the encoding was protobuf-correct, one longer entry means the ids
+// were packed into a single string.
+HDU_UNIT(repeated_oid_as_string,
+    HDU_REPEATED_FIELD(vstrings,TYPE_STRING,1)
+)
+
+// hatn's remaining custom field types, against grpc_api.CustomTypes. All four serialize as
+// plain varints (DateTime->int64, Date->uint32, Time->uint64, DateRange->uint32), so unlike
+// ObjectId they ARE legitimately packed-compatible; this pins that down rather than assuming
+// it, since all five share the same "CustomType, inherits BaseType's packed default" shape and
+// only ObjectId was wrong.
+HDU_UNIT(custom_types,
+    HDU_REPEATED_FIELD(datetimes,TYPE_DATETIME,1)
+    HDU_REPEATED_FIELD(dates,TYPE_DATE,2)
+    HDU_REPEATED_FIELD(times,TYPE_TIME,3)
+    HDU_REPEATED_FIELD(dateranges,TYPE_DATE_RANGE,4)
+)
+
 HDU_UNIT(embedded,
     HDU_FIELD(f1,basic::TYPE,1)
     HDU_FIELD(f2,repeated::TYPE,2)
@@ -529,6 +560,259 @@ BOOST_FIXTURE_TEST_CASE(Repeated,TestEnv)
     };
 
     clientThread->execAsync(invokeEcho);
+
+    int secs=TEST_DURATION;
+    BOOST_TEST_MESSAGE(fmt::format("Running test for {} seconds",secs));
+    exec(secs);
+
+    clientThread->stop();
+
+    BOOST_CHECK(true);
+}
+
+BOOST_FIXTURE_TEST_CASE(RepeatedObjectId,TestEnv)
+{
+    createThreads(1);
+    auto clientThread=threadWithContextTask(0);
+
+    auto app=createClientApp("grpcclient.jsonc");
+    auto client=createClient(app);
+    auto session=client::makeSessionNoAuthContext();
+    auto clientWithAuth=createClientWithAuth(client,session);
+    session.setSerializedHeaderNeeded(false);
+    auto serviceClient=makeShared<client::ServiceClient<ClientWithAuthCtxType,ClientWithAuthType>>("GrpcTest",clientWithAuth);
+    serviceClient->setPackage("grpc_api");
+
+    clientThread->start();
+
+    api::Method method{"RepeatedOid"};
+    auto invokeRepeatedOid=[serviceClient,app,&method]()
+    {
+        auto msg=common::makeShared<repeated_oid::managed>();
+
+        // TWO elements, so packed vs unpacked is unmistakable: unpacked round-trips two
+        // separate 25-char ids, packed collapses them into a single corrupted entry.
+        auto oid1=HATN_DATAUNIT_NAMESPACE::ObjectId::generateId();
+        auto oid2=HATN_DATAUNIT_NAMESPACE::ObjectId::generateId();
+        msg->field(repeated_oid::voids).append(oid1);
+        msg->field(repeated_oid::voids).append(oid2);
+
+        HATN_TEST_MESSAGE_TS(fmt::format("Sending oids: {} , {}",oid1.toString(),oid2.toString()));
+
+        // Dump what actually goes on the wire. Correct (unpacked) encoding repeats tag 1
+        // (0x0a) per element: "0a 19 <25 bytes> 0a 19 <25 bytes>". A packed encoding emits a
+        // single "0a <len> 19 <25 bytes> 19 <25 bytes>" blob instead.
+        {
+            HATN_DATAUNIT_NAMESPACE::WireBufSolid reqBuf;
+            auto reqOk=HATN_DATAUNIT_NAMESPACE::io::serialize(*msg,reqBuf);
+            BOOST_CHECK(reqOk);
+            std::string hex;
+            const auto& c=*reqBuf.mainContainer();
+            for (size_t i=0;i<c.size();i++)
+            {
+                hex+=fmt::format("{:02x} ",static_cast<unsigned char>(c.data()[i]));
+            }
+            HATN_TEST_MESSAGE_TS(fmt::format("Serialized request ({} bytes): {}",c.size(),hex));
+        }
+
+        auto cb=[msg](auto ctx, const Error& ec, api::client::Response response)
+        {
+            HATN_TEST_MESSAGE_TS(fmt::format("invokeRepeatedOid cb, ec: {}/{}",ec.value(),ec.message()));
+            BOOST_REQUIRE(!ec);
+
+            // Raw response bytes -- what the protobuf server actually produced.
+            {
+                auto data=response.messageData();
+                std::string hex;
+                if (data)
+                {
+                    for (size_t i=0;i<data->size();i++)
+                    {
+                        hex+=fmt::format("{:02x} ",static_cast<unsigned char>(data->data()[i]));
+                    }
+                }
+                HATN_TEST_MESSAGE_TS(fmt::format("Raw response ({} bytes): {}",data?data->size():0,hex));
+            }
+
+            // What the server saw, read back as plain strings. The count is decisive:
+            // 2 => protobuf-correct unpacked encoding, 1 => both ids packed into one string.
+            {
+                auto asStr=common::makeShared<repeated_oid_as_string::managed>();
+                HATN_DATAUNIT_NAMESPACE::WireBufSolidShared buf{response.messageData()};
+                auto ok=HATN_DATAUNIT_NAMESPACE::io::deserialize(*asStr,buf);
+                HATN_TEST_MESSAGE_TS(fmt::format("Parsed as repeated string, ok={}: {}",ok,asStr->toString(true)));
+                if (ok)
+                {
+                    const auto& f=asStr->field(repeated_oid_as_string::vstrings);
+                    HATN_TEST_MESSAGE_TS(fmt::format("Server echoed {} string(s)",f.count()));
+                    BOOST_CHECK_EQUAL(f.count(),size_t(2));
+                }
+            }
+
+            // The real round trip: parse back into the ObjectId unit.
+            auto msg1=common::makeShared<repeated_oid::managed>();
+            HATN_DATAUNIT_NAMESPACE::WireBufSolidShared buf{response.messageData()};
+            auto ok=HATN_DATAUNIT_NAMESPACE::io::deserialize(*msg1,buf);
+            BOOST_CHECK(ok);
+            if (ok)
+            {
+                HATN_TEST_MESSAGE_TS(fmt::format("Response received: {}",msg1->toString(true)));
+                BOOST_CHECK(HATN_DATAUNIT_NAMESPACE::repeatedFieldsEqual(repeated_oid::voids,msg,msg1));
+            }
+        };
+
+        auto ctx=makeLogCtx();
+        auto& logCtx=ctx->get<LogContext>();
+        logCtx.setLogger(app->logger().logger());
+        HATN_TEST_MESSAGE_TS(fmt::format("Command to send: {}",msg->toString(true)));
+        auto ec=serviceClient->exec(
+            ctx,
+            cb,
+            method,
+            *msg,
+            "topic1"
+        );
+        HATN_TEST_EC(ec)
+    };
+
+    clientThread->execAsync(invokeRepeatedOid);
+
+    int secs=TEST_DURATION;
+    BOOST_TEST_MESSAGE(fmt::format("Running test for {} seconds",secs));
+    exec(secs);
+
+    clientThread->stop();
+
+    BOOST_CHECK(true);
+}
+
+BOOST_FIXTURE_TEST_CASE(CustomTypes,TestEnv)
+{
+    createThreads(1);
+    auto clientThread=threadWithContextTask(0);
+
+    auto app=createClientApp("grpcclient.jsonc");
+    auto client=createClient(app);
+    auto session=client::makeSessionNoAuthContext();
+    auto clientWithAuth=createClientWithAuth(client,session);
+    session.setSerializedHeaderNeeded(false);
+    auto serviceClient=makeShared<client::ServiceClient<ClientWithAuthCtxType,ClientWithAuthType>>("GrpcTest",clientWithAuth);
+    serviceClient->setPackage("grpc_api");
+
+    clientThread->start();
+
+    api::Method method{"CustomTypes"};
+    auto invokeCustomTypes=[serviceClient,app,&method]()
+    {
+        auto msg=common::makeShared<custom_types::managed>();
+
+        // Two of each, so a packing mismatch shows up as a wrong element count the way the
+        // ObjectId one did. Second value differs from the first so an ordering or
+        // element-boundary bug cannot hide behind duplicates.
+        auto dt1=common::DateTime::currentUtc();
+        auto dt2=common::DateTime::currentUtc();
+        dt2.addDays(1);
+        msg->field(custom_types::datetimes).append(dt1);
+        msg->field(custom_types::datetimes).append(dt2);
+
+        auto d1=common::Date::currentUtc();
+        auto d2=common::Date::currentUtc();
+        d2.addDays(3);
+        msg->field(custom_types::dates).append(d1);
+        msg->field(custom_types::dates).append(d2);
+
+        auto t1=common::Time::currentUtc();
+        auto t2=common::Time::currentUtc();
+        t2.addMinutes(7);
+        msg->field(custom_types::times).append(t1);
+        msg->field(custom_types::times).append(t2);
+
+        auto r1=common::DateRange{d1};
+        auto r2=common::DateRange{d2};
+        msg->field(custom_types::dateranges).append(r1);
+        msg->field(custom_types::dateranges).append(r2);
+
+        HATN_TEST_MESSAGE_TS(fmt::format("Sending datetimes: {} , {}",dt1.toIsoString(),dt2.toIsoString()));
+        HATN_TEST_MESSAGE_TS(fmt::format("Sending dates: {} , {}",d1.toNumber(),d2.toNumber()));
+        HATN_TEST_MESSAGE_TS(fmt::format("Sending times: {} , {}",t1.toNumber(),t2.toNumber()));
+        HATN_TEST_MESSAGE_TS(fmt::format("Sending dateranges: {} , {}",r1.value(),r2.value()));
+
+        // Wire dump. These are packed, so each field is ONE length-delimited block holding both
+        // varints -- e.g. "0a <len> <varint> <varint>" for datetimes. Contrast with the
+        // ObjectId case, where the same shape would be the bug.
+        {
+            HATN_DATAUNIT_NAMESPACE::WireBufSolid reqBuf;
+            auto reqOk=HATN_DATAUNIT_NAMESPACE::io::serialize(*msg,reqBuf);
+            BOOST_CHECK(reqOk);
+            std::string hex;
+            const auto& c=*reqBuf.mainContainer();
+            for (size_t i=0;i<c.size();i++)
+            {
+                hex+=fmt::format("{:02x} ",static_cast<unsigned char>(c.data()[i]));
+            }
+            HATN_TEST_MESSAGE_TS(fmt::format("Serialized request ({} bytes): {}",c.size(),hex));
+        }
+
+        auto cb=[msg](auto ctx, const Error& ec, api::client::Response response)
+        {
+            HATN_TEST_MESSAGE_TS(fmt::format("invokeCustomTypes cb, ec: {}/{}",ec.value(),ec.message()));
+            BOOST_REQUIRE(!ec);
+
+            {
+                auto data=response.messageData();
+                std::string hex;
+                if (data)
+                {
+                    for (size_t i=0;i<data->size();i++)
+                    {
+                        hex+=fmt::format("{:02x} ",static_cast<unsigned char>(data->data()[i]));
+                    }
+                }
+                HATN_TEST_MESSAGE_TS(fmt::format("Raw response ({} bytes): {}",data?data->size():0,hex));
+            }
+
+            auto msg1=common::makeShared<custom_types::managed>();
+            HATN_DATAUNIT_NAMESPACE::WireBufSolidShared buf{response.messageData()};
+            auto ok=HATN_DATAUNIT_NAMESPACE::io::deserialize(*msg1,buf);
+            BOOST_CHECK(ok);
+            if (!ok)
+            {
+                return;
+            }
+
+            HATN_TEST_MESSAGE_TS(fmt::format("Response received: {}",msg1->toString(true)));
+
+            // Counts first: a packing mismatch mangles these before it mangles values.
+            BOOST_CHECK_EQUAL(msg1->field(custom_types::datetimes).count(),size_t(2));
+            BOOST_CHECK_EQUAL(msg1->field(custom_types::dates).count(),size_t(2));
+            BOOST_CHECK_EQUAL(msg1->field(custom_types::times).count(),size_t(2));
+            BOOST_CHECK_EQUAL(msg1->field(custom_types::dateranges).count(),size_t(2));
+
+            // Values. The datetimes in particular were decoded to time.Time and re-encoded by
+            // the Go endpoint (utils.FromHatnProtoDatetime/ToHatnProtoDatetime), so equality
+            // here means both sides agree on the packed millis+timezone representation, not
+            // just on the framing.
+            BOOST_CHECK(HATN_DATAUNIT_NAMESPACE::repeatedFieldsEqual(custom_types::datetimes,msg,msg1));
+            BOOST_CHECK(HATN_DATAUNIT_NAMESPACE::repeatedFieldsEqual(custom_types::dates,msg,msg1));
+            BOOST_CHECK(HATN_DATAUNIT_NAMESPACE::repeatedFieldsEqual(custom_types::times,msg,msg1));
+            BOOST_CHECK(HATN_DATAUNIT_NAMESPACE::repeatedFieldsEqual(custom_types::dateranges,msg,msg1));
+        };
+
+        auto ctx=makeLogCtx();
+        auto& logCtx=ctx->get<LogContext>();
+        logCtx.setLogger(app->logger().logger());
+        HATN_TEST_MESSAGE_TS(fmt::format("Command to send: {}",msg->toString(true)));
+        auto ec=serviceClient->exec(
+            ctx,
+            cb,
+            method,
+            *msg,
+            "topic1"
+        );
+        HATN_TEST_EC(ec)
+    };
+
+    clientThread->execAsync(invokeCustomTypes);
 
     int secs=TEST_DURATION;
     BOOST_TEST_MESSAGE(fmt::format("Running test for {} seconds",secs));
