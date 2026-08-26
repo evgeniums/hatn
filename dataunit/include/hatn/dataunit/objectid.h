@@ -269,10 +269,23 @@ class HATN_DATAUNIT_EXPORT ObjectId
         // hex string: 2*(3+4)+11 = 25 characters
 };
 
-//! Definition of DateTime type
+//! Definition of ObjectId type
 struct HATN_DATAUNIT_EXPORT OidType : public BaseType<ObjectId,std::true_type,ValueType::ObjectId>
 {
     using CustomType=std::true_type;
+
+    //! ObjectId is length-delimited on the wire (OidTraits serializes it as a byte block of
+    //! ObjectId::Length), so it is a string-shaped type, exactly like BYTES/FIXED_STRING/
+    //! DATAUNIT which all declare the same. Protobuf permits packed encoding ONLY for numeric
+    //! scalars; repeated string/bytes must be unpacked, one tag per element.
+    //!
+    //! Inheriting BaseType's std::true_type default made RepeatedMode::Auto pick
+    //! RepeatedFieldProtoBufPacked, which emits a single length-delimited blob holding every
+    //! element back to back - each still carrying its own length prefix. A protobuf peer reads
+    //! that as ONE string beginning with byte 0x19 (=ObjectId::Length) instead of N ids. See
+    //! the RepeatedObjectId case in grpcclient/test/testgrpc.cpp, which pins this down against
+    //! a real protobuf server.
+    using isPackedProtoBufCompatible=std::false_type;
 };
 
 class OidTraits
