@@ -247,8 +247,10 @@ Result<typename ModelT::SharedPtr> updateSingle(
         {
             if (!oldKey.exists)
             {
-                // delete old key
-                auto sl=oldKey.keySlice();
+                // delete old key -- deleteKeySlice(), NOT keySlice(): a unique index's entry was
+                // written under slice[0] alone (see SaveSingleIndex/deleteKeySlice's own doc
+                // comment), so deleting the full two-slice key silently no-ops on it.
+                auto sl=oldKey.deleteKeySlice();
                 auto status=rdbTx->Delete(indexCf,sl);
                 if (!status.ok())
                 {                    

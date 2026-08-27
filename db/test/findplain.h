@@ -23,6 +23,8 @@
 void registerModels()
 {
     registerModelPlain();
+    registerModelUniqueFlag();
+    registerModelPlainFlag();
 }
 
 #define ModelRef modelPlain()

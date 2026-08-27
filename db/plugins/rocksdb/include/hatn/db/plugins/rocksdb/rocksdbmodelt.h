@@ -64,6 +64,29 @@ struct IndexKeyUpdate
         slices[1]=ROCKSDB_NAMESPACE::Slice{key.data()+slice2Offset,key.size()-slice2Offset};
         return slices;
     }
+
+    //! The slice actually written to rocksdb for this entry, for use when RETRACTING it (a
+    //! stale/superseded key found during an update's before/after diff -- see rocksdbupdate.ipp).
+    //!
+    //! Must mirror SaveSingleIndex's own write-mode decision (savesingleindex.cpp) exactly: a
+    //! unique index writes ONLY slice[0] (the field-value prefix) via Merge, deliberately
+    //! omitting slice[1] (the object id) so that two objects with equal field values collide on
+    //! the same rocksdb key and the merge can reject the duplicate -- that omission is the
+    //! entire uniqueness mechanism. A non-unique index (or a unique index whose value was
+    //! unset, `isSet==false`, at write time) writes both slices via Put.
+    //!
+    //! keySlice() (both slices, unconditionally) looked like the right thing to delete with but
+    //! is wrong for a unique+set entry: it names a key that was never written, so the actual
+    //! (slice[0]-only) entry survives every update that changes it, permanently -- a query
+    //! reading through the index still finds it, now returning the row's since-changed content.
+    ROCKSDB_NAMESPACE::Slice deleteKeySlice() const noexcept
+    {
+        if (unique && isSet)
+        {
+            return ROCKSDB_NAMESPACE::Slice{key.data(),slice2Offset};
+        }
+        return keySlice();
+    }
 };
 
 struct IndexKeyUpdateCmp

@@ -57,6 +57,24 @@ void registerModelPlain()
 #endif
 }
 
+void registerModelUniqueFlag()
+{
+#ifdef HATN_ENABLE_PLUGIN_ROCKSDB
+
+    rdb::RocksdbModels::instance().registerModel(modelUniqueFlag());
+
+#endif
+}
+
+void registerModelPlainFlag()
+{
+#ifdef HATN_ENABLE_PLUGIN_ROCKSDB
+
+    rdb::RocksdbModels::instance().registerModel(modelPlainFlag());
+
+#endif
+}
+
 void initRocksDb()
 {
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
