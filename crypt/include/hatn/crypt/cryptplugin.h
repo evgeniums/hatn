@@ -676,16 +676,43 @@ class HATN_CRYPT_EXPORT CryptPlugin : public common::Plugin
         template <typename ContainerT>
         common::Error randContainer(ContainerT& container, size_t maxSize, size_t minSize=0)
         {
-            if (!m_randGen)
+            // Resolve the generator ONCE under the lock and hold a local strong reference for
+            // the whole call, rather than touching m_randGen directly.
+            //
+            // The previous version was a broken double-checked lock: it read m_randGen
+            // unsynchronized three times (the null check before the lock, the null check after
+            // it, and the call itself), and the call extracted the raw pointer without taking a
+            // reference. Two threads racing the lazy init both saw null, both took the lock in
+            // turn, and BOTH assigned a freshly created generator -- the second assignment
+            // dropped the first's refcount to zero and destroyed that object while the first
+            // thread was already past both checks and about to make a virtual call through it.
+            // The observed crash was exactly that: the faulting instruction is the vtable load
+            // for randBytes (`ldr x9,[x8,#0x10]`), i.e. `this` was readable but its vptr was no
+            // longer valid -- a use-after-free, not a randBytes()/RNG failure.
+            //
+            // This is reached concurrently as a matter of course: files2 generates a per-rung
+            // salt (generateSalt() -> the ByteArray instantiation of this template) on its CPU
+            // worker pool while the bunch key is generated (generateBunch() -> the
+            // MemoryLockedArray one), so a multi-image send fans several first-touch calls out
+            // at once.
+            //
+            // Keeping a local SharedPtr also makes the call itself safe against a concurrent
+            // reassignment of m_randGen by any future caller: the generator cannot be destroyed
+            // while this reference is alive.
+            common::SharedPtr<RandomGenerator> gen;
             {
                 common::MutexScopedLock l(m_algMutex);
-                const_cast<CryptPlugin*>(this)->m_randGen=createRandomGenerator();
+                if (!m_randGen)
+                {
+                    m_randGen=createRandomGenerator();
+                }
+                gen=m_randGen;
             }
-            if (!m_randGen)
+            if (!gen)
             {
                 return cryptError(CryptError::GENERAL_FAIL);
             }
-            return m_randGen->randContainer(container,maxSize,minSize);
+            return gen->randContainer(container,maxSize,minSize);
         }
 
     protected:
