@@ -26,6 +26,7 @@
 #include <hatn/common/objecttraits.h>
 #include <hatn/common/flatmap.h>
 #include <hatn/common/singleton.h>
+#include <hatn/common/locker.h>
 #include <hatn/common/pmr/pmrtypes.h>
 
 #include <hatn/base/base.h>
@@ -113,17 +114,23 @@ class HATN_LOGCONTEXT_EXPORT LoggerBase
             }
 
             // figure out current level by stack function
-            if (!ctx->scopeStack().empty())
             {
-                const auto* scope=ctx->currentScope();
-                if (scope!=nullptr)
+                // hold the context's stacks lock across the read: currentScope() indexes into a
+                // stack that another thread may be shrinking at the same time (see the
+                // thread-safety comment in ContextT)
+                common::SpinScopedLock stacksLock{ctx->stacksLock()};
+                if (!ctx->scopeStack().empty())
                 {
-                    auto it=logger.scopes().find(common::lib::string_view(scope->first));
-                    if (it!=logger.scopes().end())
+                    const auto* scope=ctx->currentScope();
+                    if (scope!=nullptr)
                     {
-                        if (it->second>level)
+                        auto it=logger.scopes().find(common::lib::string_view(scope->first));
+                        if (it!=logger.scopes().end())
                         {
-                            level=it->second;
+                            if (it->second>level)
+                            {
+                                level=it->second;
+                            }
                         }
                     }
                 }

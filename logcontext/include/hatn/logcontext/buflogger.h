@@ -85,6 +85,12 @@ class TextLogFormatterT : public TextLogFormatterBase
 
             auto addStack=[&](bool full)
             {
+                // The context can be mutated from another thread while this one formats (see
+                // the thread-safety comment in ContextT): hold the stacks lock for the whole
+                // read so leaveScope()/pop_back() on the other thread cannot destroy a frame
+                // mid-iteration.
+                common::SpinScopedLock stacksLock{ctx->stacksLock()};
+
                 // add scope stack
                 if (!ctx->scopeStack().empty())
                 {
@@ -221,22 +227,32 @@ class TextLogFormatterT : public TextLogFormatterBase
                 c->resetStacks();
             }
 
-            // add context's fixed vars
-            for (const auto& rec:ctx->fixedVars())
+            // Hold the stacks lock while iterating the context-owned var containers: a
+            // concurrent leaveScope()/popStackVar()/setGlobalVar() on another thread otherwise
+            // destroys or reassigns a record mid-visit, and libc++ leaves the variant valueless
+            // (index==npos) in between — serializeValue() then throws bad_variant_access (this
+            // was a real crash). Must be taken only after the resetStacks() call above: the
+            // lock is a non-recursive spinlock and resetStacks() takes it itself.
             {
-                appendRecord(buf,rec);
-            }
+                common::SpinScopedLock stacksLock{ctx->stacksLock()};
 
-            // add context's map vars
-            for (const auto& rec:ctx->globalVars())
-            {
-                appendRecord(buf,rec);
-            }
+                // add context's fixed vars
+                for (const auto& rec:ctx->fixedVars())
+                {
+                    appendRecord(buf,rec);
+                }
 
-            // add context's stack vars
-            for (const auto& rec:ctx->stackVars())
-            {
-                appendRecord(buf,rec);
+                // add context's map vars
+                for (const auto& rec:ctx->globalVars())
+                {
+                    appendRecord(buf,rec);
+                }
+
+                // add context's stack vars
+                for (const auto& rec:ctx->stackVars())
+                {
+                    appendRecord(buf,rec);
+                }
             }
         }
 

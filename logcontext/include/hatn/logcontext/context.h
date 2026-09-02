@@ -101,10 +101,15 @@ using ContextAlloc=common::AllocatorOnStack<T,N>;
  * of step with m_scopeStack.size(), which silently corrupts the stack= field of every subsequent
  * record on that context.
  *
- * Readers (currentScope(), scopeStack(), stackVars(), barrierStack()) are deliberately NOT
- * locked: they hand out references into the stacks, so a lock inside them would guard nothing
- * beyond the call itself. They are safe on the thread that currently drives the operation, which
- * is how the logger uses them.
+ * Readers (currentScope(), scopeStack(), stackVars(), barrierStack()) are NOT locked
+ * internally: they hand out references into the stacks, so a lock inside them would guard
+ * nothing beyond the call itself. They are NOT safe to iterate concurrently with the mutators
+ * above — the earlier assumption that the logger only reads on the thread driving the operation
+ * was disproved by a real bad_variant_access crash: the formatter iterated stackVars() on one
+ * thread while leaveScope()/popStackVar() on another destroyed a record mid-visit (libc++ sets
+ * the variant discriminator to npos during destruction/reassignment). Multi-statement readers
+ * (TextLogFormatterT::format(), LoggerBase::contextLogLevel()) therefore hold stacksLock()
+ * around the whole read.
  */
 template <typename Config=DefaultConfig>
 class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
@@ -394,17 +399,23 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
         template <typename T>
         void pushFixedVar(const lib::string_view& key, T&& value)
         {
+            common::SpinScopedLock l{m_lock};
+
             m_fixedVars.emplace_back(key,std::forward<T>(value));
         }
 
         template <typename T>
         void setGlobalVar(const lib::string_view& key, T&& value)
         {
+            common::SpinScopedLock l{m_lock};
+
             m_globalVarMap.emplace(key,std::forward<T>(value));
         }
 
         void unsetGlobalVar(const lib::string_view& key)
         {
+            common::SpinScopedLock l{m_lock};
+
             m_globalVarMap.erase(key);
         }
 
@@ -633,16 +644,22 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
 
         void setTag(tagT tag)
         {
+            common::SpinScopedLock l{m_lock};
+
             m_tags.insert(std::move(tag));
         }
 
         void unsetTag(const common::lib::string_view& tag)
         {
+            common::SpinScopedLock l{m_lock};
+
             m_tags.erase(tag);
         }
 
         bool containsTag(const common::lib::string_view& tag) const
         {
+            common::SpinScopedLock l{m_lock};
+
             auto it=m_tags.find(tag);
             return it!=m_tags.end();
         }
@@ -726,6 +743,16 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
         const auto& barrierStack() const noexcept
         {
             return m_barrierStack;
+        }
+
+        //! Lock serializing mutations of the stacks/vars. Multi-statement readers (the log
+        //! formatter iterating scopeStack()/stackVars()/globalVars()/fixedVars(), the logger
+        //! resolving the level from currentScope()) must hold it for the whole read — see the
+        //! class comment. Never take it around a call to a public method of this class: the
+        //! lock is a non-recursive spinlock.
+        common::SpinLock& stacksLock() const noexcept
+        {
+            return m_lock;
         }
 
         template <typename ParentContextT>
@@ -927,8 +954,9 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
 
         Logger* m_logger;
 
-        // Serializes mutations of the stacks above, see the class comment.
-        HATN_COMMON_NAMESPACE::SpinLock m_lock;
+        // Serializes mutations of the stacks above, see the class comment. Mutable so that
+        // const readers (containsTag(), the formatter via stacksLock()) can take it.
+        mutable HATN_COMMON_NAMESPACE::SpinLock m_lock;
 };
 using Context=ContextT<>;
 using Subcontext=Context;
