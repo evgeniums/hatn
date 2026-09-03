@@ -96,6 +96,7 @@ void fillError(Error& out, const HATN_NAMESPACE::Error& ec, lib::string_view ser
     out.userCode=0;
     out.disposition=common::ApiErrorDisposition::Unknown;
     out.retryAfter=0;
+    out.userParams.clear();
     userErrorMapperInstance()(ec,service,method,out);
 }
 

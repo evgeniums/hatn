@@ -126,6 +126,10 @@ struct Error
     common::ApiErrorDisposition disposition=common::ApiErrorDisposition::Unknown;
     //! Seconds to wait before retrying; meaningful only when disposition==RetryAfter.
     int retryAfter=0;
+    //! Positional display parameters for a parameterized userCode, pre-serialized as strings by
+    //! the mapper. hatn does not interpret them - the app's vocabulary documents, per code,
+    //! how many there are and what each position means. Empty for non-parameterized codes.
+    std::vector<std::string> userParams;
 
     void reset()
     {
@@ -135,6 +139,7 @@ struct Error
         userCode=0;
         disposition=common::ApiErrorDisposition::Unknown;
         retryAfter=0;
+        userParams.clear();
     }
 };
 
