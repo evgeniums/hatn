@@ -476,7 +476,7 @@ Result<ConfigTree> ConfigTreeLoader::createFromFile(const std::string& filename,
 
 //---------------------------------------------------------------
 
-Error ConfigTreeLoader::loadFromString(ConfigTree &target, lib::string_view source, const ConfigTreePath &root, const std::string &format) const
+Error ConfigTreeLoader::loadFromString(ConfigTree &target, lib::string_view source, const ConfigTreePath &root, const std::string &format, config_tree::ArrayMerge arrayMergeMode) const
 {
     // parse source
     auto loader=handler(format);
@@ -485,7 +485,7 @@ Error ConfigTreeLoader::loadFromString(ConfigTree &target, lib::string_view sour
         auto msg=fmt::format(fmt::runtime(_TR("unsupported config format \"{}\"","base")), format);
         return Error{BaseError::CONFIG_PARSE_ERROR,std::make_shared<ConfigTreeParseError>(msg)};
     }
-    auto ec=loader->parse(target,source,root,format);
+    auto ec=loader->parse(target,source,root,format,arrayMergeMode);
     HATN_CHECK_EC(ec)
 
     // do substitutions

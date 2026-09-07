@@ -47,13 +47,16 @@ class HATN_BASE_EXPORT ConfigTreeJson : public ConfigTreeIo
          * @param source Source text.
          * @param root Root node where to merge parsed tree to.
          * @param format Source format, if empty then either autodetect format or use default format of the loader.
+         * @param arrayMergeMode Mode used to merge arrays already present in target at root
+         *        with arrays parsed from source.
          * @return Operation status.
          */
         virtual Error doParse(
             ConfigTree& target,
             const common::lib::string_view& source,
             const ConfigTreePath& root=ConfigTreePath(),
-            const std::string& format=std::string()
+            const std::string& format=std::string(),
+            config_tree::ArrayMerge arrayMergeMode=config_tree::ArrayMerge::Merge
         ) const override;
 
         /**

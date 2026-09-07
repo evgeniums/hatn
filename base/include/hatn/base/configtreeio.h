@@ -75,20 +75,24 @@ class HATN_BASE_EXPORT ConfigTreeIo
          * @param source Source text.
          * @param root Root node where to merge parsed tree to.
          * @param format Source format, if empty then either autodetect format or use default format of the loader.
+         * @param arrayMergeMode Mode used to merge arrays already present in target at root
+         *        with arrays parsed from source. Only matters when target already has content
+         *        at root -- irrelevant for a first load into an empty tree.
          * @return Operation status.
          */
         Error parse(
             ConfigTree& target,
             common::lib::string_view source,
             const ConfigTreePath& root=ConfigTreePath(),
-            const std::string& format=std::string()
+            const std::string& format=std::string(),
+            config_tree::ArrayMerge arrayMergeMode=config_tree::ArrayMerge::Merge
         ) const
         {
             if (!format.empty() && !supportsFormat(format))
             {
                 return baseError(BaseError::UNSUPPORTED_CONFIG_FORMAT);
             }
-            return doParse(target,source,root,format);
+            return doParse(target,source,root,format,arrayMergeMode);
         }
 
         /**
@@ -173,13 +177,16 @@ class HATN_BASE_EXPORT ConfigTreeIo
          * @param source Source text.
          * @param root Root node where to merge parsed tree to.
          * @param format Source format, if empty then either autodetect format or use default format of the loader.
+         * @param arrayMergeMode Mode used to merge arrays already present in target at root
+         *        with arrays parsed from source.
          * @return Operation status.
          */
         virtual Error doParse(
             ConfigTree& target,
             const common::lib::string_view& source,
             const ConfigTreePath& root=ConfigTreePath(),
-            const std::string& format=std::string()
+            const std::string& format=std::string(),
+            config_tree::ArrayMerge arrayMergeMode=config_tree::ArrayMerge::Merge
             ) const =0;
 
         /**
