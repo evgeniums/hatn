@@ -23,6 +23,7 @@
 #include <hatn/common/common.h>
 #include <hatn/common/format.h>
 #include <hatn/common/sharedptr.h>
+#include <hatn/common/apierrordisposition.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
@@ -52,27 +53,9 @@ class HATN_COMMON_EXPORT ApiErrorCategory
 
 class ByteArrayManaged;
 
-//! What a client should do about an ApiError - the terminal/retryable distinction stated by the
-//! server, per whitemdesktop/docs/error-contract.md. Mirrors evgo's generic_error.Disposition
-//! string values one-for-one so the wire encoding (x-hatn-edisposition et al) round-trips.
-enum class ApiErrorDisposition : uint8_t
-{
-    //! Server did not state a disposition (absent field, or a peer predating this contract).
-    //! The zero value - a client must fall back to its own heuristics.
-    Unknown=0,
-    //! This request will never succeed as issued.
-    Permanent,
-    //! The server does not implement this call, or the API version is too old. Terminal like
-    //! Permanent, but distinct: a client should stop offering the feature, not just fail this
-    //! one call.
-    Unsupported,
-    //! Transient; retry with backoff.
-    Retry,
-    //! Retryable, but not yet - see ApiError::retryAfter() for the delay in seconds.
-    RetryAfter,
-    //! Retryable only after the user does something: re-auth, free storage, raise a quota.
-    UserAction
-};
+//! ApiErrorDisposition itself now lives in apierrordisposition.h (included above) - kept
+//! boost/function2-free for hatn/clientapp/mobileapp.h's sake. These string helpers stay here
+//! since they need lib::string_view from stdwrappers.h, which mobileapp.h must not pull in.
 
 inline const char* apiErrorDispositionString(ApiErrorDisposition disposition) noexcept
 {
