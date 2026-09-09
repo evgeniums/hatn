@@ -65,6 +65,7 @@ SET (HEADERS
     include/hatn/common/commonerrorcodes.h
     include/hatn/common/errorcategory.h
     include/hatn/common/errorstack.h
+    include/hatn/common/apierrordisposition.h
     include/hatn/common/apierror.h
     include/hatn/common/result.h
 

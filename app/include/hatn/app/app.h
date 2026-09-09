@@ -72,15 +72,39 @@ class HATN_APP_EXPORT App
         App& operator= (const App&)=delete;
         App& operator= (App&&) noexcept;
 
+        /**
+         * @brief Load and merge a config source into the app's config tree.
+         * @param source Config text.
+         * @param format Source format, empty for autodetect/default.
+         * @param arrayMergeMode Mode used to merge arrays already present in the config tree
+         *        with arrays parsed from source. Only matters for a layered load onto a
+         *        non-empty tree -- irrelevant on the first layer.
+         * @param applyNow If true (default), applyConfig() runs immediately after this load.
+         *        Pass false when loading several layers back to back and call applyConfig()
+         *        once after the last one, so the logger and other config-derived state are
+         *        rebuilt only once instead of once per layer.
+         */
         Error loadConfigString(
             common::lib::string_view source,
-            const std::string& format=std::string()
+            const std::string& format=std::string(),
+            HATN_BASE_NAMESPACE::config_tree::ArrayMerge arrayMergeMode=HATN_BASE_NAMESPACE::config_tree::ArrayMerge::Merge,
+            bool applyNow=true
         );
 
         Error loadConfigFile(
             const std::string& fileName,
             const std::string& format=std::string()
         );
+
+        /**
+         * @brief (Re)build logger and other config-derived state from the current config tree.
+         *
+         * Called automatically at the end of loadConfigString()/loadConfigFile() unless
+         * applyNow=false was passed. Public so a caller merging several config layers with
+         * applyNow=false can call it exactly once after the last layer, instead of once per
+         * layer.
+         */
+        Error applyConfig();
 
         Error init();
 
@@ -349,7 +373,6 @@ class HATN_APP_EXPORT App
 
     private:
 
-        Error applyConfig();
         Error initThreads();
         Error initThreadPools();
         void logAppStart();

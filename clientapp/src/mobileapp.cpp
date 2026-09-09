@@ -40,6 +40,7 @@
 #include <hatn/clientapp/mobileplatformcontext.h>
 #include <hatn/clientapp/testservicedb.h>
 #include <hatn/clientapp/mobileapp.h>
+#include <hatn/clientapp/mobileusererror.h>
 #include <hatn/clientapp/eventdispatcher.h>
 #include <hatn/clientapp/clientappsettings.h>
 #include <hatn/clientapp/lockingcontroller.h>

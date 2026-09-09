@@ -159,9 +159,11 @@ constexpr static const char* PasswordGenConfigRoot=HATN_APP_PASSWORD_GEN_CONFIG_
 constexpr static const char* PasswordGenConfigRoot="password_generator";
 #endif
 
-
 constexpr static const char* CryptPluginsFolder="crypt";
 constexpr static const char* DbPluginsFolder="db";
+
+constexpr static const char* AppFolderKey="data_folder";
+constexpr static const char* AppFolderSuffixKey="data_folder_suffix";
 
 constexpr static const char* ThreadTagAppThread="app_default";
 constexpr static const char* ThreadTagNetworkThread="network_default";
@@ -379,7 +381,9 @@ void App::logAppStop()
 
 Error App::loadConfigString(
         common::lib::string_view source,
-        const std::string& format
+        const std::string& format,
+        HATN_BASE_NAMESPACE::config_tree::ArrayMerge arrayMergeMode,
+        bool applyNow
     )
 {
     // preload config to find out data dir
@@ -391,11 +395,15 @@ Error App::loadConfigString(
 
         m_appDataFolder=evalAppDataFolder(t1);
     }
-    m_configTree->setDefaultEx(base::ConfigTreePath(m_appConfigRoot).copyAppend("data_folder"),m_appDataFolder);
+    m_configTree->setDefaultEx(base::ConfigTreePath(m_appConfigRoot).copyAppend(AppFolderKey),m_appDataFolder);
     m_configTreeLoader->setPrefixSubstitution("$data_dir",m_appDataFolder);
 
-    auto ec=m_configTreeLoader->loadFromString(*m_configTree,source,HATN_BASE_NAMESPACE::ConfigTreePath{},format);
+    auto ec=m_configTreeLoader->loadFromString(*m_configTree,source,HATN_BASE_NAMESPACE::ConfigTreePath{},format,arrayMergeMode);
     HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to load app config from string","app"),HLOG_MODULE(app))
+    if (!applyNow)
+    {
+        return OK;
+    }
     return applyConfig();
 }
 
@@ -415,7 +423,7 @@ Error App::loadConfigFile(
 
         m_appDataFolder=evalAppDataFolder(t1);
     }
-    m_configTree->setDefaultEx(base::ConfigTreePath(m_appConfigRoot).copyAppend("data_folder"),m_appDataFolder);
+    m_configTree->setDefaultEx(base::ConfigTreePath(m_appConfigRoot).copyAppend(AppFolderKey),m_appDataFolder);
     m_configTreeLoader->setPrefixSubstitution("$data_dir",m_appDataFolder);
 
     // load app config tree
@@ -993,7 +1001,7 @@ std::string App::evalAppDataFolder(const HATN_BASE_NAMESPACE::ConfigTree& config
     // set app data folder
     if (folder.empty())
     {
-        auto r=configTree.get(base::ConfigTreePath(m_appConfigRoot).copyAppend("data_folder"));
+        auto r=configTree.get(base::ConfigTreePath(m_appConfigRoot).copyAppend(AppFolderKey));
         if (!r)
         {
             auto s=r->as<std::string>();
@@ -1014,10 +1022,22 @@ std::string App::evalAppDataFolder(const HATN_BASE_NAMESPACE::ConfigTree& config
 #endif
         }
         lib::filesystem::path p{folder};
+
+        std::string folderName=m_appName.execName;
+        auto r=configTree.get(base::ConfigTreePath(m_appConfigRoot).copyAppend(AppFolderSuffixKey));
+        if (!r)
+        {
+            auto s=r->as<std::string>();
+            if (!s)
+            {
+                folderName=fmt::format("{}-{}",folderName,s.takeValue());
+            }
+        }
+
 #ifdef _WIN32
-        p.append(m_appName.execName);
+        p.append(folderName);
 #else
-        p.append(fmt::format(".{}",m_appName.execName));
+        p.append(fmt::format(".{}",folderName));
 #endif
         folder=p.string();
     }
