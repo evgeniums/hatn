@@ -18,6 +18,12 @@ if [ -z "$grpc_version" ]; then
 export grpc_version=1.78.1
 fi
 
+# task-spellcheck.md. Not in the default $dep_libs above -- opt-in, same as grpc: build it with
+# `dep_libs="... hunspell" ./build-macos-clang64.sh` (or the equivalent for your platform).
+if [ -z "$hunspell_version" ]; then
+export hunspell_version=1.7.2
+fi
+
 if [ -z "$cares_version" ]; then
 export cares_version=1.34.5
 fi

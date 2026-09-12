@@ -34,6 +34,12 @@ SET GRPC_VERSION=1.78.1
 )
 ECHO "Using gRPC version %GRPC_VERSION%"
 
+REM task-spellcheck.md. Not in the default DEP_LIBS above -- opt-in, same as gRPC.
+IF NOT DEFINED HUNSPELL_VERSION (
+SET HUNSPELL_VERSION=1.7.2
+)
+ECHO "Using hunspell version %HUNSPELL_VERSION%"
+
 IF NOT DEFINED COMPILER_VERSION (
 SET COMPILER_VERSION=14.51
 )
