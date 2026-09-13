@@ -3,6 +3,7 @@ SET (TEST_SOURCES
     ${BASE_TEST_SRC}/testconfigtreevalue.cpp
     ${BASE_TEST_SRC}/testconfigtreeio.cpp
     ${BASE_TEST_SRC}/testconfigobject.cpp
+    ${BASE_TEST_SRC}/testspellchecker.cpp
 )
 
 SET (TEST_HEADERS
@@ -40,6 +41,13 @@ SET (TEST_CONFIG_FILES
     ${BASE_TEST_SRC}/assets/config_cycle2.jsonc
     ${BASE_TEST_SRC}/assets/config_inc2.jsonc
     ${BASE_TEST_SRC}/assets/config_bool.jsonc
+    ${BASE_TEST_SRC}/assets/spell/test_en.aff
+    ${BASE_TEST_SRC}/assets/spell/test_en.dic
+    ${BASE_TEST_SRC}/assets/spell/test_ru.aff
+    ${BASE_TEST_SRC}/assets/spell/test_ru.dic
+    ${BASE_TEST_SRC}/assets/spell/test_latin1.aff
+    ${BASE_TEST_SRC}/assets/spell/test_latin1.dic
+    ${BASE_TEST_SRC}/assets/spell/personal_en.txt
 )
 
 ADD_CUSTOM_TARGET(basetest-files SOURCES ${TEST_CONFIG_FILES})

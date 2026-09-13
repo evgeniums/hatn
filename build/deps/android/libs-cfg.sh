@@ -27,3 +27,8 @@ fi
 if [ -z "$cares_version" ]; then
 export cares_version=1.34.5
 fi
+
+# task-spellcheck.md. Not in the default $dep_libs above -- opt-in, same as grpc.
+if [ -z "$hunspell_version" ]; then
+export hunspell_version=1.7.2
+fi
