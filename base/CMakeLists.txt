@@ -6,6 +6,25 @@ PROJECT(hatnbase)
 # TARGET_LINK_LIBRARIES below needs the target, which BUILD_HATN_MODULE() is what creates.
 FIND_PACKAGE(hunspell)
 
+# A build script can state that it REQUIRES the spell checking backend:
+#
+#     export HATN_USE_HUNSPELL=1
+#
+# This does not (and cannot) define the macro by itself -- HATN_USE_HUNSPELL is written into
+# base/config.h below only when the library is actually found, because the backend also needs
+# hunspell's headers on the include path and libhunspell on the link line. What the variable does
+# is turn "not found" from a silent STATUS into a hard error, so a build that was supposed to have
+# spell checking never quietly ships without it. Point the find at the library with HUNSPELL_ROOT
+# (see cmake/Findhunspell.cmake).
+IF(NOT hunspell_FOUND AND DEFINED ENV{HATN_USE_HUNSPELL} AND NOT "$ENV{HATN_USE_HUNSPELL}" STREQUAL "0")
+    MESSAGE(FATAL_ERROR
+        "HATN_USE_HUNSPELL is set in the environment, but hunspell was not found.\n"
+        "  Build it:   dep_libs=\"hunspell\" <hatn>/build/deps/desktop/build-<platform>.sh\n"
+        "              (run it from the directory whose ./deps tree this build uses)\n"
+        "  Or point at an existing one:  export HUNSPELL_ROOT=/path/to/deps/root-<toolchain>\n"
+        "Unset HATN_USE_HUNSPELL to build without the spell checking backend.")
+ENDIF()
+
 IF(hunspell_FOUND)
     SET (BASE_CONFIG_H_TEXT "${BASE_CONFIG_H_TEXT}\n#ifndef HATN_USE_HUNSPELL \n    #define HATN_USE_HUNSPELL 1\n#endif")
 ENDIF()

@@ -14,10 +14,29 @@
     module fills that one gap: find_path/find_library against the usual locations, then an
     IMPORTED target so callers (base/CMakeLists.txt) never see the raw variables.
 
-    Searched, in order: DEPS_ROOT (this project's own dependency build --
-    build/deps/desktop/libs/hunspell.sh installs there), then the common system/package-manager
-    prefixes, so a locally `brew install hunspell` also resolves for a developer who has not run
-    the dependency script.
+    Searched, in order: HUNSPELL_ROOT (cache variable or ENVIRONMENT variable -- see below),
+    DEPS_ROOT (this project's own dependency build -- build/deps/desktop/libs/hunspell.sh installs
+    there), then the common system/package-manager prefixes, so a locally `brew install hunspell`
+    also resolves for a developer who has not run the dependency script.
+
+    HUNSPELL_ROOT exists so a build script can point at a hunspell that was built into a DIFFERENT
+    dependency prefix than the one this build otherwise uses, without rebuilding it or copying it
+    around:
+
+        export HUNSPELL_ROOT=/path/to/deps/root-clang        # <root>/include + <root>/lib
+
+    (CMake also searches the CMAKE_PREFIX_PATH environment variable and a hunspell_ROOT
+    cache/env variable on its own, per policy CMP0074 -- both work too. HUNSPELL_ROOT is spelled
+    out here because it is the one that reads unambiguously in a shell script.)
+
+    NOTE for anyone reaching for HATN_USE_HUNSPELL directly: that macro is an OUTPUT of this
+    module succeeding (base/CMakeLists.txt writes it into base/config.h), never an input. Defining
+    it by hand -- in the environment, or via CXXFLAGS -- does not enable the backend: it makes
+    src/hunspellchecker.cpp's body live while its #include <hunspell/hunspell.hxx> is still not on
+    the include path, and the TARGET_LINK_LIBRARIES that puts libhunspell on the link line lives
+    inside base/CMakeLists.txt's IF(hunspell_FOUND) block. Point this module at the library
+    instead; see also $ENV{HATN_USE_HUNSPELL} in base/CMakeLists.txt, which turns a failed find
+    into a hard error rather than a silently-disabled backend.
 
     Result:
       hunspell_FOUND        -- TRUE/FALSE
@@ -28,6 +47,8 @@
 FIND_PATH(HUNSPELL_INCLUDE_DIR
     NAMES hunspell/hunspell.hxx
     HINTS
+        ${HUNSPELL_ROOT}/include
+        $ENV{HUNSPELL_ROOT}/include
         ${DEPS_ROOT}/include
         ${HATN_INCLUDE_DIRECTORIES}
     PATHS
@@ -39,6 +60,8 @@ FIND_PATH(HUNSPELL_INCLUDE_DIR
 FIND_LIBRARY(HUNSPELL_LIBRARY
     NAMES hunspell hunspell-1.7 libhunspell
     HINTS
+        ${HUNSPELL_ROOT}/lib
+        $ENV{HUNSPELL_ROOT}/lib
         ${DEPS_ROOT}/lib
         ${HATN_LINK_DIRECTORIES}
     PATHS
