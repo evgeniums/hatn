@@ -59,28 +59,40 @@ void GrpcStream::OnWriteDone(bool ok)
         return;
     }
 
-    m_mutex.lock();
-    auto wcb=m_writeCallback;
-    m_mutex.unlock();
+    // Consume the write callback exactly once, BEFORE invoking it. The callback may issue the
+    // next writeNext() (synchronously or from another thread), which installs the next
+    // callback into m_writeCallback; resetting the slot after the invocation (as this used to
+    // do) could wipe that freshly installed callback. Same invariant as OnReadDone().
+    WriteCb wcb;
+    {
+        common::MutexScopedLock l{m_mutex};
+        wcb=std::move(m_writeCallback);
+        m_writeCallback=WriteCb{};
+    }
 
     if (wcb)
     {
         wcb({});
     }
-
-    m_mutex.lock();
-    m_writeCallback=WriteCb{};
-    m_mutex.unlock();
 }
 
 //--------------------------------------------------------------------------
 
+// Invariant: the read callback is consumed exactly once, before it is invoked. The callback
+// re-arms the read by calling readNext() - either synchronously or, as ServerEventListener
+// does, from a handler posted to the app thread - and readNext() installs the NEXT callback
+// into m_readCallback. Nothing in this function may touch m_readCallback after the
+// invocation. The previous implementation reset the slot in a scope guard that ran after
+// rcb(...) returned; when the app-thread readNext() raced in before that guard ran, its
+// freshly installed callback was wiped, the next OnReadDone() found no callback, nobody
+// re-armed StartRead(), and the stream silently went deaf while the channel (and unary
+// calls on it) stayed perfectly healthy.
 void GrpcStream::OnReadDone(bool ok)
 {
-    m_readPending=false;
     if (!ok)
     {
-        // failed, wait for onDone
+        // failed, wait for onDone, which reports the error to the still-pending read callback
+        m_readPending=false;
 #if 0
         std::cerr << "GrpcStream::OnReadDone failed" << std::endl;
 #endif
@@ -89,17 +101,15 @@ void GrpcStream::OnReadDone(bool ok)
 #if 0
     std::cout << "GrpcStream::OnReadDone begin" << std::endl;
 #endif
-    auto resetCallback=[&]()
+    ReadCb rcb;
     {
-        m_mutex.lock();
+        common::MutexScopedLock l{m_mutex};
+        rcb=std::move(m_readCallback);
         m_readCallback=ReadCb{};
-        m_mutex.unlock();
-    };
-    HATN_SCOPE_GUARD(resetCallback)
-
-    m_mutex.lock();
-    auto rcb=m_readCallback;
-    m_mutex.unlock();
+    }
+    // release only after the slot has been taken, so a readNext() triggered by rcb below
+    // always installs into an empty slot that nobody will reset afterwards
+    m_readPending=false;
 
     // hadnle response
     auto resp=m_transport->handleResponse(
@@ -182,10 +192,11 @@ void GrpcStream::OnReadDone(bool ok)
 
         if (msgResp)
         {
-            // inform on error
+            // inform on error (was resp.error() - the outer, successful result - so the
+            // listener got "success with an empty response" instead of the actual error)
             if (rcb)
             {
-                rcb(resp.error(),{});
+                rcb(msgResp.error(),{});
             }
             return;
         }
@@ -206,12 +217,21 @@ void GrpcStream::OnDone(const grpc::Status& status)
     std::cerr << "GrpcStream::OnDone status=" << status.error_message() << std::endl;
 #endif
 
-    m_mutex.lock();
-    m_closed=true;
-    auto rcb=m_readCallback;
-    auto wcb=m_writeCallback;
-    auto ccb=m_closeCallback;
-    m_mutex.unlock();
+    // m_closed is set before the callbacks are taken, and readNext()/writeNext() check it
+    // first, so no new callback can be installed once the slots are moved out here.
+    ReadCb rcb;
+    WriteCb wcb;
+    CloseCb ccb;
+    {
+        common::MutexScopedLock l{m_mutex};
+        m_closed=true;
+        rcb=std::move(m_readCallback);
+        wcb=std::move(m_writeCallback);
+        ccb=std::move(m_closeCallback);
+        m_readCallback=ReadCb{};
+        m_writeCallback=WriteCb{};
+        m_closeCallback=CloseCb{};
+    }
 
     if (!status.ok())
     {
@@ -291,17 +311,34 @@ void GrpcStream::OnDone(const grpc::Status& status)
             }
         }
     }
-    else if (ccb)
+    else
     {
-        ccb({});
+        // Clean end of the stream (server returned OK). A pending read/write can never
+        // complete now, so report it as aborted: for the event listener a stream that ended
+        // without close() being requested is still "the stream is gone" and must drive the
+        // same onDisconnected()/reconnect path as a transport failure. Previously only ccb
+        // was invoked here, so a pending read callback was silently dropped and the listener
+        // never learned that the stream had ended.
+        auto ec=commonError(CommonError::ABORTED);
+        if (wcb)
+        {
+            wcb(ec);
+        }
+        if (rcb)
+        {
+            rcb(ec,{});
+        }
+        if (ccb)
+        {
+            ccb({});
+        }
     }
 
-    m_mutex.lock();
-    m_writeCallback=WriteCb{};
-    m_readCallback=ReadCb{};
-    m_closeCallback=CloseCb{};
-    auto self=std::move(m_self);
-    m_mutex.unlock();
+    std::shared_ptr<GrpcStream> self;
+    {
+        common::MutexScopedLock l{m_mutex};
+        self=std::move(m_self);
+    }
     m_transport->removeStream(m_channelPriority,self);
 }
 
@@ -322,7 +359,9 @@ void GrpcStream::readNext(ReadCb callback)
     // This can happen when a stale-stream callback fires on the app thread after
     // a reconnect has already armed a new StartRead on this stream. gRPC reacts
     // with GRPC_CALL_ERROR_TOO_MANY_OPERATIONS if StartRead is called twice
-    // before OnReadDone fires.
+    // before OnReadDone fires. The dropped callback is intentional: the read that is
+    // already pending owns the slot and its own callback will be delivered; the caller
+    // that lost the race was a duplicate arm, not a distinct read request.
     if (m_readPending.exchange(true))
     {
         return;
