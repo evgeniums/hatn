@@ -29,3 +29,14 @@ if [ -z "$hunspell_version" ]; then
 export hunspell_version=1.7.2
 fi
 
+# hatn media module (Ogg/Opus). Not in the default $dep_libs above -- opt-in, same as grpc and
+# hunspell. NOTE: the iOS static lib must be screened for duplicate/leaked libopus symbols against
+# the webrtc call plugin's own bundled opus before both are linked into one app.
+if [ -z "$ogg_version" ]; then
+export ogg_version=1.3.5
+fi
+
+if [ -z "$opus_version" ]; then
+export opus_version=1.5.2
+fi
+

@@ -24,6 +24,17 @@ if [ -z "$hunspell_version" ]; then
 export hunspell_version=1.7.2
 fi
 
+# hatn media module (Ogg/Opus voice recording and playback). Not in the default $dep_libs above --
+# opt-in, same as grpc and hunspell: build with `dep_libs="... ogg opus" ./build-macos-clang64.sh`.
+# The media module is built without them too, it just has no Opus backend (HATN_USE_OPUS unset).
+if [ -z "$ogg_version" ]; then
+export ogg_version=1.3.5
+fi
+
+if [ -z "$opus_version" ]; then
+export opus_version=1.5.2
+fi
+
 if [ -z "$cares_version" ]; then
 export cares_version=1.34.5
 fi
