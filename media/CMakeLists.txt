@@ -48,6 +48,7 @@ SET (HEADERS
     include/hatn/media/oggopuswriter.h
     include/hatn/media/oggopusreader.h
     include/hatn/media/voicerecorder.h
+    include/hatn/media/timestretcher.h
     include/hatn/media/voiceplayer.h
     include/hatn/media/voicecrop.h
 )
@@ -58,6 +59,7 @@ SET (SOURCES
     src/opuscodec.cpp
     src/oggopuswriter.cpp
     src/oggopusreader.cpp
+    src/timestretcher.cpp
     src/voicerecorder.cpp
     src/voiceplayer.cpp
     src/voicecrop.cpp

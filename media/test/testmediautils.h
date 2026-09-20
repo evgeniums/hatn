@@ -192,6 +192,40 @@ inline double correlation(const int16_t* a, const int16_t* b, size_t frames)
     return ab/std::sqrt(aa*bb);
 }
 
+//! Frequency of a tone from its rising zero crossings: the cycles counted, over the time they took.
+//! Good to about one cycle in the window, so use windows of a hundred cycles or more.
+inline double toneFrequency(const int16_t* pcm, size_t frames)
+{
+    if (frames==0)
+    {
+        return 0.0;
+    }
+    size_t crossings=0;
+    for (size_t i=1;i<frames;i++)
+    {
+        if (pcm[i-1]<0 && pcm[i]>=0)
+        {
+            crossings++;
+        }
+    }
+    return static_cast<double>(crossings)*static_cast<double>(VoiceSampleRate)/static_cast<double>(frames);
+}
+
+//! Root mean square level.
+inline double rmsLevel(const int16_t* pcm, size_t frames)
+{
+    if (frames==0)
+    {
+        return 0.0;
+    }
+    double sum=0.0;
+    for (size_t i=0;i<frames;i++)
+    {
+        sum+=static_cast<double>(pcm[i])*static_cast<double>(pcm[i]);
+    }
+    return std::sqrt(sum/static_cast<double>(frames));
+}
+
 //! Open a MemoryFile for writing from scratch, as a recorder expects to be handed a file.
 inline void openNew(MemoryFile& file)
 {

@@ -30,6 +30,7 @@
 
 #include <hatn/media/media.h>
 #include <hatn/media/audioformat.h>
+#include <hatn/media/timestretcher.h>
 
 HATN_MEDIA_NAMESPACE_BEGIN
 
@@ -61,6 +62,14 @@ class VoicePlayer_p;
  *
  * The audio thread never gets silence-padding from here: pull() returns fewer frames than asked
  * for, or none, and the platform layer fills the rest with zeros.
+ *
+ * SPEED. setSpeed() plays 0.5x to 2x without changing the pitch. The time stretching (TimeStretcher)
+ * runs in fill(), so pull() stays as it was, and a speed of exactly 1 bypasses it: the audio is then
+ * the decoder's output bit for bit. Positions and durations are always in TIME OF THE MESSAGE, not of
+ * the listener: at 2x, ten seconds of pulled audio move positionMs() by twenty seconds, and
+ * durationMs() does not change. A change of speed is applied like a seek to where the listener is,
+ * by the next fill(), so it takes effect after one decode step instead of after the buffered audio
+ * has played; the listener may hear up to one audio callback of the old speed's audio again.
  *
  * Reads through common::File, so a plain file and a crypt::CryptFile are interchangeable.
  * Without HATN_MEDIA_HAS_OGG_OPUS open() fails with MediaError::CODEC_UNAVAILABLE.
@@ -99,10 +108,24 @@ class HATN_MEDIA_EXPORT VoicePlayer
         //! Jump to a position. Applied by the next fill(); positionMs() reports it at once.
         void seekMs(uint64_t ms) noexcept;
 
+        /**
+         * @brief Play faster or slower at the original pitch. Applied by the next fill().
+         * @param speed Ratio, clamped to MinPlaybackSpeed..MaxPlaybackSpeed; 1 is normal. NaN is ignored.
+         *
+         * Also allowed while closed: the speed is kept across open() and close(). On a player that
+         * has ended it takes effect at the next play(), which starts the message over. Setting the
+         * speed the player already has does nothing.
+         */
+        void setSpeed(float speed) noexcept;
+
+        //! The speed last set, after clamping. Not necessarily applied to the audio yet.
+        float speed() const noexcept;
+
         // ---- decode thread ----------------------------------------------------------------
 
         /**
-         * @brief Decode ahead until the buffer is full or the file ends, applying a pending seek.
+         * @brief Decode ahead until the buffer is full or the file ends, applying a pending seek or
+         *        change of speed.
          *
          * A decode or read error is returned and decoding stops there. Audio already buffered can
          * still be pulled, after which pull() returns nothing without reaching Ended, so the
@@ -110,7 +133,8 @@ class HATN_MEDIA_EXPORT VoicePlayer
          */
         Error fill();
 
-        //! Whether fill() has work to do: a seek is pending or there is room and audio left.
+        //! Whether fill() has work to do: a seek or a change of speed is pending, or there is room
+        //! and audio left.
         bool needsFill() const noexcept;
 
         // ---- audio thread -----------------------------------------------------------------
@@ -126,9 +150,11 @@ class HATN_MEDIA_EXPORT VoicePlayer
 
         PlayerState state() const noexcept;
 
-        //! Playback position. While a seek is pending it is the seek target.
+        //! Playback position, in time of the message (see SPEED). While a seek is pending it is the
+        //! seek target.
         uint64_t positionMs() const noexcept;
 
+        //! Length of the message at normal speed. Does not depend on setSpeed().
         uint64_t durationMs() const noexcept;
 
     private:

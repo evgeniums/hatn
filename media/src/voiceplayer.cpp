@@ -19,6 +19,7 @@
 #include <atomic>
 #include <algorithm>
 #include <array>
+#include <cmath>
 
 #include <hatn/media/mediaerror.h>
 #include <hatn/media/pcmring.h>
@@ -59,8 +60,50 @@ class VoicePlayer_p
         std::atomic<uint64_t> seekTarget{0};
         uint32_t seenEpoch=0;   // audio thread only
 
-        //! Frame that the next pulled sample belongs to.
+        //! Frame of the message that the listener has reached: time of the message, not of the
+        //! listener (see epochSpeed).
         std::atomic<uint64_t> playedFrames{0};
+
+        // ---- speed ------------------------------------------------------------------------
+        //
+        // The audio in the ring was made at one speed since the last EPOCH: the start, a seek or a
+        // change of speed. An epoch begins at a frame of the message (epochStart) and at a write
+        // index of the ring (epochMarker), so ring index i of the epoch holds the message frame
+        // epochStart+(i-epochMarker)*speed. That is all the position bookkeeping there is; a speed
+        // of 1 makes it the plain frame count it was before speed existed.
+
+        TimeStretcher stretcher;                    // decode thread only, and open()
+
+        std::atomic<float> speed{1.0f};             // as requested; the control thread writes it
+        std::atomic<float> appliedSpeed{1.0f};      // of the audio in the ring; the decode thread writes it
+        std::atomic<float> seekSpeed{1.0f};         // published with seekEpoch, like seekTarget
+
+        uint64_t epochMarker=0;                     // decode thread only
+        uint64_t epochStart=0;                      // decode thread only
+
+        uint64_t epochBase=0;                       // audio thread only: message frame at the epoch's start
+        uint64_t epochPulled=0;                     // audio thread only: frames pulled since then
+        double epochSpeed=1.0;                      // audio thread only
+
+        /**
+         * Decode thread: the frame of the message the listener is at, worked out from the producer
+         * side of the ring alone. What the audio thread has consumed is still below epochMarker while
+         * it has not yet noticed the newest epoch, and then the listener is at the epoch's start.
+         */
+        uint64_t listenerFrame() const noexcept
+        {
+            const uint64_t written=ring.writeIndex();
+            const uint64_t consumed=written-(ring.capacity()-ring.writable());
+
+            uint64_t frame=epochStart;
+            if (consumed>epochMarker)
+            {
+                const auto advanced=std::llround(static_cast<double>(consumed-epochMarker)
+                                                 *static_cast<double>(appliedSpeed.load(std::memory_order_relaxed)));
+                frame+=static_cast<uint64_t>(advanced);
+            }
+            return std::min<uint64_t>(frame,totalFrames.load(std::memory_order_relaxed));
+        }
 };
 
 //---------------------------------------------------------------
@@ -94,6 +137,18 @@ Error VoicePlayer::open(common::File& file)
     d->decoderFinished.store(false,std::memory_order_relaxed);
     d->ended.store(false,std::memory_order_relaxed);
     d->playing.store(false,std::memory_order_relaxed);
+
+    // The speed asked for so far is the speed of the first epoch, so nothing has to be re-applied.
+    const auto initialSpeed=d->speed.load(std::memory_order_relaxed);
+    d->stretcher.reset(initialSpeed);
+    d->appliedSpeed.store(initialSpeed,std::memory_order_relaxed);
+    d->seekSpeed.store(initialSpeed,std::memory_order_relaxed);
+    d->epochMarker=d->ring.writeIndex();
+    d->epochStart=0;
+    d->epochBase=0;
+    d->epochPulled=0;
+    d->epochSpeed=static_cast<double>(initialSpeed);
+
     d->opened.store(true,std::memory_order_release);
     return OK;
 }
@@ -145,6 +200,22 @@ void VoicePlayer::seekMs(uint64_t ms) noexcept
 }
 
 //---------------------------------------------------------------
+void VoicePlayer::setSpeed(float speed) noexcept
+{
+    if (std::isnan(speed))
+    {
+        return;
+    }
+    d->speed.store(std::min(std::max(speed,MinPlaybackSpeed),MaxPlaybackSpeed),std::memory_order_release);
+}
+
+//---------------------------------------------------------------
+float VoicePlayer::speed() const noexcept
+{
+    return d->speed.load(std::memory_order_acquire);
+}
+
+//---------------------------------------------------------------
 Error VoicePlayer::fill()
 {
     if (!d->opened.load(std::memory_order_acquire))
@@ -152,7 +223,25 @@ Error VoicePlayer::fill()
         return OK;
     }
 
-    const auto request=d->seekRequest.exchange(-1,std::memory_order_acq_rel);
+    auto request=d->seekRequest.exchange(-1,std::memory_order_acq_rel);
+
+    // A change of speed is a seek to where the listener is: the buffered audio was made at the old
+    // speed and would otherwise have to play out first. An ended player has nothing to re-time; its
+    // next play() seeks to the start and picks the new speed up then.
+    const auto wanted=d->speed.load(std::memory_order_acquire);
+    if (request<0 && wanted!=d->appliedSpeed.load(std::memory_order_relaxed))
+    {
+        if (d->ended.load(std::memory_order_acquire))
+        {
+            d->stretcher.reset(wanted);
+            d->appliedSpeed.store(wanted,std::memory_order_release);
+        }
+        else
+        {
+            request=static_cast<int64_t>(d->listenerFrame());
+        }
+    }
+
     if (request>=0)
     {
         auto ec=d->reader.seek(static_cast<uint64_t>(request));
@@ -161,11 +250,18 @@ Error VoicePlayer::fill()
             return ec;
         }
 
+        d->stretcher.reset(wanted);
+        d->appliedSpeed.store(wanted,std::memory_order_release);
+        d->epochMarker=d->ring.writeIndex();
+        d->epochStart=d->reader.position();
+
         // Order matters: forget "finished" first, so the audio thread cannot see the new epoch
-        // together with a stale end-of-stream, then publish the marker and target, then the epoch.
+        // together with a stale end-of-stream, then publish the marker, target and speed, then the
+        // epoch.
         d->decoderFinished.store(false,std::memory_order_release);
-        d->seekMarker.store(d->ring.writeIndex(),std::memory_order_relaxed);
-        d->seekTarget.store(d->reader.position(),std::memory_order_relaxed);
+        d->seekMarker.store(d->epochMarker,std::memory_order_relaxed);
+        d->seekTarget.store(d->epochStart,std::memory_order_relaxed);
+        d->seekSpeed.store(wanted,std::memory_order_relaxed);
         d->seekEpoch.fetch_add(1,std::memory_order_release);
     }
 
@@ -175,8 +271,47 @@ Error VoicePlayer::fill()
     }
 
     std::array<int16_t,VoiceFrameSamples> buffer;
-    while (d->ring.writable()>=buffer.size())
+
+    if (d->appliedSpeed.load(std::memory_order_relaxed)==1.0f)
     {
+        // normal speed: the decoder's output goes to the ring untouched
+        while (d->ring.writable()>=buffer.size())
+        {
+            size_t got=0;
+            auto ec=d->reader.read(buffer.data(),buffer.size(),got);
+            if (ec)
+            {
+                return ec;
+            }
+            if (got==0)
+            {
+                d->decoderFinished.store(true,std::memory_order_release);
+                break;
+            }
+            d->ring.write(buffer.data(),got);
+        }
+        return OK;
+    }
+
+    // Other speeds: the decoder feeds the stretcher, and the stretcher feeds the ring. The stretcher
+    // holds back about 26 ms of audio, and after the decoder's end it has a tail left to give out
+    // before the ring may be marked finished.
+    std::array<int16_t,VoiceFrameSamples> stretched;
+    while (d->ring.writable()>=stretched.size())
+    {
+        const auto produced=d->stretcher.pull(stretched.data(),stretched.size());
+        if (produced!=0)
+        {
+            d->ring.write(stretched.data(),produced);
+            continue;
+        }
+        if (d->stretcher.finished())
+        {
+            d->decoderFinished.store(true,std::memory_order_release);
+            break;
+        }
+
+        // it wants more input
         size_t got=0;
         auto ec=d->reader.read(buffer.data(),buffer.size(),got);
         if (ec)
@@ -185,10 +320,12 @@ Error VoicePlayer::fill()
         }
         if (got==0)
         {
-            d->decoderFinished.store(true,std::memory_order_release);
-            break;
+            d->stretcher.finish();
         }
-        d->ring.write(buffer.data(),got);
+        else
+        {
+            d->stretcher.push(buffer.data(),got);
+        }
     }
     return OK;
 }
@@ -204,6 +341,10 @@ bool VoicePlayer::needsFill() const noexcept
     {
         return true;
     }
+    if (d->speed.load(std::memory_order_acquire)!=d->appliedSpeed.load(std::memory_order_acquire))
+    {
+        return true;
+    }
     return !d->decoderFinished.load(std::memory_order_acquire) && d->ring.writable()>=VoiceFrameSamples;
 }
 
@@ -215,7 +356,10 @@ size_t VoicePlayer::pull(int16_t* out, size_t frames) noexcept
     if (epoch!=d->seenEpoch)
     {
         d->ring.discardUpTo(d->seekMarker.load(std::memory_order_relaxed));
-        d->playedFrames.store(d->seekTarget.load(std::memory_order_relaxed),std::memory_order_relaxed);
+        d->epochBase=d->seekTarget.load(std::memory_order_relaxed);
+        d->epochPulled=0;
+        d->epochSpeed=static_cast<double>(d->seekSpeed.load(std::memory_order_relaxed));
+        d->playedFrames.store(d->epochBase,std::memory_order_relaxed);
         d->seenEpoch=epoch;
         d->ended.store(false,std::memory_order_relaxed);
     }
@@ -226,10 +370,23 @@ size_t VoicePlayer::pull(int16_t* out, size_t frames) noexcept
     }
 
     const auto n=d->ring.read(out,frames);
-    d->playedFrames.fetch_add(n,std::memory_order_relaxed);
+    if (n!=0)
+    {
+        // message time: at speed 1 exactly the frames pulled, at 2 twice as many. Rounding at
+        // another speed can overshoot the end by a frame, which must not show as a position past
+        // the duration.
+        d->epochPulled+=n;
+        const auto position=d->epochBase+static_cast<uint64_t>(std::llround(static_cast<double>(d->epochPulled)*d->epochSpeed));
+        d->playedFrames.store(std::min<uint64_t>(position,d->totalFrames.load(std::memory_order_relaxed)),std::memory_order_relaxed);
+    }
 
     if (n==0 && d->decoderFinished.load(std::memory_order_acquire) && d->ring.readable()==0)
     {
+        if (d->epochSpeed!=1.0)
+        {
+            // the frames pulled at another speed do not add up to exactly the rest of the message
+            d->playedFrames.store(d->totalFrames.load(std::memory_order_relaxed),std::memory_order_relaxed);
+        }
         d->ended.store(true,std::memory_order_release);
         d->playing.store(false,std::memory_order_release);
     }

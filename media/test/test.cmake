@@ -5,6 +5,7 @@ SET (TEST_SOURCES
     ${MEDIA_TEST_SRC}/testvoicerecorder.cpp
     ${MEDIA_TEST_SRC}/testvoiceplayer.cpp
     ${MEDIA_TEST_SRC}/testvoicecrop.cpp
+    ${MEDIA_TEST_SRC}/testtimestretcher.cpp
 )
 
 SET (TEST_HEADERS
