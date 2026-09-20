@@ -185,6 +185,16 @@ bool OpusFrameDecoder::isInitialized() const noexcept
 }
 
 //---------------------------------------------------------------
+void OpusFrameDecoder::release() noexcept
+{
+    if (d->decoder!=nullptr)
+    {
+        opus_decoder_destroy(d->decoder);
+        d->decoder=nullptr;
+    }
+}
+
+//---------------------------------------------------------------
 Error OpusFrameDecoder::decode(const uint8_t* data, size_t bytes, int16_t* pcm, size_t maxFrames, size_t& outFrames)
 {
     outFrames=0;
@@ -253,6 +263,7 @@ OpusFrameDecoder::OpusFrameDecoder() : d(std::make_unique<OpusFrameDecoder_p>())
 OpusFrameDecoder::~OpusFrameDecoder()=default;
 Error OpusFrameDecoder::init(int16_t) { return mediaError(MediaError::CODEC_UNAVAILABLE); }
 bool OpusFrameDecoder::isInitialized() const noexcept { return false; }
+void OpusFrameDecoder::release() noexcept {}
 Error OpusFrameDecoder::decode(const uint8_t*, size_t, int16_t*, size_t, size_t& outFrames)
 {
     outFrames=0;

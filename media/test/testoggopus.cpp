@@ -336,6 +336,41 @@ BOOST_AUTO_TEST_CASE(WritesIncrementallyNotAtTheEnd)
     BOOST_CHECK_EQUAL(writer.bytesWritten(),static_cast<uint64_t>(file.bytes().size()));
 }
 
+BOOST_AUTO_TEST_CASE(ReaderCanBeReopenedAfterClose)
+{
+    // The reader used to keep its Opus decoder through close(), so the second open() failed in the
+    // decoder's init(): a player could open one message and never another.
+    const auto pcm=test::makeSine(2*VoiceSampleRate);
+    test::MemoryFile file;
+    VoiceRecording recording;
+    BOOST_REQUIRE(!test::recordPcm(file,pcm,recording));
+
+    OggOpusReader reader;
+    for (size_t round=0;round<3;round++)
+    {
+        auto ec=reader.open(file);
+        BOOST_REQUIRE_MESSAGE(!ec,"open() number "<<round+1<<": "<<ec.message());
+        BOOST_CHECK_EQUAL(reader.totalFrames(),static_cast<uint64_t>(pcm.size()));
+
+        // to the end, so that reopening does not depend on a fresh state
+        std::vector<int16_t> buffer(4096);
+        size_t total=0;
+        for (;;)
+        {
+            size_t got=0;
+            BOOST_REQUIRE(!reader.read(buffer.data(),buffer.size(),got));
+            if (got==0)
+            {
+                break;
+            }
+            total+=got;
+        }
+        BOOST_CHECK_EQUAL(total,pcm.size());
+        reader.close();
+        BOOST_CHECK(!reader.isOpen());
+    }
+}
+
 #endif // HATN_MEDIA_HAS_OGG_OPUS
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -126,6 +126,9 @@ class HATN_MEDIA_EXPORT OpusFrameDecoder
 
         bool isInitialized() const noexcept;
 
+        //! Destroy the decoder, so that init() can create one again, for the next stream.
+        void release() noexcept;
+
         /**
          * @brief Decode one packet.
          * @param data Packet.

@@ -81,6 +81,8 @@ class OggOpusReader_p
                 ogg_sync_clear(&sync);
                 syncInit=false;
             }
+            // a decoder that is kept makes the next open() of this reader fail in init()
+            decoder.release();
             file=nullptr;
             opened=false;
             pages.clear();
