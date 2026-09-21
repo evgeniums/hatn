@@ -20,6 +20,7 @@ cmake -G "$cmake_gen_prefix Makefiles" \
         -DBUILD_SHARED_LIBS=OFF \
         -DBUILD_TESTING=OFF \
         -DINSTALL_DOCS=OFF \
+        -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
         $folder
 
 $make_tool -j$build_workers install
