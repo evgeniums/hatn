@@ -49,8 +49,7 @@ constexpr const char* InvitationPrefix="HINV";
 enum class SharedInvitationKind : uint32_t
 {
     Character=0,   //!< payload is `invitation` in shared_invitation::invitation (field 2)
-    GroupChat=1    //!< value reserved only; payload unit and handling are not implemented yet,
-                   //!< which maxSharedInvitationVersion() reports by returning 0 for it
+    GroupChat=1    //!< payload is `group_chat_invitation` in shared_invitation::group_chat_invitation
 };
 
 //! Whether @a kind is a value this build enumerates at all -- false for anything a newer producer
@@ -69,10 +68,8 @@ constexpr bool isKnownSharedInvitationKind(SharedInvitationKind kind) noexcept
 /**
  * @brief Highest shared_invitation::version this build can actually handle for @a kind.
  *
- * Returns 0 when this build cannot handle the kind at all -- either because it does not
- * enumerate it, or (GroupChat today) because the value is reserved in the wire contract but its
- * payload unit and flow are not implemented yet. Same "0 means this build doesn't know it"
- * convention the chat-message side uses for msg_type.
+ * Returns 0 when this build does not enumerate @a kind at all. Same "0 means this build doesn't
+ * know it" convention the chat-message side uses for msg_type.
  *
  * Forward-compat policy is a hard block: a version above what is returned here is treated exactly
  * like an unknown kind, never parsed partially.
@@ -82,7 +79,7 @@ constexpr uint32_t maxSharedInvitationVersion(SharedInvitationKind kind) noexcep
     switch (kind)
     {
         case SharedInvitationKind::Character: return 1;
-        case SharedInvitationKind::GroupChat: return 0; //!< reserved, not implemented yet
+        case SharedInvitationKind::GroupChat: return 1;
     }
     return 0;
 }
