@@ -112,10 +112,18 @@ struct Timer final
         if (ec != boost::asio::error::operation_aborted
             && !stopping.load(std::memory_order_acquire))
         {
-            if (!handler() || runOnce || stopping.load(std::memory_order_acquire))
+            const bool retired=!handler() || runOnce;
+            if (retired || stopping.load(std::memory_order_acquire))
             {
                 stopped.store(true,std::memory_order_release);
-                if (uninstall) {
+
+                /* ONLY a timer that retired BY ITSELF asks to be uninstalled. If stopping is set,
+                   uninstallTimer() is already running for this timer: it erased the map entry
+                   before calling stop() and is now waiting on `stopped`, so a posted uninstall
+                   would find nothing to erase -- and would run LATER, on an io_context whose
+                   Thread the caller is very likely tearing down the moment that wait returns,
+                   dereferencing a Thread_p that is already gone. */
+                if (retired && uninstall) {
                     boost::asio::post(asioContext,uninstall);
                     // asioContext.post(uninstall);
                 }
