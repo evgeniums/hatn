@@ -389,11 +389,9 @@ Error App::loadConfigString(
     // preload config to find out data dir
     if (m_appDataFolder.empty())
     {
-        HATN_BASE_NAMESPACE::ConfigTree t1;
-        auto ec=m_configTreeLoader->loadFromString(t1,source,HATN_BASE_NAMESPACE::ConfigTreePath{},format);
-        HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to load app config from string","app"),HLOG_MODULE(app))
-
-        m_appDataFolder=evalAppDataFolder(t1);
+        auto ecPre=preloadConfigString(source,format,arrayMergeMode);
+        HATN_CHECK_EC(ecPre)
+        resolveAppDataFolder();
     }
     m_configTree->setDefaultEx(base::ConfigTreePath(m_appConfigRoot).copyAppend(AppFolderKey),m_appDataFolder);
     m_configTreeLoader->setPrefixSubstitution("$data_dir",m_appDataFolder);
@@ -417,11 +415,9 @@ Error App::loadConfigFile(
     // preload config to find out data dir
     if (m_appDataFolder.empty())
     {
-        HATN_BASE_NAMESPACE::ConfigTree t1;
-        auto ec=m_configTreeLoader->loadFromFile(t1,fileName,HATN_BASE_NAMESPACE::ConfigTreePath{},format);
-        HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to load app config from file","app"),HLOG_MODULE(app))
-
-        m_appDataFolder=evalAppDataFolder(t1);
+        auto ecPre=preloadConfigFile(fileName,format);
+        HATN_CHECK_EC(ecPre)
+        resolveAppDataFolder();
     }
     m_configTree->setDefaultEx(base::ConfigTreePath(m_appConfigRoot).copyAppend(AppFolderKey),m_appDataFolder);
     m_configTreeLoader->setPrefixSubstitution("$data_dir",m_appDataFolder);
@@ -994,6 +990,28 @@ void App::setAppDataFolder(
 
 //---------------------------------------------------------------
 
+std::string App::evalDataFolderSuffix(const HATN_BASE_NAMESPACE::ConfigTree& configTree) const
+{
+    if (!m_dataFolderSuffix.empty())
+    {
+        return m_dataFolderSuffix;
+    }
+
+    auto r=configTree.get(base::ConfigTreePath(m_appConfigRoot).copyAppend(AppFolderSuffixKey));
+    if (!r)
+    {
+        auto s=r->as<std::string>();
+        if (!s)
+        {
+            return s.takeValue();
+        }
+    }
+
+    return std::string{};
+}
+
+//---------------------------------------------------------------
+
 std::string App::evalAppDataFolder(const HATN_BASE_NAMESPACE::ConfigTree& configTree) const
 {
     auto folder=m_appDataFolder;
@@ -1024,14 +1042,10 @@ std::string App::evalAppDataFolder(const HATN_BASE_NAMESPACE::ConfigTree& config
         lib::filesystem::path p{folder};
 
         std::string folderName=m_appName.execName;
-        auto r=configTree.get(base::ConfigTreePath(m_appConfigRoot).copyAppend(AppFolderSuffixKey));
-        if (!r)
+        auto suffix=evalDataFolderSuffix(configTree);
+        if (!suffix.empty())
         {
-            auto s=r->as<std::string>();
-            if (!s)
-            {
-                folderName=fmt::format("{}-{}",folderName,s.takeValue());
-            }
+            folderName=fmt::format("{}-{}",folderName,suffix);
         }
 
 #ifdef _WIN32
@@ -1043,6 +1057,63 @@ std::string App::evalAppDataFolder(const HATN_BASE_NAMESPACE::ConfigTree& config
     }
 
     return folder;
+}
+
+//---------------------------------------------------------------
+
+HATN_BASE_NAMESPACE::ConfigTree& App::preloadConfigTree()
+{
+    if (!m_preloadConfigTree)
+    {
+        m_preloadConfigTree=std::make_shared<HATN_BASE_NAMESPACE::ConfigTree>();
+    }
+    return *m_preloadConfigTree;
+}
+
+//---------------------------------------------------------------
+
+Error App::preloadConfigString(
+        common::lib::string_view source,
+        const std::string& format,
+        HATN_BASE_NAMESPACE::config_tree::ArrayMerge arrayMergeMode
+    )
+{
+    auto ec=m_configTreeLoader->loadFromString(preloadConfigTree(),source,HATN_BASE_NAMESPACE::ConfigTreePath{},format,arrayMergeMode);
+    HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to load app config from string","app"),HLOG_MODULE(app))
+    return OK;
+}
+
+//---------------------------------------------------------------
+
+Error App::preloadConfigFile(
+        const std::string& fileName,
+        const std::string& format
+    )
+{
+    auto ec=m_configTreeLoader->loadFromFile(preloadConfigTree(),fileName,HATN_BASE_NAMESPACE::ConfigTreePath{},format);
+    HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to load app config from file","app"),HLOG_MODULE(app))
+    return OK;
+}
+
+//---------------------------------------------------------------
+
+void App::setDataFolderSuffix(std::string suffix)
+{
+    m_dataFolderSuffix=std::move(suffix);
+}
+
+//---------------------------------------------------------------
+
+void App::resolveAppDataFolder()
+{
+    if (m_dataFolderSuffix.empty())
+    {
+        m_dataFolderSuffix=evalDataFolderSuffix(preloadConfigTree());
+    }
+    if (m_appDataFolder.empty())
+    {
+        m_appDataFolder=evalAppDataFolder(preloadConfigTree());
+    }
 }
 
 //---------------------------------------------------------------

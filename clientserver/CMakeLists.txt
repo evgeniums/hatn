@@ -62,10 +62,12 @@ SET (HEADERS
     include/hatn/clientserver/models/withloginprofile.h
     include/hatn/clientserver/models/serverhost.h
     include/hatn/clientserver/models/invitation.h
+    include/hatn/clientserver/models/invitationformat.h
     include/hatn/clientserver/models/usernamevalidator.h
 
     include/hatn/clientserver/models/serverroute.h
     include/hatn/clientserver/models/accountconfig.h
+    include/hatn/clientserver/models/accountconfigformat.h
 )
 
 SET (HEADERS
@@ -77,6 +79,8 @@ SET (HEADERS
 SET (SOURCES
     src/clientserver.cpp
     src/accountconfigparser.cpp
+    src/accountconfigformat.cpp
+    src/invitationformat.cpp
     src/clientservererror.cpp
     src/defaultauth.cpp
     src/clientsession.cpp

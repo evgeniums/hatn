@@ -27,7 +27,62 @@
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
+//! Format magic of every serialized shared_invitation, of every kind and version -- see
+//! SharedInvitationKind below for why this is deliberately NOT namespaced per kind.
 constexpr const char* InvitationPrefix="HINV";
+
+/**
+ * @brief Subtype of a shared invitation blob (shared_invitation::kind).
+ *
+ * Character==0 is the only value any producer emitted before this field existed, so an ABSENT
+ * field must read as Character -- which the HDU default on shared_invitation::kind gives for free.
+ *
+ * The underlying type is fixed at uint32_t so a value from a newer producer (a kind this build
+ * does not enumerate) is a well-defined enum value here rather than undefined behaviour; callers
+ * must therefore never assume a parsed value is one of the enumerators below -- ask
+ * isKnownSharedInvitationKind() first.
+ *
+ * NEVER renumber: this is a wire contract shared with .inv files and QR codes already in the
+ * wild. Reserving a value here is deliberately separate from supporting it -- see
+ * maxSharedInvitationVersion().
+ */
+enum class SharedInvitationKind : uint32_t
+{
+    Character=0,   //!< payload is `invitation` in shared_invitation::invitation (field 2)
+    GroupChat=1    //!< payload is `group_chat_invitation` in shared_invitation::group_chat_invitation
+};
+
+//! Whether @a kind is a value this build enumerates at all -- false for anything a newer producer
+//! invents. Distinct from "supported": see maxSharedInvitationVersion().
+constexpr bool isKnownSharedInvitationKind(SharedInvitationKind kind) noexcept
+{
+    switch (kind)
+    {
+        case SharedInvitationKind::Character:
+        case SharedInvitationKind::GroupChat:
+            return true;
+    }
+    return false;
+}
+
+/**
+ * @brief Highest shared_invitation::version this build can actually handle for @a kind.
+ *
+ * Returns 0 when this build does not enumerate @a kind at all. Same "0 means this build doesn't
+ * know it" convention the chat-message side uses for msg_type.
+ *
+ * Forward-compat policy is a hard block: a version above what is returned here is treated exactly
+ * like an unknown kind, never parsed partially.
+ */
+constexpr uint32_t maxSharedInvitationVersion(SharedInvitationKind kind) noexcept
+{
+    switch (kind)
+    {
+        case SharedInvitationKind::Character: return 1;
+        case SharedInvitationKind::GroupChat: return 1;
+    }
+    return 0;
+}
 
 enum class InvitationPublishMode
 {
@@ -117,9 +172,32 @@ HDU_UNIT_WITH(invitation,(
     HDU_FIELD(reuse,HDU_TYPE_ENUM(InvitationReuseMode),11) //!< Mode of invitation reusing
 )
 
+/**
+ * @brief Envelope actually written to a .inv file / encoded into a QR code.
+ *
+ * Extension rules, which every producer and consumer must follow:
+ *
+ *  - `prefix` is always InvitationPrefix, for EVERY kind. It is the cheap discriminator that lets
+ *    a reader answer "this is an invitation, just not one I understand" instead of "this is not an
+ *    invitation" -- namespacing it per kind would throw that away. See classifySharedInvitation().
+ *  - `invitation` (field 2) is the Character-kind payload slot and NOTHING else. Every other kind
+ *    puts its payload in `payload` (field 5) and leaves field 2 unset, so a reader that predates
+ *    that kind fails cleanly on the "invitation field is empty" check it already performs, rather
+ *    than silently mis-parsing a foreign unit as a contact invitation (the deserializer skips
+ *    unknown tags, so it would NOT error on its own).
+ *  - `kind`/`version` are NOT stamped for a plain Character invitation: their defaults already say
+ *    exactly that, and leaving them off keeps existing .inv files and QR codes byte-identical in
+ *    shape (QR density matters -- see QRCODE_SIZE_LIMIT_EXCEEDED).
+ *  - `encryptable_object` is kind-agnostic (plain subunit or a passphrase-encrypted CryptContainer),
+ *    so the protection-code wrapper is reused verbatim by every future kind rather than each
+ *    inventing its own.
+ */
 HDU_UNIT(shared_invitation,
     HDU_FIELD(prefix,TYPE_STRING,1)
-    HDU_FIELD(invitation,encryptable_object::TYPE,2)
+    HDU_FIELD(invitation,encryptable_object::TYPE,2) //!< Character kind ONLY, see above
+    HDU_FIELD(kind,HDU_TYPE_ENUM(SharedInvitationKind),3,false,SharedInvitationKind::Character)
+    HDU_FIELD(version,TYPE_UINT32,4,false,1) //!< payload version WITHIN `kind`, see maxSharedInvitationVersion()
+    HDU_FIELD(payload,encryptable_object::TYPE,5) //!< payload of every kind except Character
 )
 
 HDU_UNIT(invitation_state,

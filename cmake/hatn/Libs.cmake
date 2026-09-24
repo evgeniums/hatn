@@ -13,4 +13,6 @@ SET (HATN_MODULES
 	clientserver
 	clientapp
 	grpcclient
+	media
+	mediatests
 )

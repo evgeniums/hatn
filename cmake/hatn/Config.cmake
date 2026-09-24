@@ -102,6 +102,26 @@ OPTION(HATN_SMARTPOINTERS_STD "Use smartpointers from standard std library inste
 
 OPTION(BUILD_SERVER_LIBS "Build server hatn libraries" OFF)
 
+# Locking secret buffers in RAM (mlock/VirtualLock) is defence-in-depth hardening, not a
+# correctness requirement. Mobile platforms cap RLIMIT_MEMLOCK very low - 64 KiB on many Android
+# devices - so once a handful of pages are held every further lock request fails, and treating
+# that as fatal aborted the process from inside an async task. When this option is on, a failed
+# lock is reported once and the buffer is used unlocked; the buffer is still zeroed on release.
+# Default it on where the limit is small, off on desktop/server where locking is expected to work.
+IF (BUILD_ANDROID OR BUILD_IOS)
+    SET (HATN_MEMORY_LOCK_BEST_EFFORT_DEFAULT ON)
+ELSE()
+    SET (HATN_MEMORY_LOCK_BEST_EFFORT_DEFAULT OFF)
+ENDIF()
+IF (DEFINED ENV{HATN_MEMORY_LOCK_BEST_EFFORT})
+    SET (HATN_MEMORY_LOCK_BEST_EFFORT_DEFAULT $ENV{HATN_MEMORY_LOCK_BEST_EFFORT})
+ENDIF()
+OPTION(HATN_MEMORY_LOCK_BEST_EFFORT "Treat failure to lock memory pages as a warning instead of an error" ${HATN_MEMORY_LOCK_BEST_EFFORT_DEFAULT})
+IF (HATN_MEMORY_LOCK_BEST_EFFORT)
+    MESSAGE(STATUS "Memory locking is best effort: lock failures will be reported, not thrown")
+    SET(HATN_COMPILE_DEFINITIONS ${HATN_COMPILE_DEFINITIONS} -DHATN_MEMORY_LOCK_BEST_EFFORT)
+ENDIF()
+
 IF (BUILD_IOS)
     MESSAGE(STATUS "Building for iOS")
     SET(HATN_COMPILE_DEFINITIONS ${HATN_COMPILE_DEFINITIONS} -DBUILD_IOS)

@@ -36,7 +36,13 @@
     Do(BaseError,CONFIG_LOAD_ERROR,_TR("failed to load configuration file","base")) \
     Do(BaseError,CONFIG_SAVE_ERROR,_TR("failed to save configuration file","base")) \
     Do(BaseError,CONFIG_OBJECT_LOAD_ERROR,_TR("failed to load configuration object","base")) \
-    Do(BaseError,CONFIG_OBJECT_VALIDATE_ERROR,_TR("failed to validate configuration object","base"))
+    Do(BaseError,CONFIG_OBJECT_VALIDATE_ERROR,_TR("failed to validate configuration object","base")) \
+    Do(BaseError,SPELL_NOT_SUPPORTED,_TR("spell checking is not supported in this build","base")) \
+    Do(BaseError,SPELL_DICTIONARY_NOT_FOUND,_TR("dictionary file not found","base")) \
+    Do(BaseError,SPELL_DICTIONARY_LOAD_ERROR,_TR("failed to load dictionary","base")) \
+    Do(BaseError,SPELL_DICTIONARY_ENCODING,_TR("unsupported dictionary encoding, expected UTF-8","base")) \
+    Do(BaseError,SPELL_DICTIONARY_EXISTS,_TR("dictionary for this language is already loaded","base")) \
+    Do(BaseError,SPELL_LANGUAGE_NOT_LOADED,_TR("dictionary for this language is not loaded","base"))
 
 HATN_BASE_NAMESPACE_BEGIN
 
