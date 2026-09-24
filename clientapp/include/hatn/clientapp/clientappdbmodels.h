@@ -33,7 +33,7 @@ HDU_UNIT_WITH(clientapp_data,(HDU_BASE(HATN_DB_NAMESPACE::object)),
 HATN_DB_UNIQUE_INDEX(clientAppDataIdx,clientapp_data::name)
 HATN_DB_MODEL_PROTOTYPE(clientAppDataModel,clientapp_data,clientAppDataIdx())
 
-class ClientAppDbModels : public db::ModelsWrapper
+class HATN_CLIENTAPP_EXPORT ClientAppDbModels : public db::ModelsWrapper
 {
     public:
 
