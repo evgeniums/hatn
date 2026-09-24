@@ -23,6 +23,17 @@ namespace fileencryptor {
 
 //---------------------------------------------------------------
 
+FileCryptBase::~FileCryptBase()
+{
+    app.reset();
+    if (mainThreadSet)
+    {
+        common::Thread::releaseMainThread();
+    }
+}
+
+//---------------------------------------------------------------
+
 common::Error FileCryptBase::init(std::string_view configFilePath,
                                   std::string_view sectionPath)
 {
@@ -57,6 +68,13 @@ common::Error FileCryptBase::init(std::string_view configFilePath,
     if (jsonResult)
     {
         return jsonResult.takeError();
+    }
+
+    if (!common::Thread::mainThread())
+    {
+        common::Thread::setMainThread(
+            std::make_shared<common::Thread>("main", false));
+        mainThreadSet = true;
     }
 
     app = std::make_unique<app::App>(app::AppName{"fileencryptor", "hatn File Encryptor"});

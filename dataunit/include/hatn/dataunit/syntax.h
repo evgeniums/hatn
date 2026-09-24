@@ -219,8 +219,11 @@ HDU_DATAUNIT_EMPTY(empty_unit)
         HDU_FIELD(value,Value,MapItemValue::id) \
     )
 
-#define HDU_MAP_FIELD(...) \
-    HDU_V2_MAP_FIELD(__VA_ARGS__)
+/* FieldName must be bound explicitly: MSVC's legacy preprocessor passes a
+   forwarded __VA_ARGS__ as a single argument, so a pure-variadic wrapper
+   would glue the whole argument list into HDU_V2_MAP_FIELD's FieldName. */
+#define HDU_MAP_FIELD(FieldName,...) \
+    HDU_V2_MAP_FIELD(FieldName,__VA_ARGS__)
 
 HATN_DATAUNIT_NAMESPACE_END
 

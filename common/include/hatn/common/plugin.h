@@ -346,7 +346,7 @@ class HATN_COMMON_EXPORT PluginLoader final : public Singleton
          * @brief Registor meta info of plugin
          * @param pluginInfo Meta info of plugin
          */
-        void registerPluginInfo(const PluginInfo* pluginInfo);
+        void registerPluginInfo(const PluginInfo* pluginInfo, bool ignoreDuplicate=false);
 
         /**
          * @brief Find registered meta information of plugin

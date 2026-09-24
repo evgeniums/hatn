@@ -30,6 +30,8 @@
     Do(AppError,UNKNOWN_DB_PROVIDER,_TR("unknown database provider","app")) \
     Do(AppError,INVALID_DB_CIPHER_SUITE,_TR("invalid cipher suite for database encryption","app")) \
     Do(AppError,CACHE_MISS,_TR("object not found in cache","app")) \
+    Do(AppError,INVALID_THREAD_POOL_CONFIG,_TR("invalid thread pool configuration","app")) \
+    Do(AppError,DUPLICATE_THREAD_POOL,_TR("duplicate thread pool name in configuration","app")) \
 
 HATN_APP_NAMESPACE_BEGIN
 

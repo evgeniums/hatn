@@ -65,7 +65,7 @@ void ClientAuthProtocolSharedSecret::invoke(
         return;
     }
 
-#if 1
+#if 0
     std::cout << "ClientAuthProtocolSharedSecret::invoke authNegotiateResponse: " << authNegotiateResponse->toString(true) << std::endl;
 #endif
 
@@ -93,7 +93,7 @@ void ClientAuthProtocolSharedSecret::invoke(
     req->setFieldValue(auth_hss_check::token,authNegotiateResponse->fieldValue(auth_protocol_response::token));
     req->setFieldValue(auth_hss_check::login,session()->login());
     req->setFieldValue(auth_hss_check::topic,session()->topic());
-#if 1
+#if 0
     std::cout << "ClientAuthProtocolSharedSecret::invoke req:" << req->toString(true) << std::endl;
 #endif
     // define request callback

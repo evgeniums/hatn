@@ -21,10 +21,17 @@
 #ifndef HATNLOGCONTEXT_H
 #define HATNLOGCONTEXT_H
 
+#include <iostream>
+#include <sstream>
+#include <mutex>
+#include <memory>
+
 #include <hatn/common/flatmap.h>
 #include <hatn/common/allocatoronstack.h>
 #include <hatn/common/thread.h>
+#include <hatn/common/locker.h>
 #include <hatn/common/taskcontext.h>
+#include <hatn/common/weakptr.h>
 #include <hatn/common/runonscopeexit.h>
 
 #include <hatn/logcontext/logcontext.h>
@@ -67,10 +74,12 @@ struct BarrierCursorData
 {
     const char* name;
     size_t scopeStackOffset;
+    size_t id;
 
-    BarrierCursorData(const char* name="", size_t scopeStackOffset=0)
+    BarrierCursorData(const char* name="", size_t scopeStackOffset=0, size_t id=0)
         : name(name),
-          scopeStackOffset(scopeStackOffset)
+          scopeStackOffset(scopeStackOffset),
+          id(id)
     {}
 };
 
@@ -79,6 +88,29 @@ using BarrierCursor=BarrierCursorData;
 template <class T, std::size_t N>
 using ContextAlloc=common::AllocatorOnStack<T,N>;
 
+/**
+ * @brief Log context holding scope, variable and barrier stacks of an operation.
+ *
+ * Thread safety. A context belongs to one logical operation but does not stay on one thread:
+ * common::postAsyncTask() hands it to another thread while the posting thread's own scope
+ * guards are still pending destruction, a ScopeBarrier token is released by whichever thread
+ * destroys the last copy (for gRPC requests that is a transport thread, concurrently with the
+ * continuation already running on the client thread), and resetParentCtx() makes one context the
+ * live log context of several task contexts. Mutations of the stacks are therefore serialized on
+ * m_lock: without it a lost update between two threads leaves m_currentScopeIdx permanently out
+ * of step with m_scopeStack.size(), which silently corrupts the stack= field of every subsequent
+ * record on that context.
+ *
+ * Readers (currentScope(), scopeStack(), stackVars(), barrierStack()) are NOT locked
+ * internally: they hand out references into the stacks, so a lock inside them would guard
+ * nothing beyond the call itself. They are NOT safe to iterate concurrently with the mutators
+ * above — the earlier assumption that the logger only reads on the thread driving the operation
+ * was disproved by a real bad_variant_access crash: the formatter iterated stackVars() on one
+ * thread while leaveScope()/popStackVar() on another destroyed a record mid-visit (libc++ sets
+ * the variant discriminator to npos during destruction/reassignment). Multi-statement readers
+ * (TextLogFormatterT::format(), LoggerBase::contextLogLevel()) therefore hold stacksLock()
+ * around the whole read.
+ */
 template <typename Config=DefaultConfig>
 class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
 {
@@ -86,6 +118,19 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
 
         using config=Config;
         using self=ContextT<Config>;
+
+        // Hard cap on m_scopeStack growth while locked (see enterScope()). Generous headroom
+        // over normal nesting depth (config::ScopeDepth) so it never engages during legitimate
+        // deep-but-still-locked scenarios, but bounds the otherwise-unbounded growth if a lock
+        // is left set across many enter/leave cycles on a reused context (a missing
+        // HATN_CTX_SCOPE_UNLOCK()/setStackLocked(false) call).
+        constexpr static const size_t MaxLockedScopeStackSize=8*config::ScopeDepth;
+
+        // Same idea for m_barrierStack: a stack barrier (HATN_CTX_STACK_BARRIER_ON /
+        // HATN_CTX_SCOPE_WITH_BARRIER) that is never lifted with a matching OFF pins every
+        // scope pushed at or below it forever, and on a long-lived/reused context each missed
+        // OFF adds up. Bound the growth the same way enterScope() bounds m_scopeStack.
+        constexpr static const size_t MaxBarrierStackSize=8*config::BarrierDepth;
 
         using LoggerHandler=LoggerHandlerT<ContextT<Config>>;
         using Logger=LoggerWithHandler<ContextT<Config>>;
@@ -100,12 +145,16 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
         using tagRecordT=std::pair<tagT,LogLevel>;
 
         ContextT()
-            :   m_currentScopeIdx(0),                
+            :   m_currentScopeIdx(0),
                 m_lockStack(false),
                 m_lockScopeIdx(0),
                 m_logLevel(LogLevel::Default),
                 m_enableStackLocking(true),
                 m_debugVerbosity(0),
+                m_scopeStackCapWarned(false),
+                m_barrierStackCapWarned(false),
+                m_scopeMismatchWarned(false),
+                m_nextBarrierId(1),
                 m_parentLogCtx(nullptr),
                 m_logger(nullptr)
         {}
@@ -122,8 +171,92 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
          */
         void enterScope(const char* name)
         {
-            m_currentScopeIdx++;
-            m_scopeStack.emplace_back(std::make_pair(name,scopeCursorDataT{m_scopeStack.size(),m_varStack.size(),m_varStack.size(),common::Thread::currentThreadID(),nullptr}));
+            std::string diagnostic;
+            {
+                common::SpinScopedLock l{m_lock};
+
+                // Entering a scope means new work starts on this context, so anything still
+                // sitting above the cursor belongs to something that is already over and must
+                // not become the parent of the new scope. Two ways to get there:
+                //
+                //  * frames preserved by a stack lock (describeScopeError()/HATN_CTX_SCOPE_LOCK
+                //    make leaveScope() skip pop_back() so the failing stack survives the unwind
+                //    long enough to be logged). Nothing in the framework ever releases that lock
+                //    on the error path, so without this the frames of every failed operation
+                //    stayed forever and each following operation piled its own on top - the
+                //    "db::create.rdb::create.createobject.saveindex.saveindex..." chains that
+                //    used to run into MaxLockedScopeStackSize below;
+                //  * a desync left by a concurrent mutation of this context (see the class
+                //    comment) from before m_lock was introduced or via an unlocked reader.
+                //
+                // Barrier-pinned frames are never dropped here: leaveScope() refuses to move
+                // the cursor below the innermost barrier's scopeStackOffset, so every pinned
+                // frame is at an index below m_currentScopeIdx.
+                if (m_currentScopeIdx<m_scopeStack.size())
+                {
+                    if (!m_lockStack && !m_scopeMismatchWarned)
+                    {
+                        m_scopeMismatchWarned=true;
+                        diagnostic=formatStackState("Resynchronizing desynced scope stack in enterScope()");
+                    }
+
+                    m_scopeStack.resize(m_currentScopeIdx);
+                    const auto* scopeCursor=currentScope();
+                    if (scopeCursor!=nullptr)
+                    {
+                        m_varStack.resize(scopeCursor->second.varStackSize);
+                    }
+                    else
+                    {
+                        m_varStack.clear();
+                    }
+                    m_lockStack=false;
+                    m_lockScopeIdx=0;
+                }
+                else if (m_currentScopeIdx>m_scopeStack.size() && m_scopeStack.size()<MaxLockedScopeStackSize)
+                {
+                    // Below the cap m_currentScopeIdx outrunning the stack is never legitimate
+                    // (only the capped branch below produces it deliberately), so heal it here
+                    // instead of letting currentScope()'s clamp mask it forever.
+                    m_currentScopeIdx=m_scopeStack.size();
+                }
+
+                m_currentScopeIdx++;
+
+                // Defensive cap: while m_lockStack is true, leaveScope() skips pop_back() (see
+                // below), so a context reused across many enter/leave cycles without an
+                // intervening HATN_CTX_SCOPE_UNLOCK()/setStackLocked(false) call would otherwise
+                // grow m_scopeStack unboundedly (this was the root cause of a real multi-minute
+                // hang destroying a scope stack with thousands of entries at context teardown; see
+                // whitem/docs). The resynchronization above now releases such frames at the next
+                // scope entry, so this cap should be unreachable; it is kept as a backstop.
+                // currentScope()'s existing idx>size() clamp already tolerates m_currentScopeIdx
+                // outrunning m_scopeStack.size(), so simply not growing past the cap is safe.
+                if (m_scopeStack.size()>=MaxLockedScopeStackSize)
+                {
+                    if (!m_scopeStackCapWarned)
+                    {
+                        m_scopeStackCapWarned=true;
+                        std::ostringstream oss;
+                        oss << "logcontext scope stack exceeded " << MaxLockedScopeStackSize
+                            << " entries (lockStack=" << m_lockStack
+                            << ", currentScopeIdx=" << m_currentScopeIdx
+                            << ") - capping growth; likely a missing scope-unlock on a "
+                               "repeatedly-locked, reused context";
+                        diagnostic=oss.str();
+                    }
+                }
+                else
+                {
+                    m_scopeStack.emplace_back(std::make_pair(name,scopeCursorDataT{m_scopeStack.size(),m_varStack.size(),m_varStack.size(),common::Thread::currentThreadID(),nullptr}));
+                }
+            }
+
+            // never write to the stream while holding m_lock
+            if (!diagnostic.empty())
+            {
+                emitDiagnostic(diagnostic);
+            }
         }
 
         /**
@@ -135,101 +268,206 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
         {
             //! @todo Use error stack
 
-            if (lockStack && m_enableStackLocking)
+            bool emptyStack=false;
             {
-                m_lockStack=true;
-                if (m_lockScopeIdx==0)
+                common::SpinScopedLock l{m_lock};
+
+                if (lockStack && m_enableStackLocking)
                 {
-                    m_lockScopeIdx=m_currentScopeIdx;
+                    m_lockStack=true;
+                    if (m_lockScopeIdx==0)
+                    {
+                        m_lockScopeIdx=m_currentScopeIdx;
+                    }
+                }
+                auto* scopeCursor=currentScope();
+                if (scopeCursor==nullptr)
+                {
+                    emptyStack=true;
+                }
+                else
+                {
+                    scopeCursor->second.error=err;
                 }
             }
-            auto* scopeCursor=currentScope();
-            if (scopeCursor==nullptr)
+
+            // never write to the stream while holding m_lock
+            if (emptyStack)
             {
-                std::cerr << "describeScopeError() forbidden in empty scope stack" << std::endl;
-                return;
+                emitDiagnostic("describeScopeError() forbidden in empty scope stack");
             }
-            scopeCursor->second.error=err;
         }
 
         void leaveScope()
         {
-            const auto* scopeCursor=currentScope();
-            if (scopeCursor==nullptr)
+            std::string diagnostic;
             {
-                // scope cursor can be nullptr only after resetting/closing API, ensure context's reset
-                reset();
-                return;
-            }
-            bool freeScope=true;
+                common::SpinScopedLock l{m_lock};
 
-            if (!m_barrierStack.empty())
-            {
-                freeScope=scopeCursor->second.scopeStackOffset >= m_barrierStack.back().scopeStackOffset;
-            }
-            if (freeScope)
-            {
-                if (m_currentScopeIdx>0)
+                const auto* scopeCursor=currentScope();
+                if (scopeCursor==nullptr)
                 {
-                    m_currentScopeIdx--;
+                    // scope cursor can be nullptr only after resetting/closing API, ensure context's reset
+                    resetImpl();
+                    return;
                 }
-                if (m_currentScopeIdx>config::ScopeDepth)
-                {
-                    std::cerr << "Mismatched number of enter/leave scope calls: currentScopeIdx=" << m_currentScopeIdx
-                              << " ctx="<<mainCtx().id()
-                              << std::endl;
-                }
+                bool freeScope=true;
 
-                if (!m_lockStack)
+                if (!m_barrierStack.empty())
                 {
-                    m_varStack.resize(scopeCursor->second.varStackOffset);
-                    m_scopeStack.pop_back();
+                    freeScope=scopeCursor->second.scopeStackOffset >= m_barrierStack.back().scopeStackOffset;
                 }
+                if (freeScope)
+                {
+                    if (m_currentScopeIdx>0)
+                    {
+                        m_currentScopeIdx--;
+                    }
+
+                    if (!m_lockStack)
+                    {
+                        m_varStack.resize(scopeCursor->second.varStackOffset);
+                        m_scopeStack.pop_back();
+                    }
+
+                    // The real invariant is that the index tracks the stack size exactly - but
+                    // only once m_scopeStack has actually been popped above (a plain depth
+                    // heuristic like m_currentScopeIdx>config::ScopeDepth both false-fires on
+                    // legitimate deep nesting and stays silent on a real mismatch that keeps the
+                    // index low, so this checks the actual invariant instead). Checking this
+                    // BEFORE the pop_back() above compares a not-yet-decremented stack size
+                    // against the already-decremented index, so it would be off by one on every
+                    // single normal, correctly-paired call - that was a real bug in an earlier
+                    // version of this check, not a heuristic false-positive: it fired on every
+                    // shallow, barrier-free leaveScope() (e.g. plain scopes with scope stack (1)-
+                    // (4) and barrier stack (0), as seen from TestFiles2Queue), which is exactly
+                    // the class of call this diagnostic must stay silent on.
+                    //
+                    // Reported once per context: the desync used to persist until the stack
+                    // unwound completely, so a poisoned context flooded the log with one dump
+                    // per leaveScope() and buried everything else. enterScope() resynchronizes
+                    // it now, this only records that it happened.
+                    if (!m_lockStack && m_barrierStack.empty() && m_currentScopeIdx!=m_scopeStack.size()
+                        && !m_scopeMismatchWarned)
+                    {
+                        m_scopeMismatchWarned=true;
+                        diagnostic=formatStackState("Mismatched number of enter/leave scope calls");
+                    }
+                }
+            }
+
+            // never write to the stream while holding m_lock
+            if (!diagnostic.empty())
+            {
+                emitDiagnostic(diagnostic);
             }
         }
 
         template <typename T>
         void pushStackVar(const lib::string_view& key, T&& value)
         {
-            m_varStack.emplace_back(key,std::forward<T>(value));
+            common::SpinScopedLock l{m_lock};
+
             auto* scopeCursor=currentScope();
+            if (scopeCursor==nullptr)
+            {
+                return;
+            }
+            m_varStack.emplace_back(key,std::forward<T>(value));
             scopeCursor->second.varStackSize=m_varStack.size();
         }
 
         void popStackVar() noexcept
         {
+            common::SpinScopedLock l{m_lock};
+
             if (!m_lockStack)
             {
+                if (m_varStack.empty())
+                {
+                    return;
+                }
                 m_varStack.pop_back();
                 auto* scopeCursor=currentScope();
-                scopeCursor->second.varStackSize=m_varStack.size();
+                if (scopeCursor!=nullptr)
+                {
+                    scopeCursor->second.varStackSize=m_varStack.size();
+                }
             }
         }
 
         template <typename T>
         void pushFixedVar(const lib::string_view& key, T&& value)
         {
+            common::SpinScopedLock l{m_lock};
+
             m_fixedVars.emplace_back(key,std::forward<T>(value));
         }
 
         template <typename T>
         void setGlobalVar(const lib::string_view& key, T&& value)
         {
+            common::SpinScopedLock l{m_lock};
+
             m_globalVarMap.emplace(key,std::forward<T>(value));
         }
 
         void unsetGlobalVar(const lib::string_view& key)
         {
+            common::SpinScopedLock l{m_lock};
+
             m_globalVarMap.erase(key);
         }
 
-        inline void stackBarrierOn(const char* name)
+        // Returns the id of the newly pushed barrier, or 0 if the barrier stack is capped (see
+        // MaxBarrierStackSize) and the barrier was not tracked at all. 0 is never a real id
+        // (m_nextBarrierId starts at 1), so callers of stackBarrierOffId() can treat it as a
+        // harmless no-op sentinel.
+        size_t stackBarrierOn(const char* name)
         {
-            m_barrierStack.emplace_back(name,m_currentScopeIdx);
+            std::string diagnostic;
+            size_t id=0;
+            {
+                common::SpinScopedLock l{m_lock};
+
+                if (m_barrierStack.size()>=MaxBarrierStackSize)
+                {
+                    if (!m_barrierStackCapWarned)
+                    {
+                        m_barrierStackCapWarned=true;
+                        std::ostringstream oss;
+                        oss << "logcontext barrier stack exceeded " << MaxBarrierStackSize
+                            << " entries - capping growth; likely a barrier that is never lifted "
+                               "with a matching HATN_CTX_STACK_BARRIER_OFF on a long-lived/reused "
+                               "context";
+                        diagnostic=oss.str();
+                    }
+                }
+                else
+                {
+                    id=m_nextBarrierId++;
+                    m_barrierStack.emplace_back(name,m_currentScopeIdx,id);
+                }
+            }
+
+            // never write to the stream while holding m_lock
+            if (!diagnostic.empty())
+            {
+                emitDiagnostic(diagnostic);
+            }
+            return id;
         }
 
+        // Note on the restore point: when the released barrier is the outermost one the cursor
+        // goes back to 0, not to that barrier's own scopeStackOffset, so the whole stack is
+        // dropped. That is intentional - the frames below the barrier were pinned, so the
+        // leaveScope() calls of their (long since destroyed) scope guards did nothing and
+        // nobody will ever pop them. Restoring to the barrier's own offset would leak them for
+        // the rest of the context's life instead.
         void stackBarrierOff(const char* name)
         {
+            common::SpinScopedLock l{m_lock};
+
             if (m_barrierStack.empty())
             {
                 return;
@@ -260,8 +498,51 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
             }
         }
 
+        // Id-based counterpart of stackBarrierOff(): matches the barrier pushed by the
+        // stackBarrierOn() call that returned this id, regardless of how many other barriers
+        // share the same name. This is what ScopeBarrier (see below) uses, so releasing one of
+        // several identically-named nested barriers (e.g. repeated
+        // "grpctransport::sendrequest" retries on a reused context) always collapses the
+        // correct frame instead of the topmost name match.
+        // Same restore-point behaviour as stackBarrierOff() above.
+        void stackBarrierOffId(size_t id)
+        {
+            common::SpinScopedLock l{m_lock};
+
+            if (id==0 || m_barrierStack.empty())
+            {
+                return;
+            }
+
+            bool restore=false;
+            int idx=static_cast<int>(m_barrierStack.size())-1;
+            for (;idx>=0;idx--)
+            {
+                if (m_barrierStack[idx].id==id)
+                {
+                    restore=true;
+                    break;
+                }
+            }
+            if (restore)
+            {
+                m_barrierStack.resize(idx);
+                if (m_barrierStack.empty())
+                {
+                    m_currentScopeIdx=0;
+                }
+                else
+                {
+                    m_currentScopeIdx=m_barrierStack.back().scopeStackOffset;
+                }
+                restoreStackCursors();
+            }
+        }
+
         void stackBarrierRestore(const char* name)
         {
+            common::SpinScopedLock l{m_lock};
+
             if (m_barrierStack.empty())
             {
                 return;
@@ -294,6 +575,8 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
 
         inline void stackBarrierLastOff()
         {
+            common::SpinScopedLock l{m_lock};
+
             if (m_barrierStack.empty())
             {
                 m_currentScopeIdx=0;
@@ -327,21 +610,29 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
         {
             //! @todo Use error stack
 
-            if (!m_enableStackLocking)
+            common::SpinScopedLock l{m_lock};
+
+            // Only taking the lock is subject to the enable flag. An explicit unlock is always
+            // honoured: a context locked before setStackLockingEnabled(false) would otherwise
+            // stay locked forever, and leaveScope() would keep skipping pop_back() on it.
+            if (enable && !m_enableStackLocking)
             {
                 return;
             }
 
-            bool locked=m_lockStack;
             m_lockStack=enable;
-            if (m_lockScopeIdx==0)
+            if (enable)
             {
-                m_lockScopeIdx=m_currentScopeIdx;
+                if (m_lockScopeIdx==0)
+                {
+                    m_lockScopeIdx=m_currentScopeIdx;
+                }
             }
-
-            // restore stack cursors to current scope
-            if (locked)
+            else
             {
+                // Restore stack cursors to current scope on every unlock, not only when the
+                // context was known to be locked: the frames preserved while locked have to be
+                // dropped here whichever way the flag got set.
                 restoreStackCursors();
             }
         }
@@ -353,16 +644,22 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
 
         void setTag(tagT tag)
         {
+            common::SpinScopedLock l{m_lock};
+
             m_tags.insert(std::move(tag));
         }
 
         void unsetTag(const common::lib::string_view& tag)
         {
+            common::SpinScopedLock l{m_lock};
+
             m_tags.erase(tag);
         }
 
         bool containsTag(const common::lib::string_view& tag) const
         {
+            common::SpinScopedLock l{m_lock};
+
             auto it=m_tags.find(tag);
             return it!=m_tags.end();
         }
@@ -403,24 +700,19 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
             {
                 return nullptr;
             }
-            return &m_scopeStack.at(idx-1);
+            return &m_scopeStack[idx-1];
         }
 
         void resetStacks()
         {
-            m_currentScopeIdx=0;
-            m_lockScopeIdx=0;
-            m_scopeStack.clear();
-            m_varStack.clear();
-            m_barrierStack.clear();
+            common::SpinScopedLock l{m_lock};
+            resetStacksImpl();
         }
 
         void reset()
         {
-            resetStacks();
-            m_globalVarMap.clear();
-            m_tags.clear();
-            m_fixedVars.clear();
+            common::SpinScopedLock l{m_lock};
+            resetImpl();
         }
 
         const auto& scopeStack() const noexcept
@@ -451,6 +743,16 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
         const auto& barrierStack() const noexcept
         {
             return m_barrierStack;
+        }
+
+        //! Lock serializing mutations of the stacks/vars. Multi-statement readers (the log
+        //! formatter iterating scopeStack()/stackVars()/globalVars()/fixedVars(), the logger
+        //! resolving the level from currentScope()) must hold it for the whole read — see the
+        //! class comment. Never take it around a call to a public method of this class: the
+        //! lock is a non-recursive spinlock.
+        common::SpinLock& stacksLock() const noexcept
+        {
+            return m_lock;
         }
 
         template <typename ParentContextT>
@@ -511,13 +813,64 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
             return m_lockScopeIdx;
         }
 
+        //! Cursor of the current scope. Equals scopeStack().size() unless the stack is locked.
+        size_t currentScopeIdx() const noexcept
+        {
+            return m_currentScopeIdx;
+        }
+
     private:
+
+        // All *Impl() methods below assume m_lock is already held by the caller: the public
+        // methods are locking shells around them. Never call a public method from inside one -
+        // m_lock is a non-recursive spinlock and would self-deadlock.
+
+        void resetStacksImpl()
+        {
+            m_currentScopeIdx=0;
+            m_lockScopeIdx=0;
+            m_scopeStack.clear();
+            m_varStack.clear();
+            m_barrierStack.clear();
+
+            // A context reset while still locked previously stayed locked forever - reset()
+            // is meant to bring the context back to a clean, reusable state, so it must also
+            // clear the lock and the one-shot cap warnings, and restart barrier id allocation
+            // (1, not 0: 0 is the reserved "not tracked" sentinel returned by stackBarrierOn()
+            // when the barrier stack is capped, see ScopeBarrier).
+            m_lockStack=false;
+            m_scopeStackCapWarned=false;
+            m_barrierStackCapWarned=false;
+            m_scopeMismatchWarned=false;
+            m_nextBarrierId=1;
+        }
+
+        void resetImpl()
+        {
+            resetStacksImpl();
+            m_globalVarMap.clear();
+            m_tags.clear();
+            m_fixedVars.clear();
+        }
 
         void restoreStackCursors()
         {
             if (!m_lockStack)
             {
-                m_scopeStack.resize(m_currentScopeIdx);
+                // Clamp, never grow. m_currentScopeIdx can exceed the stack size once
+                // enterScope()'s cap engages, and resize() would then append value-initialized
+                // cursors whose name is nullptr and whose error field is indeterminate - both
+                // the dump below and the log record formatter build a string_view out of those,
+                // i.e. the diagnostic itself would be undefined behaviour.
+                if (m_currentScopeIdx>m_scopeStack.size())
+                {
+                    m_currentScopeIdx=m_scopeStack.size();
+                }
+                else
+                {
+                    m_scopeStack.resize(m_currentScopeIdx);
+                }
+
                 const auto* scopeCursor=currentScope();
                 if (scopeCursor!=nullptr)
                 {
@@ -529,6 +882,52 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
                 }
                 m_lockScopeIdx=0;
             }
+        }
+
+        // Single, mutex-guarded write so a multi-line diagnostic dump is never interleaved
+        // with concurrent writes to the same stream (e.g. the logger thread writing the
+        // console sink) and never shows up shredded mid-token in the log file.
+        static void emitDiagnostic(const std::string& msg)
+        {
+            static std::mutex mutex;
+            std::lock_guard<std::mutex> lk(mutex);
+            std::cerr << msg << std::endl;
+        }
+
+        // Builds the dump under m_lock; the caller emits it after unlocking. Each frame carries
+        // the thread that entered it (recorded by enterScope()) next to the thread reporting the
+        // problem: frames from more than one thread in a single stack mean the context was
+        // driven from two threads at once, which is the shape this diagnostic exists to catch.
+        std::string formatStackState(const char* reason)
+        {
+            const char* currentThread=common::Thread::currentThreadID();
+
+            std::ostringstream oss;
+            oss << reason << ": currentScopeIdx=" << m_currentScopeIdx;
+            if (hasMainCtx())
+            {
+                // a context can live without a main task context, e.g. a per-thread fallback
+                oss << " ctx=" << mainCtx().id();
+            }
+            oss << " lockStack=" << m_lockStack
+                << " thread=" << (currentThread!=nullptr?currentThread:"")
+                << "\n  scope stack (" << m_scopeStack.size() << "):";
+            for (size_t i=0;i<m_scopeStack.size();i++)
+            {
+                oss << "\n    [" << i << "] "
+                    << (m_scopeStack[i].first!=nullptr?m_scopeStack[i].first:"<null>")
+                    << "  thread=" << m_scopeStack[i].second.threadId.c_str();
+                if (m_scopeStack[i].second.error!=nullptr)
+                    oss << "  error=" << m_scopeStack[i].second.error;
+            }
+            oss << "\n  barrier stack (" << m_barrierStack.size() << "):";
+            for (size_t i=0;i<m_barrierStack.size();i++)
+            {
+                oss << "\n    [" << i << "] " << m_barrierStack[i].name
+                    << "  id=" << m_barrierStack[i].id
+                    << "  scopeOffset=" << m_barrierStack[i].scopeStackOffset;
+            }
+            return oss.str();
         }
 
         size_t m_currentScopeIdx;
@@ -546,14 +945,163 @@ class ContextT : public HATN_COMMON_NAMESPACE::TaskSubcontext
 
         bool m_enableStackLocking;
         uint8_t m_debugVerbosity;
+        bool m_scopeStackCapWarned;
+        bool m_barrierStackCapWarned;
+        bool m_scopeMismatchWarned;
+        size_t m_nextBarrierId;
 
         ContextT* m_parentLogCtx;
 
         Logger* m_logger;
+
+        // Serializes mutations of the stacks above, see the class comment. Mutable so that
+        // const readers (containsTag(), the formatter via stacksLock()) can take it.
+        mutable HATN_COMMON_NAMESPACE::SpinLock m_lock;
 };
 using Context=ContextT<>;
 using Subcontext=Context;
 using LogContext=Context;
+
+/**
+ * @brief RAII counterpart of HATN_CTX_STACK_BARRIER_ON()/HATN_CTX_STACK_BARRIER_OFF().
+ *
+ * A stack barrier pins its own scope frame and everything pushed below it until a matching
+ * OFF is issued, so an async continuation can resume logging at that frame later. In practice
+ * every OFF has to be reached by hand on every exit path - including error early-returns and a
+ * callback that is captured but never invoked - and a single missed one pins the frame (and
+ * everything under it) on that context forever. Nothing bounds how many times this can happen
+ * on a long-lived or reused context, which is exactly the "scope stack (28): ..." growth this
+ * type exists to prevent.
+ *
+ * ScopeBarrier turns the barrier into a movable, non-copyable token: construct it where the
+ * barrier is raised, capture it by value (its copy ctor is deleted, so this really means move
+ * or shared_ptr) into every continuation that can run instead of the original, and the barrier
+ * is released exactly once - whichever copy is destroyed last - regardless of which path was
+ * taken to get there. Release is id-based (see ContextT::stackBarrierOffId()), so it collapses
+ * the exact frame it raised even when several identically-named barriers are nested (e.g.
+ * repeated retries reusing one context).
+ *
+ * The last token can also outlive the context itself: a pending callback that captured it may
+ * be destroyed - without ever running - after the task context is gone (cancelled request,
+ * transport shutdown draining its queues). ScopeBarrier therefore keeps a weak reference to
+ * the SharedPtr-owned TaskContext of the log context and silently skips the release when that
+ * context is already destroyed, instead of dereferencing a dangling pointer.
+ */
+class ScopeBarrier
+{
+    public:
+
+        ScopeBarrier() noexcept : m_ctx(nullptr), m_id(0), m_guarded(false)
+        {}
+
+        ScopeBarrier(Context* ctx, const char* name) : m_ctx(ctx), m_id(0), m_guarded(false)
+        {
+            if (m_ctx!=nullptr)
+            {
+                m_id=m_ctx->stackBarrierOn(name);
+
+                // m_ctx is a raw pointer into a log subcontext owned by a SharedPtr-managed
+                // TaskContext, while the last barrier token typically dies inside an async
+                // callback whose destruction the context owner does not control - the pending
+                // callback can be dropped (cancelled request, transport shutdown) long after
+                // the task context itself is gone. Take a weak reference to the owning
+                // TaskContext so release() can detect that and skip the (otherwise
+                // use-after-free) stackBarrierOffId() call.
+                if (m_ctx->hasMainCtx())
+                {
+                    auto mainCtx=m_ctx->sharedMainCtx();
+                    if (!mainCtx.isNull())
+                    {
+                        m_mainCtxGuard=mainCtx;
+                        m_guarded=true;
+                    }
+                }
+            }
+        }
+
+        ~ScopeBarrier()
+        {
+            release();
+        }
+
+        ScopeBarrier(const ScopeBarrier&)=delete;
+        ScopeBarrier& operator=(const ScopeBarrier&)=delete;
+
+        ScopeBarrier(ScopeBarrier&& other) noexcept
+            : m_ctx(other.m_ctx), m_id(other.m_id),
+              m_guarded(other.m_guarded), m_mainCtxGuard(std::move(other.m_mainCtxGuard))
+        {
+            other.m_ctx=nullptr;
+            other.m_id=0;
+            other.m_guarded=false;
+        }
+
+        ScopeBarrier& operator=(ScopeBarrier&& other) noexcept
+        {
+            if (this!=&other)
+            {
+                release();
+                m_ctx=other.m_ctx;
+                m_id=other.m_id;
+                m_guarded=other.m_guarded;
+                m_mainCtxGuard=std::move(other.m_mainCtxGuard);
+                other.m_ctx=nullptr;
+                other.m_id=0;
+                other.m_guarded=false;
+            }
+            return *this;
+        }
+
+        //! @brief Release the barrier now instead of waiting for the destructor. Idempotent.
+        void release() noexcept
+        {
+            if (m_ctx!=nullptr)
+            {
+                if (m_guarded)
+                {
+                    // lock() keeps the TaskContext alive for the duration of the call;
+                    // if it fails the context is already destroyed and there is nothing
+                    // to release.
+                    auto mainCtx=m_mainCtxGuard.lock();
+                    if (!mainCtx.isNull())
+                    {
+                        m_ctx->stackBarrierOffId(m_id);
+                    }
+                }
+                else
+                {
+                    // Context without a SharedPtr-owned main TaskContext (e.g. created on
+                    // the stack): its creator controls the lifetime, keep the direct call.
+                    m_ctx->stackBarrierOffId(m_id);
+                }
+                m_mainCtxGuard.reset();
+                m_ctx=nullptr;
+                m_id=0;
+                m_guarded=false;
+            }
+        }
+
+    private:
+
+        Context* m_ctx;
+        size_t m_id;
+        bool m_guarded;
+        common::WeakPtr<common::TaskContext> m_mainCtxGuard;
+};
+
+struct makeScopeBarrierT
+{
+    //! @brief Returns nullptr if ctx is null, so it is safe to call unconditionally from macros.
+    std::shared_ptr<ScopeBarrier> operator()(Context* ctx, const char* name) const
+    {
+        if (ctx==nullptr)
+        {
+            return std::shared_ptr<ScopeBarrier>{};
+        }
+        return std::make_shared<ScopeBarrier>(ctx,name);
+    }
+};
+constexpr makeScopeBarrierT makeScopeBarrier{};
 
 struct makeLogCtxT
 {
@@ -721,6 +1269,20 @@ HATN_COMMON_NAMESPACE_END
     HATN_CTX_SCOPE(Name) \
     HATN_CTX_IF() \
         HATN_CTX_CURRENT()->stackBarrierOn(Name);
+
+// RAII counterpart of HATN_CTX_SCOPE_WITH_BARRIER(): the barrier is released by ScopeBarrier's
+// destructor instead of a hand-written HATN_CTX_STACK_BARRIER_OFF(). _ctxBarrier is declared
+// after HATN_CTX_SCOPE(Name)'s own scope guard, so on a purely synchronous exit it is
+// destroyed first - barrier lifted, then leaveScope() can actually pop the scope instead of
+// being blocked by its own barrier. For an async continuation, capture _ctxBarrier by value
+// (it is move-only/shared, never copied implicitly) into every lambda that can run instead of
+// falling off the end of the current scope; whichever copy is destroyed last releases the
+// barrier exactly once, on every path - including early returns, exceptions, and a callback
+// that ends up never being invoked.
+#define HATN_CTX_SCOPE_WITH_BARRIER_GUARD(Name) \
+    HATN_CTX_SCOPE(Name) \
+    auto _ctxBarrier=HATN_LOGCONTEXT_NAMESPACE::makeScopeBarrier(ScopeCtx,Name); \
+    std::ignore=_ctxBarrier;
 
 
 #endif // HATNLOGCONTEXT_H

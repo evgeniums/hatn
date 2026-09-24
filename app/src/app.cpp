@@ -159,13 +159,26 @@ constexpr static const char* PasswordGenConfigRoot=HATN_APP_PASSWORD_GEN_CONFIG_
 constexpr static const char* PasswordGenConfigRoot="password_generator";
 #endif
 
-
 constexpr static const char* CryptPluginsFolder="crypt";
 constexpr static const char* DbPluginsFolder="db";
+
+constexpr static const char* AppFolderKey="data_folder";
+constexpr static const char* AppFolderSuffixKey="data_folder_suffix";
 
 constexpr static const char* ThreadTagAppThread="app_default";
 constexpr static const char* ThreadTagNetworkThread="network_default";
 constexpr static const char* ThreadTagNotMappedThread="not_mapped";
+constexpr static const char* ThreadTagPoolThread="pool";
+
+constexpr static const char* DefaultThreadPoolName="default";
+// Conservative on purpose: an unconfigured platform (today, every mobile config) keeps
+// exactly today's single-worker-per-pool behaviour until it opts in with a "thread_pools"
+// config entry - see whitemdesktop/todos/todo-files2-cpu-worker-pool.md's "Desktop vs
+// mobile" question and whitem/docs/background-lifecycle.md (a wider pool needs its own
+// background-admission gate, which is a whitemclient-level concern, not this default).
+constexpr static const uint8_t DefaultThreadPoolThreadCount=1;
+constexpr static const uint8_t DefaultThreadPoolMinCount=1;
+constexpr static const uint8_t DefaultThreadPoolMaxCount=4;
 
 //---------------------------------------------------------------
 
@@ -176,12 +189,25 @@ HDU_UNIT(thread_config,
     HDU_REPEATED_FIELD(tags,TYPE_STRING,4)
 )
 
+//! Named CPU worker pool, e.g. "f2crypto"/"f2image"/"f2imagebg" for files2. Mirrors
+//! thread_config's percent/min/max shape but is sized independently per pool (a pool is not
+//! a slice of app.thread_count/threads[], it is additional capacity next to them) and is
+//! looked up by name via App::threadPool(), not folded into an unnamed round-robin sequence.
+HDU_UNIT(thread_pool_config,
+    HDU_FIELD(name,TYPE_STRING,1,true)
+    HDU_FIELD(thread_count,TYPE_UINT8,2,false,DefaultThreadPoolThreadCount) // 0 = auto: hardware_concurrency() * count_percent / 100
+    HDU_FIELD(count_percent,TYPE_UINT8,3)
+    HDU_FIELD(min_count,TYPE_UINT8,4,false,DefaultThreadPoolMinCount)
+    HDU_FIELD(max_count,TYPE_UINT8,5,false,DefaultThreadPoolMaxCount)
+)
+
 HDU_UNIT(app_config,
     HDU_FIELD(thread_count,TYPE_UINT8,1,false,DefaultThreadCount)
     HDU_FIELD(data_folder,TYPE_STRING,2)
     HDU_REPEATED_FIELD(plugin_folders,TYPE_STRING,3)
     HDU_REPEATED_FIELD(threads,thread_config::TYPE,4)
     HDU_FIELD(reserve_thread_count,TYPE_UINT8,5,false,ReserveThreadCount)
+    HDU_REPEATED_FIELD(thread_pools,thread_pool_config::TYPE,6)
 )
 
 HDU_UNIT(logger_config,
@@ -245,6 +271,26 @@ class App_p
 
         common::SharedPtr<log::TaskLogContext> currentThreadLogCtx;
         std::map<std::string,common::SharedPtr<log::TaskLogContext>> threadLogCtxs;
+
+        // Named CPU worker pools (files2 crypto/image work etc, see App::threadPool()).
+        // Populated by App::initThreadPools(), called from initThreads() after m_appThread/
+        // m_networkThread are resolved so a pool thread can never be picked as either.
+        std::map<std::string,std::shared_ptr<App::ThreadPool>,std::less<>> threadPools;
+        std::shared_ptr<App::ThreadPool> defaultThreadPool;
+
+        // Shared by initThreads()' plain/group threads and initThreadPools()' pool threads -
+        // same fallback-log-context idiom for every kind of thread App owns. threadName is
+        // set by the caller just before each execSync() call (mirrors initThreads()' original
+        // local-lambda-with-captured-reference pattern).
+        std::string threadName;
+        void createThreadLogFallback()
+        {
+            auto taskCtx=log::makeLogCtx();
+            auto& currentLogCtx=taskCtx->get<log::Context>();
+            currentLogCtx.setLogger(logger.get());
+            log::ThreadLocalFallbackContext::set(&currentLogCtx);
+            threadLogCtxs[threadName]=taskCtx;
+        }
 
         Result<std::shared_ptr<crypt::CipherSuites>> initCipherSuites();
 
@@ -335,23 +381,27 @@ void App::logAppStop()
 
 Error App::loadConfigString(
         common::lib::string_view source,
-        const std::string& format
+        const std::string& format,
+        HATN_BASE_NAMESPACE::config_tree::ArrayMerge arrayMergeMode,
+        bool applyNow
     )
 {
     // preload config to find out data dir
     if (m_appDataFolder.empty())
     {
-        HATN_BASE_NAMESPACE::ConfigTree t1;
-        auto ec=m_configTreeLoader->loadFromString(t1,source,HATN_BASE_NAMESPACE::ConfigTreePath{},format);
-        HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to load app config from string","app"),HLOG_MODULE(app))
-
-        m_appDataFolder=evalAppDataFolder(t1);
+        auto ecPre=preloadConfigString(source,format,arrayMergeMode);
+        HATN_CHECK_EC(ecPre)
+        resolveAppDataFolder();
     }
-    m_configTree->setDefaultEx(base::ConfigTreePath(m_appConfigRoot).copyAppend("data_folder"),m_appDataFolder);
+    m_configTree->setDefaultEx(base::ConfigTreePath(m_appConfigRoot).copyAppend(AppFolderKey),m_appDataFolder);
     m_configTreeLoader->setPrefixSubstitution("$data_dir",m_appDataFolder);
 
-    auto ec=m_configTreeLoader->loadFromString(*m_configTree,source,HATN_BASE_NAMESPACE::ConfigTreePath{},format);
+    auto ec=m_configTreeLoader->loadFromString(*m_configTree,source,HATN_BASE_NAMESPACE::ConfigTreePath{},format,arrayMergeMode);
     HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to load app config from string","app"),HLOG_MODULE(app))
+    if (!applyNow)
+    {
+        return OK;
+    }
     return applyConfig();
 }
 
@@ -365,13 +415,11 @@ Error App::loadConfigFile(
     // preload config to find out data dir
     if (m_appDataFolder.empty())
     {
-        HATN_BASE_NAMESPACE::ConfigTree t1;
-        auto ec=m_configTreeLoader->loadFromFile(t1,fileName,HATN_BASE_NAMESPACE::ConfigTreePath{},format);
-        HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to load app config from file","app"),HLOG_MODULE(app))
-
-        m_appDataFolder=evalAppDataFolder(t1);
+        auto ecPre=preloadConfigFile(fileName,format);
+        HATN_CHECK_EC(ecPre)
+        resolveAppDataFolder();
     }
-    m_configTree->setDefaultEx(base::ConfigTreePath(m_appConfigRoot).copyAppend("data_folder"),m_appDataFolder);
+    m_configTree->setDefaultEx(base::ConfigTreePath(m_appConfigRoot).copyAppend(AppFolderKey),m_appDataFolder);
     m_configTreeLoader->setPrefixSubstitution("$data_dir",m_appDataFolder);
 
     // load app config tree
@@ -542,14 +590,9 @@ Error App::initThreads()
         threadGroupCounts.push_back(groupCount);
     }
 
-    std::string threadName;
-    auto createThreadLogFallback=[this,&threadName]()
+    auto createThreadLogFallback=[this]()
     {
-        auto taskCtx=log::makeLogCtx();
-        auto& currentLogCtx=taskCtx->get<log::Context>();
-        currentLogCtx.setLogger(d->logger.get());
-        log::ThreadLocalFallbackContext::set(&currentLogCtx);
-        d->threadLogCtxs[threadName]=taskCtx;
+        d->createThreadLogFallback();
     };
 
     // create thread groups
@@ -559,8 +602,8 @@ Error App::initThreads()
         uint8_t groupCount=threadGroupCounts[i];
         for (size_t i=0;i<groupCount;i++)
         {
-            threadName=fmt::format("{}{}",threadConfig.fieldValue(thread_config::id_prefix),i);
-            auto thread=std::make_shared<common::TaskWithContextThread>(threadName);
+            d->threadName=fmt::format("{}{}",threadConfig.fieldValue(thread_config::id_prefix),i);
+            auto thread=std::make_shared<common::TaskWithContextThread>(d->threadName);
             const auto& threadTags=threadConfig.field(thread_config::tags);
             for (size_t j=0;j<threadTags.count();j++)
             {
@@ -587,8 +630,8 @@ Error App::initThreads()
     // create threads out of thread groups
     for (size_t i=0;i<count;i++)
     {
-        threadName=fmt::format("t{}",i);
-        auto thread=std::make_shared<common::TaskWithContextThread>(threadName);
+        d->threadName=fmt::format("t{}",i);
+        auto thread=std::make_shared<common::TaskWithContextThread>(d->threadName);
         m_threads.push_back(thread);
         thread->start();
 
@@ -611,8 +654,147 @@ Error App::initThreads()
         }
     }
 
+    // create named CPU worker pools (files2 etc) - after m_appThread/m_networkThread are
+    // resolved above, so a pool thread can never be mistaken for either.
+    auto poolEc=initThreadPools();
+    HATN_CHECK_EC(poolEc)
+
     // done
     return OK;
+}
+
+//---------------------------------------------------------------
+
+Error App::initThreadPools()
+{
+    // Same sizing basis "count" as initThreads()' own thread groups: the resolved
+    // thread_count (0 meaning hardware_concurrency(), unreduced by reserve_thread_count -
+    // pools are additional capacity next to app.thread_count/threads[], not a slice of it).
+    size_t baseCount=m_defaultThreadCount;
+    if (d->appConfig.config().field(app_config::thread_count).isSet())
+    {
+        auto configured=d->appConfig.config().field(app_config::thread_count).value();
+        baseCount=(configured!=0) ? configured : std::thread::hardware_concurrency();
+    }
+
+    auto resolveSize=[baseCount](const auto& poolConfig) -> uint8_t
+    {
+        uint8_t size=poolConfig.fieldValue(thread_pool_config::thread_count);
+        if (size==0)
+        {
+            uint8_t percent=poolConfig.fieldValue(thread_pool_config::count_percent);
+            size=static_cast<uint8_t>(baseCount*percent/100);
+        }
+        uint8_t minCount=poolConfig.fieldValue(thread_pool_config::min_count);
+        uint8_t maxCount=poolConfig.fieldValue(thread_pool_config::max_count);
+        if (size<minCount)
+        {
+            size=minCount;
+        }
+        if (maxCount!=0 && size>maxCount)
+        {
+            size=maxCount;
+        }
+        if (size==0)
+        {
+            size=1;
+        }
+        return size;
+    };
+
+    auto createPool=[this](std::string name, uint8_t size) -> Error
+    {
+        if (name.empty())
+        {
+            return appError(AppError::INVALID_THREAD_POOL_CONFIG);
+        }
+        // Base id is a FixedByteArrayThrow16 (throws on overflow) - the pool's own
+        // constructor only truncates the per-thread index digits it appends, not the base
+        // name itself, so truncate defensively here first.
+        if (name.size()>15)
+        {
+            name=name.substr(0,15);
+        }
+        if (d->threadPools.find(name)!=d->threadPools.end())
+        {
+            return appError(AppError::DUPLICATE_THREAD_POOL);
+        }
+
+        auto pool=std::make_shared<ThreadPool>(size,name);
+        pool->start();
+        for (size_t i=0;i<pool->threadCount();i++)
+        {
+            auto thread=pool->threadShared(i);
+
+            // Same reasons as makeDbMappedThreads()'s ThreadTagNotMappedThread use: pool
+            // threads must never be picked up by App::init()'s own generic mapped-threads
+            // loop (app_config::threads-derived) nor by the db mapped-thread selection -
+            // see makeDbMappedThreads() below, which now also excludes this tag.
+            thread->setTag(ThreadTagNotMappedThread);
+            thread->setTag(ThreadTagPoolThread);
+            m_threads.push_back(thread);
+
+            // fallback log context, same idiom as initThreads()' plain/group threads
+            d->threadName=std::string{thread->id().c_str()};
+            std::ignore=thread->execSync(
+                [this]()
+                {
+                    d->createThreadLogFallback();
+                }
+            );
+        }
+
+        d->threadPools[name]=pool;
+        return OK;
+    };
+
+    const auto& poolConfigs=d->appConfig.config().field(app_config::thread_pools);
+    for (size_t i=0;i<poolConfigs.count();i++)
+    {
+        const auto& poolConfig=poolConfigs.at(i);
+        std::string name{poolConfig.fieldValue(thread_pool_config::name)};
+        auto ec=createPool(name,resolveSize(poolConfig));
+        HATN_CHECK_EC(ec)
+    }
+
+    // implicit default pool, unless it was itself explicitly configured under that name
+    if (d->threadPools.find(DefaultThreadPoolName)==d->threadPools.end())
+    {
+        auto ec=createPool(DefaultThreadPoolName,DefaultThreadPoolThreadCount);
+        HATN_CHECK_EC(ec)
+    }
+    d->defaultThreadPool=d->threadPools[DefaultThreadPoolName];
+
+    return OK;
+}
+
+//---------------------------------------------------------------
+
+App::ThreadPool* App::threadPool(common::lib::string_view name) const
+{
+    if (!name.empty())
+    {
+        auto it=d->threadPools.find(std::string{name});
+        if (it!=d->threadPools.end())
+        {
+            return it->second.get();
+        }
+    }
+    return defaultThreadPool();
+}
+
+//---------------------------------------------------------------
+
+App::ThreadPool* App::defaultThreadPool() const
+{
+    return d->defaultThreadPool.get();
+}
+
+//---------------------------------------------------------------
+
+size_t App::threadPoolCount() const noexcept
+{
+    return d->threadPools.size();
 }
 
 //---------------------------------------------------------------
@@ -719,6 +901,16 @@ void App::close()
 
     // std::cout << "Stop threads" << std::endl;
 
+    // Stop pools explicitly first. Thread::stop() is idempotent (compare_exchange guard in
+    // thread.cpp), so the m_threads loop below stopping the same pool threads a second time
+    // (they were also pushed into m_threads by initThreadPools(), for exactly this kind of
+    // convenience) is harmless - this just makes the pool-vs-plain-thread stop ordering
+    // explicit rather than incidental.
+    for (auto&& it: d->threadPools)
+    {
+        it.second->stop();
+    }
+
     // stop all threads
     for (auto&& it: m_threads)
     {
@@ -749,21 +941,6 @@ void App::close()
             std::cerr << ec1.codeString() << ": " << ec1.message() << std::endl;
         }
     }
-
-    //! @todo Register reset handlers for thread_local static variables
-#if 0
-    for (auto&& it: m_threads)
-    {
-        it->start();
-        std::ignore=it->execSync(
-            []()
-            {
-                common::ThreadSubcontext<common::TaskSubcontextT<HATN_LOGCONTEXT_NAMESPACE::Context>>::reset();
-            }
-            );
-        it->stop();
-    }
-#endif
 
     // std::cout << "Destroy env" << std::endl;
 
@@ -813,6 +990,28 @@ void App::setAppDataFolder(
 
 //---------------------------------------------------------------
 
+std::string App::evalDataFolderSuffix(const HATN_BASE_NAMESPACE::ConfigTree& configTree) const
+{
+    if (!m_dataFolderSuffix.empty())
+    {
+        return m_dataFolderSuffix;
+    }
+
+    auto r=configTree.get(base::ConfigTreePath(m_appConfigRoot).copyAppend(AppFolderSuffixKey));
+    if (!r)
+    {
+        auto s=r->as<std::string>();
+        if (!s)
+        {
+            return s.takeValue();
+        }
+    }
+
+    return std::string{};
+}
+
+//---------------------------------------------------------------
+
 std::string App::evalAppDataFolder(const HATN_BASE_NAMESPACE::ConfigTree& configTree) const
 {
     auto folder=m_appDataFolder;
@@ -820,7 +1019,7 @@ std::string App::evalAppDataFolder(const HATN_BASE_NAMESPACE::ConfigTree& config
     // set app data folder
     if (folder.empty())
     {
-        auto r=configTree.get(base::ConfigTreePath(m_appConfigRoot).copyAppend("data_folder"));
+        auto r=configTree.get(base::ConfigTreePath(m_appConfigRoot).copyAppend(AppFolderKey));
         if (!r)
         {
             auto s=r->as<std::string>();
@@ -841,15 +1040,80 @@ std::string App::evalAppDataFolder(const HATN_BASE_NAMESPACE::ConfigTree& config
 #endif
         }
         lib::filesystem::path p{folder};
+
+        std::string folderName=m_appName.execName;
+        auto suffix=evalDataFolderSuffix(configTree);
+        if (!suffix.empty())
+        {
+            folderName=fmt::format("{}-{}",folderName,suffix);
+        }
+
 #ifdef _WIN32
-        p.append(m_appName.execName);
+        p.append(folderName);
 #else
-        p.append(fmt::format(".{}",m_appName.execName));
+        p.append(fmt::format(".{}",folderName));
 #endif
         folder=p.string();
     }
 
     return folder;
+}
+
+//---------------------------------------------------------------
+
+HATN_BASE_NAMESPACE::ConfigTree& App::preloadConfigTree()
+{
+    if (!m_preloadConfigTree)
+    {
+        m_preloadConfigTree=std::make_shared<HATN_BASE_NAMESPACE::ConfigTree>();
+    }
+    return *m_preloadConfigTree;
+}
+
+//---------------------------------------------------------------
+
+Error App::preloadConfigString(
+        common::lib::string_view source,
+        const std::string& format,
+        HATN_BASE_NAMESPACE::config_tree::ArrayMerge arrayMergeMode
+    )
+{
+    auto ec=m_configTreeLoader->loadFromString(preloadConfigTree(),source,HATN_BASE_NAMESPACE::ConfigTreePath{},format,arrayMergeMode);
+    HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to load app config from string","app"),HLOG_MODULE(app))
+    return OK;
+}
+
+//---------------------------------------------------------------
+
+Error App::preloadConfigFile(
+        const std::string& fileName,
+        const std::string& format
+    )
+{
+    auto ec=m_configTreeLoader->loadFromFile(preloadConfigTree(),fileName,HATN_BASE_NAMESPACE::ConfigTreePath{},format);
+    HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to load app config from file","app"),HLOG_MODULE(app))
+    return OK;
+}
+
+//---------------------------------------------------------------
+
+void App::setDataFolderSuffix(std::string suffix)
+{
+    m_dataFolderSuffix=std::move(suffix);
+}
+
+//---------------------------------------------------------------
+
+void App::resolveAppDataFolder()
+{
+    if (m_dataFolderSuffix.empty())
+    {
+        m_dataFolderSuffix=evalDataFolderSuffix(preloadConfigTree());
+    }
+    if (m_appDataFolder.empty())
+    {
+        m_appDataFolder=evalAppDataFolder(preloadConfigTree());
+    }
 }
 
 //---------------------------------------------------------------
@@ -1104,18 +1368,36 @@ std::shared_ptr<common::MappedThreadQWithTaskContext> App_p::makeDbMappedThreads
 {
     //! @todo Use thread tags
     auto mappedThreads=std::make_shared<common::MappedThreadQWithTaskContext>(common::MappedThreadMode::Default,thread);
-    uint8_t dbThreadCount=dbConfig.config().fieldValue(db_config::thread_count);
-    if (dbThreadCount>app->m_threads.size()-1)
+
+    // Exclude named CPU worker pool threads (files2 etc - tagged ThreadTagNotMappedThread by
+    // initThreadPools()) from db thread mapping: they are dedicated capacity for their own
+    // CPU-bound work, not general-purpose app threads a db.thread_count>1 config should be
+    // allowed to schedule db work onto.
+    std::vector<common::ThreadQWithTaskContext*> mappableThreads;
+    for (auto&& it:app->m_threads)
     {
-        dbThreadCount=static_cast<uint8_t>(app->m_threads.size()-1);
+        if (!it->hasTag(ThreadTagNotMappedThread))
+        {
+            mappableThreads.push_back(it.get());
+        }
+    }
+    if (mappableThreads.empty())
+    {
+        return mappedThreads;
+    }
+
+    uint8_t dbThreadCount=dbConfig.config().fieldValue(db_config::thread_count);
+    if (dbThreadCount>mappableThreads.size()-1)
+    {
+        dbThreadCount=static_cast<uint8_t>(mappableThreads.size()-1);
     }
     if (dbThreadCount>1)
     {
         mappedThreads->setThreadMode(common::MappedThreadMode::Mapped);
         size_t i=0;
-        for (auto&& it:app->m_threads)
+        for (auto&& it:mappableThreads)
         {
-            mappedThreads->addMappedThread(it.get());
+            mappedThreads->addMappedThread(it);
             i++;
             if (i==dbThreadCount)
             {
@@ -1503,7 +1785,7 @@ std::shared_ptr<db::EncryptionManager> App::dbEncryptionManager() const
 
 std::shared_ptr<db::ClientEnvironment> App::dbEnvironment() const
 {
-    if (d->dbClient->isOpen())
+    if (d->dbClient && d->dbClient->isOpen())
     {
         return d->dbClient->cloneEnvironment();
     }

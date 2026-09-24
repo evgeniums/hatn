@@ -70,6 +70,7 @@ SET (SOURCES
     SET (HEADERS
         ${HEADERS}
         include/hatn/clientapp/mobileapp.h
+        include/hatn/clientapp/mobileusererror.h
         include/hatn/clientapp/mobileplatformcontext.h
     )
 
@@ -84,5 +85,6 @@ SET (SOURCES
 BUILD_HATN_MODULE()
 
 IF (HATN_PLUGIN_rocksdb)
+    SET_TARGET_PROPERTIES(${PROJECT_NAME} PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)
     TARGET_LINK_LIBRARIES(${PROJECT_NAME} PUBLIC hatnrocksdbschema)
 ENDIF()

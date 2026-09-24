@@ -27,7 +27,7 @@ HATN_ROCKSDB_NAMESPACE_BEGIN
 
 //---------------------------------------------------------------
 
-bool TtlCompactionFilter::Filter(int /*level*/, const ROCKSDB_NAMESPACE::Slice& key,
+bool TtlCompactionFilter::Filter(int /*level*/, const ROCKSDB_NAMESPACE::Slice& /*key*/,
                                  const ROCKSDB_NAMESPACE::Slice& existing_value,
                                  std::string* /*new_value*/,
                                  bool* /*value_changed*/) const

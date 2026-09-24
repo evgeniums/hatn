@@ -24,6 +24,38 @@ LIST(APPEND CMAKE_MODULE_PATH ${DEPS_ROOT}/cmake ${DEPS_ROOT}/lib/cmake)
 SET(HATN_INCLUDE_DIRECTORIES ${DEPS_ROOT}/include CACHE STRING "Include folder of dependencies")
 SET(HATN_LINK_DIRECTORIES ${DEPS_ROOT}/lib CACHE STRING "Library folder of dependencies")
 
+# Optional separate root for a gRPC (+ protobuf/abseil/re2) build that was compiled with a
+# different toolchain than the rest of the deps — typically clang-cl gRPC against MSVC deps.
+# When set, cmake find_package(gRPC/Protobuf CONFIG) resolves here first; abseil/re2/utf8_range
+# installed alongside gRPC are found transitively from the same prefix.
+# Set via -DGRPC_DEPS_ROOT=<path> or the GRPC_DEPS_ROOT environment variable.
+IF (NOT GRPC_DEPS_ROOT AND NOT "$ENV{GRPC_DEPS_ROOT}" STREQUAL "")
+    SET(GRPC_DEPS_ROOT "$ENV{GRPC_DEPS_ROOT}")
+ENDIF()
+IF (GRPC_DEPS_ROOT)
+    FILE(TO_CMAKE_PATH "${GRPC_DEPS_ROOT}" GRPC_DEPS_ROOT)
+    MESSAGE(STATUS "Using GRPC_DEPS_ROOT: ${GRPC_DEPS_ROOT}")
+    LIST(APPEND CMAKE_MODULE_PATH "${GRPC_DEPS_ROOT}/cmake" "${GRPC_DEPS_ROOT}/lib/cmake")
+    LIST(APPEND CMAKE_PREFIX_PATH "${GRPC_DEPS_ROOT}")
+    # Set package DIR hints directly so find_package(X CONFIG) doesn't rely solely on
+    # prefix-path search — covers transitive find_dependency calls inside gRPCConfig.cmake.
+    IF (NOT Protobuf_DIR)
+        SET(Protobuf_DIR "${GRPC_DEPS_ROOT}/lib/cmake/protobuf")
+    ENDIF()
+    IF (NOT gRPC_DIR)
+        SET(gRPC_DIR "${GRPC_DEPS_ROOT}/lib/cmake/grpc")
+    ENDIF()
+    IF (NOT absl_DIR)
+        SET(absl_DIR "${GRPC_DEPS_ROOT}/lib/cmake/absl")
+    ENDIF()
+    IF (NOT re2_DIR)
+        SET(re2_DIR "${GRPC_DEPS_ROOT}/lib/cmake/re2")
+    ENDIF()
+    IF (NOT utf8_range_DIR)
+        SET(utf8_range_DIR "${GRPC_DEPS_ROOT}/lib/cmake/utf8_range")
+    ENDIF()
+ENDIF()
+
 IF (MSVC)
     STRING(TOLOWER "${CMAKE_GENERATOR}" gen)
     IF ("${gen}" STREQUAL "ninja")
@@ -49,6 +81,11 @@ ELSE(${BUILD_TYPE} STREQUAL "DEBUG")
     SET(BUILD_RELEASE TRUE)
 ENDIF(${BUILD_TYPE} STREQUAL "DEBUG")
 
+IF(${BUILD_TYPE} STREQUAL "RELWITHDEBINFO")
+    MESSAGE(STATUS "Compiling with RelWithDebInfo build type")
+    SET(BUILD_RELWITHDEBINFO TRUE)
+ENDIF()
+
 IF ($ENV{HATN_SMARTPOINTERS_STD})
     SET (HATN_SMARTPOINTERS_STD_DEFAULT $ENV{HATN_SMARTPOINTERS_STD})
 ENDIF()
@@ -64,6 +101,26 @@ OPTION(ENABLE_DYNAMIC_PLUGINS_FOR_STATIC_BUILD "Enable dynamic plugins for stati
 OPTION(HATN_SMARTPOINTERS_STD "Use smartpointers from standard std library instead of hatn library" ${HATN_SMARTPOINTERS_STD_DEFAULT})
 
 OPTION(BUILD_SERVER_LIBS "Build server hatn libraries" OFF)
+
+# Locking secret buffers in RAM (mlock/VirtualLock) is defence-in-depth hardening, not a
+# correctness requirement. Mobile platforms cap RLIMIT_MEMLOCK very low - 64 KiB on many Android
+# devices - so once a handful of pages are held every further lock request fails, and treating
+# that as fatal aborted the process from inside an async task. When this option is on, a failed
+# lock is reported once and the buffer is used unlocked; the buffer is still zeroed on release.
+# Default it on where the limit is small, off on desktop/server where locking is expected to work.
+IF (BUILD_ANDROID OR BUILD_IOS)
+    SET (HATN_MEMORY_LOCK_BEST_EFFORT_DEFAULT ON)
+ELSE()
+    SET (HATN_MEMORY_LOCK_BEST_EFFORT_DEFAULT OFF)
+ENDIF()
+IF (DEFINED ENV{HATN_MEMORY_LOCK_BEST_EFFORT})
+    SET (HATN_MEMORY_LOCK_BEST_EFFORT_DEFAULT $ENV{HATN_MEMORY_LOCK_BEST_EFFORT})
+ENDIF()
+OPTION(HATN_MEMORY_LOCK_BEST_EFFORT "Treat failure to lock memory pages as a warning instead of an error" ${HATN_MEMORY_LOCK_BEST_EFFORT_DEFAULT})
+IF (HATN_MEMORY_LOCK_BEST_EFFORT)
+    MESSAGE(STATUS "Memory locking is best effort: lock failures will be reported, not thrown")
+    SET(HATN_COMPILE_DEFINITIONS ${HATN_COMPILE_DEFINITIONS} -DHATN_MEMORY_LOCK_BEST_EFFORT)
+ENDIF()
 
 IF (BUILD_IOS)
     MESSAGE(STATUS "Building for iOS")
@@ -230,18 +287,35 @@ IF (NOT STATIC_BUILD)
     ENDIF (NOT WIN32)
 ENDIF (NOT STATIC_BUILD)
 
-IF (BUILD_ANDROID)    
+IF (BUILD_ANDROID)
     SET(HATN_COMPILE_DEFINITIONS ${HATN_COMPILE_DEFINITIONS} -DBUILD_ANDROID)
     SET(HATN_COMPILE_OPTIONS ${HATN_COMPILE_OPTIONS} -Os -fPIC)
+    # The NDK toolchain compiles everything with -g (full DWARF), even Release, which inflates
+    # static archives of heavily templated code to multi-GB sizes. For Release keep only line
+    # tables (last flag wins over the toolchain's -g): crash-report symbolizers (Breakpad-style
+    # tools) use exactly function symbols + line tables, so symbolication quality is unchanged;
+    # only local debugger variable/type info is dropped. Debug builds keep the full -g.
+    SET(HATN_COMPILE_OPTIONS ${HATN_COMPILE_OPTIONS} $<$<CONFIG:Release>:-gline-tables-only>)
     SET(CMAKE_CXX_VISIBILITY_PRESET hidden)
     SET(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
 ENDIF (BUILD_ANDROID)
+
+# Symmetric with BUILD_ANDROID/BUILD_IOS above: emitted for every non-mobile build (macOS,
+# Windows, Linux desktop) so app-lifecycle code that should apply to "any desktop platform" (e.g.
+# system sleep/wake network-suspend) can gate on one explicit macro instead of inverting the
+# mobile checks.
+IF (NOT BUILD_ANDROID AND NOT BUILD_IOS)
+    SET(HATN_COMPILE_DEFINITIONS ${HATN_COMPILE_DEFINITIONS} -DBUILD_DESKTOP)
+ENDIF (NOT BUILD_ANDROID AND NOT BUILD_IOS)
 
 IF (NOT MSVC)
     SET(HATN_COMPILE_EXTRA_WARNINGS ${HATN_COMPILE_EXTRA_WARNINGS}
         -Wextra
         -Wall
-        -Wnon-virtual-dtor        
+        -Wnon-virtual-dtor
+        -Wreorder-ctor
+        -Wunused-lambda-capture
+        -Wunused-variable
     )
     IF (NOT MINGW)
         SET(HATN_COMPILE_OPTIONS ${HATN_COMPILE_OPTIONS} -fstack-protector-all)
@@ -253,7 +327,12 @@ IF (BUILD_DEBUG)
 ENDIF()
 
 IF ((${CMAKE_CXX_COMPILER_ID} MATCHES "Clang"))
-    SET(HATN_COMPILE_OPTIONS ${HATN_COMPILE_OPTIONS} -Wno-unused-function -Qunused-arguments)
+    SET(HATN_COMPILE_OPTIONS ${HATN_COMPILE_OPTIONS} -Wno-unused-function -Qunused-arguments -Wno-deprecated-declarations)
+    IF (MSVC)
+        # clang-cl: MSVC STL marks std type traits [[clang::no_specializations]],
+        # validator/aggregation/wrap_index.hpp specializes is_floating_point/is_signed
+        SET(HATN_COMPILE_OPTIONS ${HATN_COMPILE_OPTIONS} -Wno-invalid-specialization)
+    ENDIF()
 ENDIF()
 
 IF(WIN32)

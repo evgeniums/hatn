@@ -69,6 +69,22 @@ void Response<EnvT,RequestUnitT>::setStatus(protocol::ResponseStatus status, con
         errorUnit->setFieldValue(protocol::response_error_message::family,apiError->family());
         errorUnit->setFieldValue(protocol::response_error_message::status,apiError->status());
         errorUnit->setFieldValue(protocol::response_error_message::description,apiError->message(request->translator));
+        if (!apiError->stringCode().empty())
+        {
+            errorUnit->setFieldValue(protocol::response_error_message::string_code,apiError->stringCode());
+        }
+        if (!apiError->details().empty())
+        {
+            errorUnit->setFieldValue(protocol::response_error_message::details,apiError->details());
+        }
+        if (apiError->isStated())
+        {
+            errorUnit->setFieldValue(protocol::response_error_message::disposition,common::apiErrorDispositionString(apiError->disposition()));
+            if (apiError->disposition()==common::ApiErrorDisposition::RetryAfter && apiError->retryAfter()>0)
+            {
+                errorUnit->setFieldValue(protocol::response_error_message::retry_after,apiError->retryAfter());
+            }
+        }
         auto data=apiError->data();
         if (data)
         {

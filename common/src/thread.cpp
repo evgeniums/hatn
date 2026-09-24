@@ -45,6 +45,7 @@
 
 #include <hatn/common/utils.h>
 #include <hatn/common/logger.h>
+#include <hatn/common/terminatehandler.h>
 #include <hatn/common/thread.h>
 
 #include <hatn/common/ipp/threadcategoriespool.ipp>
@@ -85,8 +86,17 @@ struct Timer final
 
     std::atomic<bool> stopped;
 
+    /* An asio cancel() only aborts a wait that is PENDING. If stop() lands while timeout() is
+       already inside handler(), there is nothing to abort, so the re-arm below would fire and
+       the timer would run on forever -- with uninstallTimer(id,true) spinning on stopped, which
+       never becomes true. This flag is what stop() leaves behind for that case: a handler that
+       starts after it, or finishes after it, retires instead of re-arming. */
+    std::atomic<bool> stopping;
+
     void stop()
     {
+        stopping.store(true,std::memory_order_release);
+
         if (highResTimer!=nullptr)
         {
             highResTimer->cancel();
@@ -99,18 +109,30 @@ struct Timer final
 
     void timeout(const boost::system::error_code& ec)
     {
-        if (ec != boost::asio::error::operation_aborted)
+        if (ec != boost::asio::error::operation_aborted
+            && !stopping.load(std::memory_order_acquire))
         {
-            if (!handler() || runOnce)
+            const bool retired=!handler() || runOnce;
+            if (retired || stopping.load(std::memory_order_acquire))
             {
                 stopped.store(true,std::memory_order_release);
-                if (uninstall) {
+
+                /* ONLY a timer that retired BY ITSELF asks to be uninstalled. If stopping is set,
+                   uninstallTimer() is already running for this timer: it erased the map entry
+                   before calling stop() and is now waiting on `stopped`, so a posted uninstall
+                   would find nothing to erase -- and would run LATER, on an io_context whose
+                   Thread the caller is very likely tearing down the moment that wait returns,
+                   dereferencing a Thread_p that is already gone. */
+                if (retired && uninstall) {
                     boost::asio::post(asioContext,uninstall);
                     // asioContext.post(uninstall);
                 }
             }
             else
-            {                
+            {
+                /* A stop() that lands between the check above and the async_wait below still finds
+                   nothing to cancel, so this wait does get armed -- but the check on entry retires
+                   it at the next tick, bounding the wait in uninstallTimer by one period. */
                 if (highResTimer!=nullptr)
                 {
                     highResTimer->expires_after(std::chrono::microseconds(periodUs));
@@ -141,7 +163,8 @@ struct Timer final
             handler(handler),
             runOnce(runOnce),
             uninstall(uninstall),
-            stopped(false)
+            stopped(false),
+            stopping(false)
     {
         if (highResolution)
         {
@@ -257,6 +280,9 @@ boost::asio::io_context& Thread::asioContextRef() noexcept
 //---------------------------------------------------------------
 void Thread::start(bool waitForStarted)
 {
+    // fallback installation in case the application did not install the handler explicitly
+    TerminateHandler::install();
+
     if (d->running.load())
     {
         return;
@@ -311,15 +337,15 @@ void Thread::stop()
 //---------------------------------------------------------------
 void Thread::run()
 {
-    try
-    {
-        beforeRun();
-    }
-    catch(std::exception &e)
-    {
-        HATN_FATAL(thread,"Uncaught exception in beforeRun() in thread " << id().c_str() << ": " << e.what());
-        throw;
-    }
+    /* Exceptions are deliberately not caught in this method. Any catch block here would make the
+     * runtime unwind the stack down to that block and destroy all frames between the throw point
+     * and this method, so an external crash reporter would collect a call stack of just a few
+     * frames of Thread::run() instead of the call stack of the code that actually threw.
+     * With no catch block the runtime invokes std::terminate() right at the throw point keeping
+     * the whole stack intact. Diagnostic context is reported by TerminateHandler using the names
+     * of thread sections set below.
+     */
+
     d->nativeID=std::this_thread::get_id();
 
     ThisThread=this;
@@ -329,8 +355,14 @@ void Thread::run()
         memcpy(&ThisThreadId[0],d->id.constData(),d->id.size());
     }
 
-    try
     {
+        ThreadSectionGuard section{"Thread::beforeRun()"};
+        beforeRun();
+    }
+
+    {
+        ThreadSectionGuard section{"thread event loop"};
+
         if (!d->firstRun.load())
         {
             d->asioContext->restart();
@@ -354,21 +386,12 @@ void Thread::run()
             d->running.store(false,std::memory_order_release);
         }
     }
-    catch(std::exception &e)
-    {
-        HATN_FATAL(thread,"Uncaught exception in thread " << id().c_str() << ": " << e.what());
-        throw;
-    }
 
-    try
     {
+        ThreadSectionGuard section{"Thread::afterRun()"};
         afterRun();
     }
-    catch(std::exception &e)
-    {
-        HATN_FATAL(thread,"Uncaught exception in afterRun() in thread " << id().c_str() << ": " << e.what());
-        throw;
-    }
+
     ThisThread=nullptr;
 }
 
@@ -409,13 +432,15 @@ Error Thread::execSync(
     }
 
     //! @todo check if caller in the same thread
-    std::packaged_task<void ()> task(std::move(handler));
-    auto future=task.get_future();
-    auto taskPtr=&task;
+    // Heap-allocated + shared_ptr-kept-alive, not a raw pointer to this stack-local task: if
+    // this call times out below, the caller can return while the task is still queued on the
+    // target thread; a raw `taskPtr` would then dangle when the queued lambda eventually runs.
+    auto task=std::make_shared<std::packaged_task<void ()>>(std::move(handler));
+    auto future=task->get_future();
     execAsync(
-        [taskPtr]()
+        [task]()
         {
-            (*taskPtr)();
+            (*task)();
         }
     );
     if (timeoutMs==0)

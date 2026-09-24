@@ -15,6 +15,10 @@
 
 /****************************************************************************/
 
+#include <atomic>
+#include <chrono>
+#include <thread>
+
 #include <fmt/chrono.h>
 
 #include <boost/test/unit_test.hpp>
@@ -26,6 +30,7 @@
 #include <hatn/logcontext/logcontext.h>
 #include <hatn/logcontext/record.h>
 #include <hatn/logcontext/context.h>
+#include <hatn/logcontext/buflogger.h>
 #include <hatn/logcontext/contextlogger.h>
 #include <hatn/logcontext/streamlogger.h>
 
@@ -579,6 +584,189 @@ BOOST_AUTO_TEST_CASE(ScopeMacros)
     taskCtx->afterThreadProcessing();
 
     BOOST_CHECK(true);
+}
+
+// Regression tests for the scope stack invariant "currentScopeIdx()==scopeStack().size() unless
+// the stack is locked". Breaking it used to corrupt the stack= field of every following record
+// on the context and, in the locked case, grow the stack until the MaxLockedScopeStackSize cap.
+BOOST_AUTO_TEST_CASE(ScopeStackConsistency)
+{
+    auto handler=std::make_shared<StreamLogger>();
+    ContextLogger::init(std::static_pointer_cast<LoggerHandler>(handler));
+
+    auto taskCtx=makeTaskContext<Context>();
+    taskCtx->setName("test_task");
+    auto logCtx=&taskCtx->get<Context>();
+    taskCtx->beforeThreadProcessing();
+
+    // an error locks the stack so that the failing scopes survive the unwind and can be logged
+    logCtx->enterScope("op");
+    logCtx->enterScope("db");
+    logCtx->describeScopeError("failed");
+    BOOST_CHECK(logCtx->stackLocked());
+
+    logCtx->leaveScope(); // db: frame preserved by the lock, cursor moves back
+    BOOST_CHECK_EQUAL(logCtx->scopeStack().size(),2u);
+    BOOST_CHECK_EQUAL(logCtx->currentScopeIdx(),1u);
+
+    // starting new work releases the preserved frames and the lock instead of nesting under them
+    logCtx->enterScope("db2");
+    BOOST_CHECK(!logCtx->stackLocked());
+    BOOST_CHECK_EQUAL(logCtx->scopeStack().size(),2u);
+    BOOST_CHECK_EQUAL(logCtx->currentScopeIdx(),2u);
+    BOOST_CHECK_EQUAL(std::string{logCtx->scopeStack().at(1).first},std::string{"db2"});
+
+    logCtx->leaveScope(); // db2
+    BOOST_CHECK_EQUAL(logCtx->currentScopeIdx(),logCtx->scopeStack().size());
+
+    // an operation that keeps failing must not accumulate scopes: this used to grow by one frame
+    // per iteration until the cap engaged
+    for (size_t i=0;i<4*Context::MaxLockedScopeStackSize;i++)
+    {
+        logCtx->enterScope("db");
+        logCtx->describeScopeError("failed again");
+        logCtx->leaveScope();
+    }
+    logCtx->enterScope("tail");
+    BOOST_CHECK_EQUAL(logCtx->scopeStack().size(),2u);
+    BOOST_CHECK_EQUAL(logCtx->currentScopeIdx(),2u);
+    logCtx->leaveScope(); // tail
+    logCtx->leaveScope(); // op
+    BOOST_CHECK_EQUAL(logCtx->currentScopeIdx(),0u);
+    BOOST_CHECK_EQUAL(logCtx->scopeStack().size(),0u);
+
+    taskCtx->afterThreadProcessing();
+}
+
+// Once the cap engages the cursor legitimately outruns the stack; unlocking must clamp it, not
+// resize the stack up to it - the appended cursors would have a null name and an indeterminate
+// error pointer, and both the mismatch dump and the record formatter read those.
+BOOST_AUTO_TEST_CASE(ScopeStackCapNeverGrows)
+{
+    auto handler=std::make_shared<StreamLogger>();
+    ContextLogger::init(std::static_pointer_cast<LoggerHandler>(handler));
+
+    auto taskCtx=makeTaskContext<Context>();
+    taskCtx->setName("test_task");
+    auto logCtx=&taskCtx->get<Context>();
+    taskCtx->beforeThreadProcessing();
+
+    logCtx->enterScope("op");
+    logCtx->describeScopeError("failed");
+    BOOST_CHECK(logCtx->stackLocked());
+
+    const size_t count=2*Context::MaxLockedScopeStackSize;
+    for (size_t i=0;i<count;i++)
+    {
+        logCtx->enterScope("nested");
+    }
+    BOOST_CHECK_EQUAL(logCtx->scopeStack().size(),Context::MaxLockedScopeStackSize);
+    BOOST_CHECK(logCtx->currentScopeIdx()>logCtx->scopeStack().size());
+
+    logCtx->setStackLocked(false);
+    BOOST_CHECK_EQUAL(logCtx->currentScopeIdx(),Context::MaxLockedScopeStackSize);
+    BOOST_CHECK_EQUAL(logCtx->scopeStack().size(),Context::MaxLockedScopeStackSize);
+    for (size_t i=0;i<logCtx->scopeStack().size();i++)
+    {
+        BOOST_REQUIRE(logCtx->scopeStack().at(i).first!=nullptr);
+    }
+
+    logCtx->resetStacks();
+    taskCtx->afterThreadProcessing();
+}
+
+// A barrier pins its own frame and everything below it, so leaveScope() of a pinned frame is a
+// no-op - the cursor must stay in step with the stack across the whole pin/release cycle.
+BOOST_AUTO_TEST_CASE(ScopeStackBarrierConsistency)
+{
+    auto handler=std::make_shared<StreamLogger>();
+    ContextLogger::init(std::static_pointer_cast<LoggerHandler>(handler));
+
+    auto taskCtx=makeTaskContext<Context>();
+    taskCtx->setName("test_task");
+    auto logCtx=&taskCtx->get<Context>();
+    taskCtx->beforeThreadProcessing();
+
+    logCtx->enterScope("outer");
+    logCtx->enterScope("request");
+    auto barrierId=logCtx->stackBarrierOn("request");
+    BOOST_CHECK(barrierId!=0);
+    BOOST_CHECK_EQUAL(logCtx->currentScopeIdx(),logCtx->scopeStack().size());
+
+    logCtx->leaveScope(); // request: pinned by its own barrier, nothing changes
+    BOOST_CHECK_EQUAL(logCtx->scopeStack().size(),2u);
+    BOOST_CHECK_EQUAL(logCtx->currentScopeIdx(),2u);
+
+    // continuation of the async call logs under the pinned frame
+    logCtx->enterScope("response");
+    BOOST_CHECK_EQUAL(logCtx->currentScopeIdx(),logCtx->scopeStack().size());
+    logCtx->leaveScope(); // response
+    BOOST_CHECK_EQUAL(logCtx->currentScopeIdx(),logCtx->scopeStack().size());
+
+    logCtx->stackBarrierOffId(barrierId);
+    BOOST_CHECK(logCtx->barrierStack().empty());
+    BOOST_CHECK_EQUAL(logCtx->currentScopeIdx(),logCtx->scopeStack().size());
+
+    logCtx->enterScope("next");
+    BOOST_CHECK_EQUAL(logCtx->currentScopeIdx(),logCtx->scopeStack().size());
+    logCtx->leaveScope(); // next
+    BOOST_CHECK_EQUAL(logCtx->currentScopeIdx(),logCtx->scopeStack().size());
+
+    taskCtx->afterThreadProcessing();
+}
+
+// Regression test for a real crash: TextLogFormatterT::format() iterated stackVars() on one
+// thread while leaveScope()/popStackVar() on another destroyed records of the same context —
+// during destruction/reassignment libc++ leaves the variant valueless (index==npos), so the
+// formatter's visit threw bad_variant_access and terminated the process. The formatter now
+// holds ContextT::stacksLock() around the scope-stack and var reads, and the var/tag mutators
+// take the same lock. Without the fix this test aborts within milliseconds.
+BOOST_AUTO_TEST_CASE(ConcurrentFormatAndScopeMutation)
+{
+    auto ctx=makeTaskContext<Context>();
+    auto& logCtx=ctx->get<Context>();
+    logCtx.mainCtx().setTz(DateTime::localTz());
+
+    std::atomic<bool> stop{false};
+
+    std::thread mutator(
+        [&logCtx,&stop]()
+        {
+            size_t i=0;
+            while (!stop.load(std::memory_order_relaxed))
+            {
+                logCtx.enterScope("scope1");
+                logCtx.pushStackVar("var1","string value long enough to actually format");
+                logCtx.enterScope("scope2");
+                logCtx.pushStackVar("var2",int64_t(0x123456789));
+                logCtx.setGlobalVar("gvar1","global string value");
+                logCtx.popStackVar();
+                logCtx.leaveScope();
+                logCtx.popStackVar();
+                logCtx.leaveScope();
+                if ((i++ % 64)==0)
+                {
+                    logCtx.unsetGlobalVar("gvar1");
+                }
+            }
+        }
+    );
+
+    auto deadline=std::chrono::steady_clock::now()+std::chrono::seconds(1);
+    FmtAllocatedBufferChar buf;
+    size_t iterations=0;
+    while (std::chrono::steady_clock::now()<deadline)
+    {
+        buf.clear();
+        TextLogFormatterT<Context>::format(buf,LogLevel::Info,&logCtx,"concurrent format",lib::string_view{"test_module"});
+        iterations++;
+    }
+
+    stop.store(true,std::memory_order_relaxed);
+    mutator.join();
+
+    BOOST_TEST_MESSAGE(fmt::format("formatted {} log lines concurrently with scope/var mutation",iterations));
+    BOOST_CHECK(iterations>0);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

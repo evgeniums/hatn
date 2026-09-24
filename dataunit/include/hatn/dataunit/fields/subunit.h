@@ -585,10 +585,37 @@ class SubunitT : public Field, public UnitType
             return CanChainBlocks;
         }
 
-        //! Prepare shared form of value storage for parsing from wire
+        //! Prepare shared form of value storage for parsing from wire.
+        //!
+        //! For a REPEATED subunit field, this is called (from repeated.h's
+        //! createAndAppendValue()/createAndAppendSubunit()) on each freshly
+        //! created element BEFORE that element's own content is deserialized
+        //! - and that per-element deserialize goes through the static
+        //! base*-level UnitSer::deserialize() path (see the 2-arg static
+        //! deserialize() overload above), which has no shared-array
+        //! awareness of its own, unlike this class's instance-level
+        //! deserialize() (which explicitly calls io::setParseToSharedArrays()
+        //! before deserializing, but only ever runs for a single, non-
+        //! repeated subunit field). Without this, a TYPE_BYTES field nested
+        //! inside a repeated subunit element (e.g. an image_version::
+        //! inline_data inside image_descriptor::versions) never gets its
+        //! shared storage pre-allocated, so .byteArrayShared() silently
+        //! returns null on it after ANY db read/deserialize, regardless of
+        //! the read's own setParseToSharedArrays(true) opt-in - the flag
+        //! never reaches this deep. Propagate it explicitly: `value` here is
+        //! the freshly-constructed field wrapper (a SubunitT-derived object,
+        //! per RepeatedTraits<SubunitFieldTmpl<Type>>::createValue()/
+        //! createSubunit()), already holding its own newly-created element -
+        //! recurse into that element's own fields exactly as this class's
+        //! own instance deserialize() does for the single-field case.
         template <typename T>
-        inline static void prepareSharedStorage(T&& /*value*/,const AllocatorFactory*)
+        inline static void prepareSharedStorage(T&& value,const AllocatorFactory* factory)
         {
+            auto* v=value.mutableValue();
+            if (v!=nullptr)
+            {
+                io::setParseToSharedArrays(*v,true,factory);
+            }
         }
 
         virtual const Unit* subunit() const override {return &value();}

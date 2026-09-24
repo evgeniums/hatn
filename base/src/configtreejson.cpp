@@ -296,7 +296,8 @@ Error ConfigTreeJson::doParse(
         ConfigTree& target,
         const common::lib::string_view& source,
         const ConfigTreePath& root,
-        const std::string&
+        const std::string&,
+        config_tree::ArrayMerge arrayMergeMode
     ) const
 {
     Parser parser;
@@ -315,7 +316,7 @@ Error ConfigTreeJson::doParse(
             (ss, handler)
        )
     {
-        return target.merge(std::move(*rootTree),root);
+        return target.merge(std::move(*rootTree),root,arrayMergeMode);
     }
     else {
         auto e = reader.GetParseErrorCode();

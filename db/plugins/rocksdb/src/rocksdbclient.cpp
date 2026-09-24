@@ -15,6 +15,8 @@
 
 /****************************************************************************/
 
+#include <chrono>
+
 #include <boost/algorithm/string.hpp>
 
 #include <hatn/logcontext/contextlogger.h>
@@ -81,6 +83,17 @@ HDU_UNIT(rocksdb_options,
          HDU_FIELD(write_buffer_size,TYPE_UINT64,8)
          HDU_FIELD(db_write_buffer_size,TYPE_UINT64,9)
          HDU_FIELD(delete_obsolete_files_period_micros,TYPE_UINT64,10)
+
+         // Mobile background-lifecycle tuning (see whitem/docs/background-lifecycle.md). Bare
+         // optional fields, no default: applied in doOpenDb() only when explicitly present in the
+         // JSONC config (guarded by .isSet()), so an unconfigured deployment gets rocksdb::Options'
+         // own compiled-in default, unchanged from today's behavior. Deliberately NOT compile-time
+         // defaults gated by BUILD_ANDROID/BUILD_IOS: mobile-vs-desktop tuning is instead a property
+         // of which config each platform ships with, and a bad choice is correctable via a config
+         // push rather than an app rebuild.
+         HDU_FIELD(max_open_files,TYPE_INT32,11)
+         HDU_FIELD(avoid_flush_during_recovery,TYPE_BOOL,12)
+         HDU_FIELD(max_background_jobs,TYPE_INT32,13)
 
          HDU_FIELD(blob_min_size,TYPE_UINT32,30,false,0x4000)
          HDU_FIELD(blob_max_size,TYPE_UINT32,31)
@@ -275,6 +288,21 @@ void RocksdbClient::invokeOpenDb(const ClientConfig &config, Error &ec, base::co
     if (d->opt.config().field(rocksdb_options::delete_obsolete_files_period_micros).isSet())
     {
         options.delete_obsolete_files_period_micros=d->opt.config().fieldValue(rocksdb_options::delete_obsolete_files_period_micros);
+    }
+    // Mobile background-lifecycle tuning: applied only if explicitly configured (see field
+    // comments above); rocksdb::Options' own compiled-in defaults (e.g. max_open_files=-1) apply
+    // otherwise, identical to today's behavior for every deployment that doesn't set these keys.
+    if (d->opt.config().field(rocksdb_options::max_open_files).isSet())
+    {
+        options.max_open_files=d->opt.config().fieldValue(rocksdb_options::max_open_files);
+    }
+    if (d->opt.config().field(rocksdb_options::avoid_flush_during_recovery).isSet())
+    {
+        options.avoid_flush_during_recovery=d->opt.config().fieldValue(rocksdb_options::avoid_flush_during_recovery);
+    }
+    if (d->opt.config().field(rocksdb_options::max_background_jobs).isSet())
+    {
+        options.max_background_jobs=d->opt.config().fieldValue(rocksdb_options::max_background_jobs);
     }
 
     //! @todo Add CompactOnDeletionCollector with corresponding options for faster space reclaiming
@@ -645,9 +673,25 @@ void RocksdbClient::invokeCloseDb(Error &ec)
         rocksdb::Status status;
         if (d->cfg.config().field(rocksdb_config::wait_compact_shutdown).value())
         {
+            // WaitForCompactOptions::timeout defaults to zero, which per rocksdb's own
+            // documented contract means "wait as long as there's background work to finish" —
+            // i.e. indefinitely if compaction is backlogged. An unbounded wait here risks
+            // App::close()'s later Thread::stop()->join() on this same (still-running) db
+            // thread blocking forever, leaving the process unable to exit at all. Bound the
+            // wait and fall back to a plain Close() below if it doesn't finish in time, so
+            // shutdown always makes bounded, deterministic progress.
             auto opt = rocksdb::WaitForCompactOptions{};
             opt.close_db = true;
+            opt.timeout = std::chrono::seconds(10);
             status = d->handler->p()->db->WaitForCompact(opt);
+            if (!status.ok())
+            {
+                // WaitForCompact may not have actually closed the db if the wait didn't
+                // complete (timed out / aborted) — close explicitly either way.
+                HATN_CTX_WARN("wait_compact_shutdown did not complete within the bound, "
+                               "falling back to a plain db close")
+                status = d->handler->p()->db->Close();
+            }
         }
         else
         {
@@ -664,6 +708,68 @@ void RocksdbClient::invokeCloseDb(Error &ec)
         d->handler.reset();
     }
     d->env.reset();
+}
+
+//---------------------------------------------------------------
+
+Error RocksdbClient::doPauseBackgroundWork()
+{
+    HATN_CTX_SCOPE("rdb::pausebackgroundwork")
+
+    if (!d->handler)
+    {
+        return OK;
+    }
+
+    auto status=d->handler->p()->db->PauseBackgroundWork();
+    if (!status.ok())
+    {
+        return makeError(DbError::DB_PAUSE_BACKGROUND_WORK_FAILED,status);
+    }
+    return OK;
+}
+
+//---------------------------------------------------------------
+
+Error RocksdbClient::doResumeBackgroundWork()
+{
+    HATN_CTX_SCOPE("rdb::resumebackgroundwork")
+
+    if (!d->handler)
+    {
+        return OK;
+    }
+
+    auto status=d->handler->p()->db->ContinueBackgroundWork();
+    if (!status.ok())
+    {
+        return makeError(DbError::DB_RESUME_BACKGROUND_WORK_FAILED,status);
+    }
+    return OK;
+}
+
+//---------------------------------------------------------------
+
+Error RocksdbClient::doFlush(bool sync)
+{
+    HATN_CTX_SCOPE("rdb::flush")
+
+    if (!d->handler)
+    {
+        return OK;
+    }
+
+    // Flushes the write-ahead log to durable storage so a subsequent open/recovery has nothing
+    // left to replay. Does not flush memtables to SST files across all (dynamically created,
+    // per date-partition) column families — that would need enumerating every live CF handle,
+    // which RocksdbHandler does not currently expose; WAL durability is the primary goal for
+    // mobile background-lifecycle quiescing (fast, safe re-open after an OS-initiated kill).
+    auto status=d->handler->p()->db->FlushWAL(sync);
+    if (!status.ok())
+    {
+        return makeError(DbError::DB_FLUSH_FAILED,status);
+    }
+    return OK;
 }
 
 //---------------------------------------------------------------

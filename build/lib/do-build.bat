@@ -36,6 +36,7 @@ IF "%HATN_PATH%"=="" (
 ECHO "do-build.bat: HATN_PATH=%HATN_PATH%"
 
 IF "%HATN_COMPILER%" == "gcc" SET HATN_COMPILER=mingw
+IF "%HATN_COMPILER%" == "clang" SET HATN_COMPILER=clang-cl
 
 IF NOT EXIST %WORKING_DIR% (
 ECHO "do-build.bat: Creating working directory %WORKING_DIR%"
@@ -46,11 +47,11 @@ ECHO "do-build.bat: Created working directory %WORKING_DIR%"
 cd %WORKING_DIR%
 
 IF NOT EXIST scripts mkdir scripts
-IF NOT EXIST scripts\%HATN_LIB% (
+SET SCRIPT_NAME=%HATN_BUILD%-%HATN_LINK%-dev-%HATN_ARCH%
+IF NOT EXIST scripts\%HATN_LIB%\%HATN_COMPILER%-%HATN_ARCH%\%SCRIPT_NAME%.bat (
 	call %HATN_PATH%\build\lib\windows\generate-build-scripts.bat %HATN_LIB% %HATN_COMPILER%
     if %errorlevel% neq 0 exit /b %errorlevel%
 )
-SET SCRIPT_NAME=%HATN_BUILD%-%HATN_LINK%-dev-%HATN_ARCH%
 call scripts\%HATN_LIB%\%HATN_COMPILER%-%HATN_ARCH%\%SCRIPT_NAME%.bat
 if %errorlevel% neq 0 exit /b %errorlevel%
 

@@ -18,6 +18,7 @@
 #include <string_view>
 
 #include <hatn/common/error.h>
+#include <hatn/common/thread.h>
 
 #include <hatn/app/app.h>
 
@@ -36,6 +37,9 @@ class FileCryptBase
 public:
     std::unique_ptr<app::App> app;
     bool initialised{false};
+    bool mainThreadSet{false};
+
+    ~FileCryptBase();
 
     /**
      * @brief Load cipher suites from a subsection of a JSONC config file.

@@ -20,9 +20,9 @@
 
 #include <atomic>
 #include <mutex>
+#include <thread>
 
 #include <hatn/common/common.h>
-#include <hatn/common/thread.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
@@ -36,7 +36,7 @@ class SharedLocker final
         {
             public:
 
-                SharedScope(SharedLocker& locker) noexcept : l(locker)
+                SharedScope(SharedLocker& locker) : l(locker)
                 {
                     l.acquireShared();
                 }
@@ -60,7 +60,7 @@ class SharedLocker final
         {
             public:
 
-                ExclusiveScope(SharedLocker& locker) noexcept : l(locker)
+                ExclusiveScope(SharedLocker& locker) : l(locker)
                 {
                     l.acquireExclusive();
                 }
@@ -82,7 +82,7 @@ class SharedLocker final
         };
 
         //! Ctor
-        SharedLocker() noexcept : m_sharedCounter(0),m_lockThread(this)
+        SharedLocker() noexcept : m_sharedCounter(0),m_lockThread(std::thread::id{})
         {}
 
         ~SharedLocker()=default;
@@ -101,13 +101,14 @@ class SharedLocker final
             }
 
             // acquire later after other thread unlocks the mutex
-            auto currentThread=Thread::currentThread();
-            Assert(m_lockThread!=currentThread,"Recursive mutex lock in SharedLocker::acquireShared()");
+            // use OS thread id for recursion detection: hatn Thread::currentThread() is null
+            // on foreign threads (e.g. JNI/coroutine workers), making null==null false positives
+            auto currentThread=std::this_thread::get_id();
+            Assert(m_lockThread.load(std::memory_order_acquire)!=currentThread,"Recursive mutex lock in SharedLocker::acquireShared()");
             m_exclusiveMutex.lock();
-            m_lockThread=currentThread;
+            m_lockThread.store(currentThread,std::memory_order_release);
             acquireShared();
-            // not nullptr because currentThread() can be null in case of mainThread not running
-            m_lockThread=this;
+            m_lockThread.store(std::thread::id{},std::memory_order_release);
             m_exclusiveMutex.unlock();
         }
 
@@ -125,15 +126,15 @@ class SharedLocker final
         //! Acquire locker for exclusive access
         inline void acquireExclusive()
         {
-            auto currentThread=Thread::currentThread();
-            Assert(m_lockThread!=currentThread,"Recursive mutex lock in SharedLocker::acquireExclusive()");
+            auto currentThread=std::this_thread::get_id();
+            Assert(m_lockThread.load(std::memory_order_acquire)!=currentThread,"Recursive mutex lock in SharedLocker::acquireExclusive()");
             m_exclusiveMutex.lock();
             int tmp=0;
             while (!m_sharedCounter.compare_exchange_weak(tmp,COUNTER_LOCK_NEGATIVE_VAL,std::memory_order_seq_cst))
             {
                 tmp=0;
             }
-            m_lockThread=currentThread;
+            m_lockThread.store(currentThread,std::memory_order_release);
         }
 
         /**
@@ -144,8 +145,7 @@ class SharedLocker final
          */
         inline void releaseExclusive() noexcept
         {
-            // not nullptr because currentThread() can be null in case of mainThread not running
-            m_lockThread=this;
+            m_lockThread.store(std::thread::id{},std::memory_order_release);
             m_sharedCounter.store(0,std::memory_order_release);
             m_exclusiveMutex.unlock();
         }
@@ -154,7 +154,7 @@ class SharedLocker final
 
         std::atomic<int> m_sharedCounter;
         std::mutex m_exclusiveMutex;
-        void* m_lockThread;
+        std::atomic<std::thread::id> m_lockThread;
 
         constexpr static const int COUNTER_LOCK_NEGATIVE_VAL=std::numeric_limits<int>::min();
 };

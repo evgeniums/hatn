@@ -134,7 +134,8 @@ BOOST_AUTO_TEST_CASE(ScalarOps)
     BOOST_CHECK_EQUAL(msg1.toString(),msg2.toString());
 
     plain::type obj;
-    update::apply(&obj,r2);
+    ec=update::apply(&obj,r2);
+    BOOST_CHECK(!ec);
     BOOST_TEST_MESSAGE(fmt::format("after apply: {}",obj.toString(true,4)));
 
     std::string sample="{\"f1\":true,\"f2\":100,\"f3\":1000,\"f4\":10000,\"f5\":100000,\"f6\":200,\"f7\":2000,\"f8\":20000,\"f9\":200000,\"f10\":\"hello world\",\"f11\":3,\"f12\":\"hi!\",\"f13\":\"2024-03-24T13:32:19.432Z\",\"f14\":\"2024-03-24\",\"f15\":\"13:32:19\",\"f16\":\"195c85aa86900000190592bde\",\"f17\":\"32024003\",\"f18\":\"SGkgYnl0ZXMh\",\"f19\":101.202,\"f20\":1001.2002}";
@@ -148,7 +149,8 @@ BOOST_AUTO_TEST_CASE(ScalarOps)
     update::Request r3_;
     res=update::deserialize(msg3,r3_,vectorsHolder);
     BOOST_CHECK(!res);
-    update::apply(&obj,r3_);
+    ec=update::apply(&obj,r3_);
+    BOOST_CHECK(!ec);
     BOOST_TEST_MESSAGE(fmt::format("after apply unset: {}",obj.toString(true,4)));
     std::string sample1="{\"f1\":true,\"f2\":100,\"f3\":1000,\"f4\":10000,\"f5\":100000,\"f6\":200,\"f7\":2000,\"f8\":20000,\"f9\":200000,\"f11\":3,\"f12\":\"hi!\",\"f13\":\"2024-03-24T13:32:19.432Z\",\"f14\":\"2024-03-24\",\"f15\":\"13:32:19\",\"f16\":\"195c85aa86900000190592bde\",\"f17\":\"32024003\",\"f18\":\"SGkgYnl0ZXMh\",\"f19\":101.202,\"f20\":1001.2002}";
     BOOST_CHECK_EQUAL(sample1,obj.toString(false,4));
@@ -169,7 +171,8 @@ BOOST_AUTO_TEST_CASE(ScalarOps)
     BOOST_CHECK(!res);
     ec=update::serialize(r2,msg2);
     BOOST_CHECK(!ec);
-    update::apply(&obj,r2);
+    ec=update::apply(&obj,r2);
+    BOOST_CHECK(!ec);
     BOOST_TEST_MESSAGE(fmt::format("after apply inc: {}",obj.toString(true,4)));
     sample1="{\"f1\":true,\"f2\":90,\"f3\":2000,\"f4\":20000,\"f5\":200000,\"f6\":180,\"f7\":4000,\"f8\":40000,\"f9\":400000,\"f11\":3,\"f12\":\"hi!\",\"f13\":\"2024-03-24T13:32:19.432Z\",\"f14\":\"2024-03-24\",\"f15\":\"13:32:19\",\"f16\":\"195c85aa86900000190592bde\",\"f17\":\"32024003\",\"f18\":\"SGkgYnl0ZXMh\",\"f19\":101.202,\"f20\":1001.2002}";
     BOOST_CHECK_EQUAL(sample1,obj.toString(false,4));
@@ -218,7 +221,8 @@ BOOST_AUTO_TEST_CASE(VectorOps)
     BOOST_CHECK_EQUAL(msg1.toString(),msg2.toString());
 
     vec::type obj;
-    update::apply(&obj,r2);
+    ec=update::apply(&obj,r2);
+    BOOST_CHECK(!ec);
     auto str=obj.toString(true,4);
     BOOST_TEST_MESSAGE(fmt::format("after apply: {}",str));
 
@@ -255,13 +259,15 @@ BOOST_AUTO_TEST_CASE(VectorOps)
     res=update::deserialize(msg3,r4,vectorsHolder);
     BOOST_CHECK(!res);
     BOOST_CHECK(!ec);
-    update::apply(&obj,r4);
+    ec=update::apply(&obj,r4);
+    BOOST_CHECK(!ec);
     auto str2=obj.toString(true,4);
     BOOST_TEST_MESSAGE(fmt::format("after apply 2: {}",str2));
     std::string sample1="{\"f1\":[true,false],\"f2\":[100,101],\"f3\":[1000,1001],\"f4\":[10000,10001],\"f5\":[100000,100001],\"f6\":[200,201],\"f7\":[2000,2001],\"f8\":[20000,20001],\"f9\":[200000,200001],\"f10\":[\"hello world\",\"hello world 1\"],\"f11\":[3,2],\"f12\":[\"hi!\",\"hi 1!\"],\"f13\":[\"2024-03-24T13:32:19.432Z\",\"2024-04-24T15:30:20.107Z\"],\"f14\":[\"2024-03-24\",\"2024-04-24\"],\"f15\":[\"13:32:19\",\"15:30:20\"],\"f16\":[\"195c85aa86900000190592bde\",\"195c85aa86900000290592bde\"],\"f17\":[\"32024003\",\"32024004\"],\"f18\":[\"SGkgYnl0ZXMh\",\"SGkgYnl0ZXMgMSE=\"],\"f19\":[101.202],\"f20\":[1001.2002,1002.2002]}";
     BOOST_CHECK_EQUAL(sample1,obj.toString(false,4));
 
-    update::apply(&obj,r4);
+    ec=update::apply(&obj,r4);
+    BOOST_CHECK(!ec);
     auto str3=obj.toString(true,4);
     BOOST_TEST_MESSAGE(fmt::format("after apply 3: {}",str3));
     BOOST_CHECK_EQUAL(str2,str3);
@@ -274,7 +280,9 @@ BOOST_AUTO_TEST_CASE(VectorOps)
     ec=update::serialize(r3,msg3);
     BOOST_CHECK(!ec);
     res=update::deserialize(msg3,r4,vectorsHolder);
-    update::apply(&obj,r4);
+    BOOST_CHECK(!res);
+    ec=update::apply(&obj,r4);
+    BOOST_CHECK(!ec);
     auto str4=obj.toString(true,4);
     BOOST_TEST_MESSAGE(fmt::format("after apply 4: {}",str4));
     auto sample4="{\"f1\":[true,false],\"f2\":[100,101],\"f3\":[1000,1001],\"f4\":[10000,10001,50010],\"f5\":[100000,100001],\"f6\":[200,201],\"f7\":[2000,2001],\"f8\":[20000,20001,70020],\"f9\":[200000,200001],\"f10\":[\"hello world\",\"hello world 1\",\"hello world again!\"],\"f11\":[3,2],\"f12\":[\"hi!\",\"hi 1!\"],\"f13\":[\"2024-03-24T13:32:19.432Z\",\"2024-04-24T15:30:20.107Z\"],\"f14\":[\"2024-03-24\",\"2024-04-24\"],\"f15\":[\"13:32:19\",\"15:30:20\"],\"f16\":[\"195c85aa86900000190592bde\",\"195c85aa86900000290592bde\"],\"f17\":[\"32024003\",\"32024004\"],\"f18\":[\"SGkgYnl0ZXMh\",\"SGkgYnl0ZXMgMSE=\"],\"f19\":[101.202],\"f20\":[1001.2002,1002.2002]}";
@@ -296,6 +304,7 @@ BOOST_AUTO_TEST_CASE(VectorOps)
     BOOST_CHECK(!ec);
     BOOST_TEST_MESSAGE(fmt::format("mixed update: {}",msg3.toString(true,4)));
     res=update::deserialize(msg3,r4,vectorsHolder);
+    BOOST_CHECK(!res);
     BOOST_REQUIRE_EQUAL(vectorsHolder.size(),3);
     const auto& v3hVar=vectorsHolder.at(0);
     const auto& v3h=lib::variantGet<common::pmr::vector<int16_t>>(v3hVar);
@@ -308,7 +317,8 @@ BOOST_AUTO_TEST_CASE(VectorOps)
     const auto* ptr2=&(f3Val.get());
     BOOST_REQUIRE_EQUAL(ptr1,ptr2);
     BOOST_REQUIRE_EQUAL(f3Val.get().size(),4);
-    update::apply(&obj,r4);
+    ec=update::apply(&obj,r4);
+    BOOST_CHECK(!ec);
     auto str5=obj.toString(true,4);
     BOOST_TEST_MESSAGE(fmt::format("after apply 5: {}",str5));
     auto sample5="{\"f1\":[true,false],\"f2\":[100,101],\"f3\":[900,901,902,903],\"f4\":[10000,10211,50010],\"f5\":[9000,9001,9002,9003,9004],\"f6\":[200,201],\"f7\":[2000,2001],\"f8\":[777,20001,70020],\"f9\":[200000],\"f10\":[\"hello world\",\"hello world again!\"],\"f11\":[3,2],\"f12\":[\"aaaa\",\"aabb\",\"bbcc\"],\"f13\":[\"2024-03-24T13:32:19.432Z\",\"2024-04-24T15:30:20.107Z\"],\"f14\":[\"2024-03-24\",\"2024-04-24\"],\"f15\":[\"13:32:19\",\"15:30:20\"],\"f16\":[\"195c85aa86900000190592bde\",\"195c85aa86900000290592bde\"],\"f17\":[\"32024003\",\"32024004\"],\"f18\":[\"SGkgYnl0ZXMh\",\"SGkgYnl0ZXMgMSE=\"],\"f19\":[101.202],\"f20\":[1001.2002,1002.2002]}";
@@ -334,7 +344,8 @@ BOOST_AUTO_TEST_CASE(Subunit)
     update::Request r2;
     auto res=update::deserialize(msg1,r2,vectorsHolder);
     BOOST_CHECK(!res);
-    update::apply(&obj,r2);
+    ec=update::apply(&obj,r2);
+    BOOST_CHECK(!ec);
     auto str1=obj.toString(true,4);
     BOOST_TEST_MESSAGE(fmt::format("after apply 1: {}",str1));
     auto sample="{\"ff1\":7090,\"ff2\":{\"f1\":900,\"f2\":\"Hello world!\"}}";
@@ -348,7 +359,8 @@ BOOST_AUTO_TEST_CASE(Subunit)
     BOOST_TEST_MESSAGE(fmt::format("msg1: {}",msg1.toString(true,4)));
     res=update::deserialize(msg1,r2,vectorsHolder);
     BOOST_CHECK(!res);
-    update::apply(&obj,r2);
+    ec=update::apply(&obj,r2);
+    BOOST_CHECK(!ec);
     str1=obj.toString(true,4);
     BOOST_TEST_MESSAGE(fmt::format("after apply 2: {}",str1));
     sample="{\"ff1\":7090}";
@@ -366,7 +378,8 @@ BOOST_AUTO_TEST_CASE(Subunit)
     auto r3=update::request(
             update::field(update::path(emb::ff2),update::set,common::SharedPtr<du::Unit>{subObj1})
         );
-    update::apply(&objShared2,r3);
+    auto ec1=update::apply(&objShared2,r3);
+    BOOST_CHECK(!ec1);
     auto str3=objShared2.toString(true,4);
     BOOST_TEST_MESSAGE(fmt::format("objShared2 after apply: {}",str3));
 
@@ -374,7 +387,25 @@ BOOST_AUTO_TEST_CASE(Subunit)
     BOOST_CHECK(!ec);
     BOOST_TEST_MESSAGE(fmt::format("msg1: {}",msg1.toString(true,4)));
 
-    //! @todo test deserialization and applying
+    // deserialize the Subunit operand and apply it: the concrete unit type is
+    // unknown at deserialization time, so it round-trips as a SubunitBuf (a
+    // view of the raw already-serialized bytes still owned by msg1) until
+    // update::apply() parses it into the actual target field.
+    update::Request r4;
+    res=update::deserialize(msg1,r4,vectorsHolder);
+    BOOST_CHECK(!res);
+    emb::type objShared3;
+    auto ec2=update::apply(&objShared3,r4);
+    BOOST_CHECK(!ec2);
+    auto str4=objShared3.toString(true,4);
+    BOOST_TEST_MESSAGE(fmt::format("objShared3 after deserialize+apply: {}",str4));
+    BOOST_CHECK_EQUAL(objShared2.toString(false,4),objShared3.toString(false,4));
+
+    // re-serializing the deserialized request must reproduce the same wire form
+    update::message::type msg2;
+    auto ec3=update::serialize(r4,msg2);
+    BOOST_CHECK(!ec3);
+    BOOST_CHECK_EQUAL(msg1.toString(false,4),msg2.toString(false,4));
 }
 
 BOOST_AUTO_TEST_SUITE_END()

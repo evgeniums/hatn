@@ -99,6 +99,8 @@ TARGET_INCLUDE_DIRECTORIES(hatnrocksdbschema PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/
 LINK_ROCKSDB(hatnrocksdbschema)
 HATN_STRIP_RELEASE(hatnrocksdbschema)
 
+TARGET_COMPILE_OPTIONS(hatnrocksdbschema PRIVATE ${HATN_COMPILE_EXTRA_WARNINGS})
+
 # build plugin hatnrocksdb
 SET (HEADERS
     include/hatn/db/plugins/rocksdb/rocksdbdriver.h
@@ -119,6 +121,7 @@ SET (SOURCES
 BUILD_HATN_PLUGIN(db)
 # RocksDB headers use C++20 features (defaulted comparison operators, using enum)
 SET_TARGET_PROPERTIES(${PROJECT_NAME} PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)
+TARGET_COMPILE_OPTIONS(${PROJECT_NAME} PRIVATE ${HATN_COMPILE_EXTRA_WARNINGS})
 TARGET_LINK_LIBRARIES(${PROJECT_NAME} PUBLIC hatnrocksdbschema)
 
 IF (BUILD_STATIC)

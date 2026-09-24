@@ -1,0 +1,6 @@
+# Personal word list fixture for AbstractSpellChecker::loadWordList() -- blank lines and
+# comment lines (starting with '#') are skipped.
+whitem
+neutralm
+
+hatnbase

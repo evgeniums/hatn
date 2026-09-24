@@ -54,7 +54,14 @@ class RandomGenerator
             auto ec=randBytes(container.data(),container.size());
             if (ec)
             {
+                // Must return here rather than falling through: clear() drops container.size()
+                // to 0, so the memcpy below would then read from
+                // container.data()+0-sizeof(sizeDiff) -- a pointer before the start of the
+                // buffer, which is undefined behaviour and was observed to crash in practice (a
+                // randBytes() failure here is rare -- e.g. OpenSSL's RAND_bytes() returning
+                // non-1 -- but when it happens this path must still fail gracefully, not fault).
                 container.clear();
+                return ec;
             }
             memcpy(&sizeDiff,container.data()+container.size()-sizeof(sizeDiff),sizeof(sizeDiff));
             auto size=maxSize;

@@ -23,6 +23,7 @@
 
 #include <hatn/common/common.h>
 #include <hatn/common/makeshared.h>
+#include <hatn/common/objecttraits.h>
 #include <hatn/common/meta/decaytuple.h>
 #include <hatn/common/meta/tupletypec.h>
 #include <hatn/common/meta/foreachif.h>
@@ -109,7 +110,7 @@ class EnvContextT : public T,
 
         using Base=T;
 
-        template <typename ...Args>
+        template <typename ...Args, typename=std::enable_if_t<detail::NotSelfArg<EnvContextT,Args...>::value>>
         EnvContextT(
                 Args&& ...args
             ) : T(std::forward<Args>(args)...)
@@ -163,7 +164,7 @@ class EnvT : public BaseT
              * @param tts Tuple of tuples to forward to constructors of contexts of this class.
              * @param baseTs Arguments to forward to base class.
              */
-        template <typename Tts, typename ...BaseTs>
+        template <typename Tts, typename ...BaseTs, typename=std::enable_if_t<detail::NotSelfArg<EnvT,Tts,BaseTs...>::value>>
         EnvT(Tts&& tts, BaseTs&& ...baseTs):
             BaseT(std::forward<BaseTs>(baseTs)...),
             m_contexts(std::forward<Tts>(tts)),
@@ -288,16 +289,19 @@ class EnvT : public BaseT
             return const_cast<T&>(constSelf->template get<T>());
         }
 
+        // Single-context accessors below are member templates so that they are not
+        // instantiated by dllexport/explicit class instantiation for multi-context envs;
+        // SFINAE on tuple size replaces the former static_assert.
+
         /**
          * @brief Get single context of this env.
          * @return Const reference to env.
          *
          * @note Can be used only with single contexts.
          */
+        template <typename ContextsT=Contexts, typename=std::enable_if_t<std::tuple_size<ContextsT>::value==1>>
         const auto& get() const noexcept
         {
-            using st=decltype(boost::hana::size(m_contexts));
-            static_assert(st::value==1,"This method can be used only for env with single context");
             return boost::hana::front(m_contexts);
         }
 
@@ -307,6 +311,7 @@ class EnvT : public BaseT
          *
          * @note Can be used only with single contexts.
          */
+        template <typename ContextsT=Contexts, typename=std::enable_if_t<std::tuple_size<ContextsT>::value==1>>
         const auto& operator *() const noexcept
         {
             return get();
@@ -318,6 +323,7 @@ class EnvT : public BaseT
          *
          * @note Can be used only with single contexts.
          */
+        template <typename ContextsT=Contexts, typename=std::enable_if_t<std::tuple_size<ContextsT>::value==1>>
         const auto* operator ->() const noexcept
         {
             return &get();
@@ -329,10 +335,9 @@ class EnvT : public BaseT
          *
          * @note Can be used only with single contexts.
          */
+        template <typename ContextsT=Contexts, typename=std::enable_if_t<std::tuple_size<ContextsT>::value==1>>
         auto& get() noexcept
         {
-            using st=decltype(boost::hana::size(m_contexts));
-            static_assert(st::value==1,"This method can be used only for env with single context");
             return boost::hana::front(m_contexts);
         }
 
@@ -342,6 +347,7 @@ class EnvT : public BaseT
          *
          * @note Can be used only with single contexts.
          */
+        template <typename ContextsT=Contexts, typename=std::enable_if_t<std::tuple_size<ContextsT>::value==1>>
         auto& operator *() noexcept
         {
             return get();
@@ -353,6 +359,7 @@ class EnvT : public BaseT
          *
          * @note Can be used only with single contexts.
          */
+        template <typename ContextsT=Contexts, typename=std::enable_if_t<std::tuple_size<ContextsT>::value==1>>
         auto* operator ->() noexcept
         {
             return &get();

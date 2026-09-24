@@ -18,7 +18,8 @@
 #ifndef HATNIGNOREWARNINGS_H
 #define HATNIGNOREWARNINGS_H
 
-#ifdef __GNUC__
+// clang-cl defines __clang__ but not __GNUC__, while supporting GCC diagnostic pragmas
+#if defined(__GNUC__) || defined(__clang__)
 
     #define HATN_IGNORE_UNUSED_FUNCTION_BEGIN \
         _Pragma("GCC diagnostic push") \

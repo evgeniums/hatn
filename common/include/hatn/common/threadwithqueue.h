@@ -125,6 +125,15 @@ class ThreadWithQueue : public Thread, public ThreadQ<TaskT,ThreadWithQueueTrait
         //! Get queue depth
         size_t queueDepth() const noexcept;
 
+        //! Get queued PLUS currently-executing task count.
+        /**
+         * Unlike queueDepth(), this includes the task the thread is actively running (popped
+         * off the queue before execution, so queueDepth() alone can't see it). This is what a
+         * thread pool must balance on for long-running tasks - see
+         * ThreadPoolWithQueuesTraits_p::selectThread() in threadpoolwithqueues.cpp.
+         */
+        size_t pendingDepth() const noexcept;
+
         //! Is queue empty
         bool isQueueEmpty() const noexcept;
 

@@ -13,6 +13,9 @@
   */
 
 #include <hatn/clientserver/clientserver.h>
+#include <hatn/clientserver/models/oid.h>
+
+#include <hatn/dataunit/ipp/syntax.ipp>
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 

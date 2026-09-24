@@ -11,7 +11,10 @@ cd $lib_build_dir
 set LZ4_INCLUDE=$root_dir/include
 set LZ4_LIB_RELEASE=$root_dir/lib/liblz4.a
 
-export CXXFLAGS="-DOS_LINUX -fPIC"
+# -gline-tables-only overrides the NDK toolchain's default -g (last flag wins): keeps the line
+# tables crash-report symbolizers need while dropping the type/variable DWARF that dominates
+# debug-info size. Same flag is applied in cmake/hatn/Config.cmake for Release Android builds.
+export CXXFLAGS="-DOS_LINUX -fPIC -gline-tables-only"
 
 toolchain_name=$toolchain-linux-android-clang
 if [ "$toolchain" = "arm-linux-androideabi" ];
@@ -20,7 +23,7 @@ then
 else
 	if [ "$toolchain" = "i686" ];
 	then
-	    export CXXFLAGS="-DOS_LINUX -fPIC -D__i386__"
+	    export CXXFLAGS="-DOS_LINUX -fPIC -D__i386__ -gline-tables-only"
 	fi
 fi
 

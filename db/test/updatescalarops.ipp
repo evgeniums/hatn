@@ -89,7 +89,8 @@ void setSingle()
 
     auto check=[&o](const auto& val, const auto& checker, const auto&... path)
     {
-        update::applyRequest(&o,update::makeRequest(update::Field(update::path(path...),update::set,val)));
+        auto ec=update::applyRequest(&o,update::makeRequest(update::Field(update::path(path...),update::set,val)));
+        BOOST_REQUIRE(!ec);
         checker(o,val,path...);
         checkOtherFields(o,path...);
         o.reset();
@@ -121,7 +122,8 @@ void unsetSingle()
 
     auto check=[&o](const auto& val, const auto& checker, const auto&... path)
     {
-        update::applyRequest(&o,update::makeRequest(update::Field(update::path(path...),update::set,val)));
+        auto ec=update::applyRequest(&o,update::makeRequest(update::Field(update::path(path...),update::set,val)));
+        BOOST_REQUIRE(!ec);
         checker(o,val,path...);
         checkOtherFields(o,path...);
 
@@ -129,7 +131,8 @@ void unsetSingle()
         BOOST_CHECK(o.fieldAtPath(member).isSet());
         checkOtherFields(o,path...);
 
-        update::applyRequest(&o,update::makeRequest(update::Field(update::path(path...),update::unset)));
+        ec=update::applyRequest(&o,update::makeRequest(update::Field(update::path(path...),update::unset)));
+        BOOST_REQUIRE(!ec);
         BOOST_CHECK(!o.fieldAtPath(member).isSet());
 
         o.reset();
@@ -161,7 +164,8 @@ void incSingle()
 
     auto check=[&o](const auto& val, const auto& checker, const auto&... path)
     {
-        update::applyRequest(&o,update::makeRequest(update::Field(update::path(path...),update::set,val)));
+        auto ec=update::applyRequest(&o,update::makeRequest(update::Field(update::path(path...),update::set,val)));
+        BOOST_REQUIRE(!ec);
         checker(o,val,path...);
         checkOtherFields(o,path...);
 
@@ -169,10 +173,12 @@ void incSingle()
         BOOST_CHECK(o.fieldAtPath(member).isSet());
         checkOtherFields(o,path...);
 
-        update::applyRequest(&o,update::makeRequest(update::Field(update::path(path...),update::inc,3)));
+        ec=update::applyRequest(&o,update::makeRequest(update::Field(update::path(path...),update::inc,3)));
+        BOOST_REQUIRE(!ec);
         checker(o,val+3,path...);
 
-        update::applyRequest(&o,update::makeRequest(update::Field(update::path(path...),update::inc,-3)));
+        ec=update::applyRequest(&o,update::makeRequest(update::Field(update::path(path...),update::inc,-3)));
+        BOOST_REQUIRE(!ec);
         checker(o,val,path...);
         checkOtherFields(o,path...);
 
@@ -196,16 +202,19 @@ void floatingPoint()
 
     auto check=[&o](auto val, const auto&... path)
     {
-        update::applyRequest(&o,update::makeRequest(update::Field(update::path(path...),update::set,val)));
+        auto ec=update::applyRequest(&o,update::makeRequest(update::Field(update::path(path...),update::set,val)));
+        BOOST_REQUIRE(!ec);
         auto member=du::path(path...);
         BOOST_TEST(o.getAtPath(member)==val, tt::tolerance(0.0001));
         BOOST_CHECK(o.fieldAtPath(member).isSet());
         checkOtherFields(o,path...);
 
-        update::applyRequest(&o,update::makeRequest(update::Field(update::path(path...),update::inc,3)));
+        ec=update::applyRequest(&o,update::makeRequest(update::Field(update::path(path...),update::inc,3)));
+        BOOST_REQUIRE(!ec);
         BOOST_TEST(o.getAtPath(member)==(val+3), tt::tolerance(0.001));
 
-        update::applyRequest(&o,update::makeRequest(update::Field(update::path(path...),update::inc,-3)));
+        ec=update::applyRequest(&o,update::makeRequest(update::Field(update::path(path...),update::inc,-3)));
+        BOOST_REQUIRE(!ec);
         BOOST_TEST(o.getAtPath(member)==val, tt::tolerance(0.0001));
 
         checkOtherFields(o,path...);
@@ -224,11 +233,12 @@ void multipleFields()
 
     auto check=[&o](const auto& field1, auto val1, const auto& field2, auto val2)
     {
-        update::applyRequest(&o,update::request(
+        auto ec=update::applyRequest(&o,update::request(
                                     update::field(update::path(field1),update::set,val1),
                                     update::field(update::path(field2),update::inc,val2)
                                 )
                              );
+        BOOST_REQUIRE(!ec);
         BOOST_CHECK_EQUAL(o.getAtPath(field1),val1);
         BOOST_CHECK(o.fieldAtPath(field1).isSet());
         BOOST_CHECK_EQUAL(o.getAtPath(field2),val2);
@@ -251,7 +261,8 @@ void testBytes()
 
     std::vector<char> v1;
     std::copy(val.begin(),val.end(),std::back_inserter(v1));
-    update::applyRequest(&o,update::request(update::field(update::path(FieldBytes),update::set,v1)));
+    auto ec=update::applyRequest(&o,update::request(update::field(update::path(FieldBytes),update::set,v1)));
+    BOOST_REQUIRE(!ec);
     BOOST_CHECK(o.fieldAtPath(du::path(FieldBytes)).isSet());
     BOOST_CHECK(o.fieldAtPath(du::path(FieldBytes)).equals(lib::string_view{val.data(),val.size()}));
     checkOtherFields(o,FieldBytes);
@@ -259,7 +270,8 @@ void testBytes()
 
     common::ByteArray v2;
     v2.append(val);
-    update::applyRequest(&o,update::request(update::field(update::path(FieldBytes),update::set,v2)));
+    ec=update::applyRequest(&o,update::request(update::field(update::path(FieldBytes),update::set,v2)));
+    BOOST_REQUIRE(!ec);
     BOOST_CHECK(o.fieldAtPath(du::path(FieldBytes)).isSet());
     BOOST_CHECK(o.fieldAtPath(du::path(FieldBytes)).equals(lib::string_view{val.data(),val.size()}));
     checkOtherFields(o,FieldBytes);
@@ -267,7 +279,8 @@ void testBytes()
 
     common::VectorOnStack<char> v3;
     v3.append(val);
-    update::applyRequest(&o,update::request(update::field(update::path(FieldBytes),update::set,v3)));
+    ec=update::applyRequest(&o,update::request(update::field(update::path(FieldBytes),update::set,v3)));
+    BOOST_REQUIRE(!ec);
     BOOST_CHECK(o.fieldAtPath(du::path(FieldBytes)).isSet());
     BOOST_CHECK(o.fieldAtPath(du::path(FieldBytes)).equals(lib::string_view{val.data(),val.size()}));
     checkOtherFields(o,FieldBytes);
@@ -275,7 +288,8 @@ void testBytes()
 
     common::pmr::string v4;
     std::copy(val.begin(),val.end(),std::back_inserter(v4));
-    update::applyRequest(&o,update::request(update::field(update::path(FieldBytes),update::set,v4)));
+    ec=update::applyRequest(&o,update::request(update::field(update::path(FieldBytes),update::set,v4)));
+    BOOST_REQUIRE(!ec);
     BOOST_CHECK(o.fieldAtPath(du::path(FieldBytes)).isSet());
     BOOST_CHECK(o.fieldAtPath(du::path(FieldBytes)).equals(lib::string_view{val.data(),val.size()}));
     checkOtherFields(o,FieldBytes);
@@ -283,7 +297,8 @@ void testBytes()
 
     common::pmr::vector<char> v5;
     std::copy(val.begin(),val.end(),std::back_inserter(v5));
-    update::applyRequest(&o,update::request(update::field(update::path(FieldBytes),update::set,v5)));
+    ec=update::applyRequest(&o,update::request(update::field(update::path(FieldBytes),update::set,v5)));
+    BOOST_REQUIRE(!ec);
     BOOST_CHECK(o.fieldAtPath(du::path(FieldBytes)).isSet());
     BOOST_CHECK(o.fieldAtPath(du::path(FieldBytes)).equals(lib::string_view{val.data(),val.size()}));
     checkOtherFields(o,FieldBytes);

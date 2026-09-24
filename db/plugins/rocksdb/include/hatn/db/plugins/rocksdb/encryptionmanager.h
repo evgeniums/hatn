@@ -38,9 +38,9 @@ class HATN_ROCKSDB_EXPORT RocksdbEncryptionManager
                 std::shared_ptr<EncryptionManager> manager,
                 uint32_t chunkSize=RdbDefaultPageSize,
                 uint32_t walChunkSize=RdbWalPageSize
-            ) : m_manager(std::move(manager)),
-                m_chunkSize(chunkSize),
-                m_walChunkSize(walChunkSize)
+            ) : m_chunkSize(chunkSize),
+                m_walChunkSize(walChunkSize),
+                m_manager(std::move(manager))
         {}
 
         template <typename T>

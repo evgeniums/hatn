@@ -27,11 +27,17 @@ namespace {
 #  define hatn_setenv ::setenv
 #endif
 
+#include <chrono>
+
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/generic/generic_stub.h>
 
 #include <hatn/common/meta/enumint.h>
+#include <hatn/network/networkerror.h>
 #include <hatn/grpcclient/grpctransport.h>
+
+#include "grpctransport_p.h"
+
 #include <hatn/grpcclient/ipp/grpctransport.ipp>
 
 #include <hatn/dataunit/ipp/syntax.ipp>
@@ -40,6 +46,7 @@ namespace {
 HATN_GRPCCLIENT_NAMESPACE_BEGIN
 
 namespace api=HATN_API_NAMESPACE;
+namespace network=HATN_NETWORK_NAMESPACE;
 
 namespace {
 
@@ -137,6 +144,7 @@ void GrpcTransport::setRouter(common::SharedPtr<Router> router)
     if (pimpl->router)
     {
         HATN_CTX_DEBUG_RECORDS(1,"GrpcTransport::setRouter",{"insecure",pimpl->router->isInsecure()})
+        populateChannels();
         initChannels();
     }
     else
@@ -202,6 +210,27 @@ void GrpcTransport::reconnect()
 
 //--------------------------------------------------------------------------
 
+void GrpcTransport::suspend()
+{
+    HATN_CTX_DEBUG(1,"GrpcTransport::suspend: closing channels for background")
+    closeChannels();
+}
+
+//--------------------------------------------------------------------------
+
+void GrpcTransport::resume()
+{
+    if (!pimpl->router || pimpl->router->hosts().empty())
+    {
+        return;
+    }
+
+    HATN_CTX_DEBUG(1,"GrpcTransport::resume: rebuilding channels for foreground")
+    initChannels();
+}
+
+//--------------------------------------------------------------------------
+
 common::SharedPtr<Router> GrpcTransport::router() const
 {
     return pimpl->router;
@@ -247,6 +276,33 @@ Error GrpcTransport::loadLogConfig(
 
 //--------------------------------------------------------------------------
 
+void GrpcTransport::populateChannels()
+{
+    // Structure-only step: create the map entries once, before any traffic exists. Must
+    // not run again after that (see the declaration comment in grpctransport.h) since
+    // pimpl->channels is read without synchronization from gRPC reactor/callback threads
+    // (GrpcTransport_p::channel()), and mutating a std::map's structure concurrently with
+    // an unsynchronized find() on it is undefined behavior.
+    if (!pimpl->channels.empty())
+    {
+        return;
+    }
+
+    auto maxPriotity=static_cast<uint8_t>(api::Priority::Highest);
+    for (size_t i=0;i<config().field(grpc_config::priority_channels).count();i++)
+    {
+        auto p=config().field(grpc_config::priority_channels).at(i);
+        if (p<maxPriotity)
+        {
+            auto priority=static_cast<api::Priority>(p);
+            pimpl->channels.emplace(std::piecewise_construct,std::forward_as_tuple(priority),
+                                    std::forward_as_tuple());
+        }
+    }
+}
+
+//--------------------------------------------------------------------------
+
 void GrpcTransport::initChannels()
 {
     // construct server address from router
@@ -270,18 +326,12 @@ void GrpcTransport::initChannels()
 
     auto serverName=pimpl->router->serverName();
 
-    // init priority channels
-    auto maxPriotity=static_cast<uint8_t>(api::Priority::Highest);
-    for (size_t i=0;i<config().field(grpc_config::priority_channels).count();i++)
+    // init priority channels. The map's structure was already populated by
+    // populateChannels(); resume() calls only this method so it never mutates
+    // pimpl->channels itself, only the PriorityChannel objects already in it.
+    for (auto&& it: pimpl->channels)
     {
-        auto p=config().field(grpc_config::priority_channels).at(i);
-        if (p<maxPriotity)
-        {
-            auto priority=static_cast<api::Priority>(p);
-            auto it=pimpl->channels.emplace(std::piecewise_construct,std::forward_as_tuple(priority),
-                                    std::forward_as_tuple());
-            it.first->second.init(this,address,creds,name(),serverName);
-        }
+        it.second.init(this,address,creds,name(),serverName);
     }
 
     // init default priority channel
@@ -324,17 +374,52 @@ void detail::PriorityChannel::init(const GrpcTransport* cfg,
     // Allow unlimited pings on idle connections. gRPC default is 2, which stops pinging
     // after 2 unanswered pings and defeats the shorter keep_alive_period on idle channels.
     args.SetInt(GRPC_ARG_HTTP2_MAX_PINGS_WITHOUT_DATA, cfg->config().fieldValue(grpc_config::max_pings_without_data));
+    // Lower the floor for keepalive pings on connections with no outgoing DATA frames.
+    // The event stream half-closes its write side and never sends data again, so without
+    // this arg gRPC's own floor overrides keep_alive_period and delays zombie-socket
+    // detection by minutes. This only lowers a floor, it never raises the ping rate, so
+    // it cannot trigger the server's too_many_pings enforcement on its own.
+    args.SetInt(GRPC_ARG_HTTP2_MIN_SENT_PING_INTERVAL_WITHOUT_DATA_MS, cfg->config().fieldValue(grpc_config::min_sent_ping_interval_without_data_ms));
     // Cap reconnect backoff so the channel retries quickly after detecting a broken link.
     args.SetInt(GRPC_ARG_INITIAL_RECONNECT_BACKOFF_MS, cfg->config().fieldValue(grpc_config::initial_reconnect_backoff_ms));
     args.SetInt(GRPC_ARG_MAX_RECONNECT_BACKOFF_MS, cfg->config().fieldValue(grpc_config::max_reconnect_backoff_ms));
+
+    // Keep this channel's subchannel out of gRPC's process-wide subchannel pool, so that
+    // destroying the channel (suspend()/close()) deterministically tears down its subchannel
+    // and socket instead of the pool keeping it alive for reuse by an equivalent channel.
+    args.SetInt(GRPC_ARG_USE_LOCAL_SUBCHANNEL_POOL, 1);
+
+    // Safety net: if a channel is ever left with no active calls (e.g. suspend() was missed),
+    // drop its socket after this many idle ms instead of leaving it pinging indefinitely. 0
+    // (desktop default) disables the arg.
+    auto idleTimeoutMs=cfg->config().fieldValue(grpc_config::client_idle_timeout_ms);
+    if (idleTimeoutMs!=0)
+    {
+        args.SetInt(GRPC_ARG_CLIENT_IDLE_TIMEOUT_MS, idleTimeoutMs);
+    }
 
     if (!serverName.empty())
     {
         args.SetSslTargetNameOverride(serverName);
     }
 
-    channel = grpc::CreateCustomChannel(address,creds,args);
-    stub= std::make_shared<grpc::GenericStub>(channel);
+    auto newChannel = grpc::CreateCustomChannel(address,creds,args);
+    auto newStub = std::make_shared<grpc::GenericStub>(newChannel);
+
+    // publish under the mutex so concurrent readers (sendUnaryImpl/sendStreamImpl on other
+    // transport threads) never observe a half-written channel/stub pair during reconnect()/resume()
+    {
+        common::MutexScopedLock l{mutex};
+        channel = std::move(newChannel);
+        stub = std::move(newStub);
+        // Clear the flag close() set (or the initial disconnected=false default), so a
+        // channel rebuilt by reconnect()/resume() is not left permanently rejecting requests
+        // with NETWORK_NOT_CONNECTED (see isDisconnected() and the callers in
+        // sendUnaryImpl/sendStreamImpl). Callers that rebuild without an intervening
+        // updateNetworkState(false) (e.g. AccountEnv's medium-switch handler -> reconnect())
+        // otherwise have no other path that resets this.
+        disconnected = false;
+    }
 }
 
 //--------------------------------------------------------------------------
@@ -351,6 +436,7 @@ Result<clientapi::Response> detail::GrpcTransport_p::handleResponse(
     clientapi::Response resp;
     std::string appStatus;
     std::string grpcCode;
+    ErrorHeaders errorHeaders;
 
     if (messageData.isNull())
     {
@@ -390,6 +476,36 @@ Result<clientapi::Response> detail::GrpcTransport_p::handleResponse(
             if (!code.empty())
             {
                 grpcCode=code;
+            }
+            // family/description/details/disposition/retry_after: merged across BOTH initial
+            // and trailing metadata, same as status/grpc_code above - previously
+            // family/description were re-read from initial metadata only, inside makeError
+            // itself, so a server sending them only as trailers lost them entirely. See
+            // whitemdesktop/docs/error-contract.md.
+            auto family=findHeader(metadata,transport->config().fieldValue(grpc_config::error_family_header));
+            if (!family.empty())
+            {
+                errorHeaders.family=family;
+            }
+            auto description=findHeader(metadata,transport->config().fieldValue(grpc_config::error_description_header));
+            if (!description.empty())
+            {
+                errorHeaders.description=description;
+            }
+            auto details=findHeader(metadata,transport->config().fieldValue(grpc_config::error_details_header));
+            if (!details.empty())
+            {
+                errorHeaders.details=details;
+            }
+            auto disposition=findHeader(metadata,transport->config().fieldValue(grpc_config::error_disposition_header));
+            if (!disposition.empty())
+            {
+                errorHeaders.disposition=disposition;
+            }
+            auto retryAfter=findHeader(metadata,transport->config().fieldValue(grpc_config::error_retry_after_header));
+            if (!retryAfter.empty())
+            {
+                errorHeaders.retryAfter=retryAfter;
             }
 #if 0
             // dump response headers
@@ -446,6 +562,24 @@ Result<clientapi::Response> detail::GrpcTransport_p::handleResponse(
                 -status.error_code(),
                 &api::ApiLibErrorCategory::getCategory()
                 );
+
+            // The server never reached evgo's handler at all (wrong/unimplemented method,
+            // unavailable, deadline), so there is no x-hatn-status to build a real ApiError
+            // from - but the bare gRPC status code alone is still enough to state SOME
+            // disposition (UNIMPLEMENTED is always unsupported/terminal, for instance),
+            // closing the legacy-server gap ("no files2 endpoints at all") described in
+            // whitemdesktop/docs/error-contract.md without requiring any server-side change:
+            // grpc-go answers an unregistered method with UNIMPLEMENTED before the request
+            // ever reaches evgo. The outer code stays TRANSPORT_REQUEST_FAILED so existing
+            // consumers keyed on it (e.g. synccontroller.cpp) are unaffected.
+            auto disposition=dispositionFromGrpcCode(status.error_code());
+            if (disposition!=common::ApiErrorDisposition::Unknown)
+            {
+                common::ApiError apiError;
+                apiError.setDisposition(disposition);
+                nativeErr->setApiError(std::move(apiError));
+            }
+
             Error ec{
                 api::ApiLibError::TRANSPORT_REQUEST_FAILED,
                 std::move(nativeErr)
@@ -457,8 +591,7 @@ Result<clientapi::Response> detail::GrpcTransport_p::handleResponse(
         auto apiError=makeError(
             code,
             std::move(appStatus),
-            transport->config(),
-            context.get(),
+            errorHeaders,
             resp.messageType(),
             messageData
         );
@@ -466,6 +599,157 @@ Result<clientapi::Response> detail::GrpcTransport_p::handleResponse(
     }
 
     return resp;
+}
+
+//--------------------------------------------------------------------------
+
+void GrpcTransport::sendUnaryImpl(
+        api::Priority priority,
+        uintptr_t reqAddr,
+        std::string method,
+        std::vector<std::pair<std::string,std::string>> metadata,
+        common::ByteArrayShared message,
+        std::function<void(Result<clientapi::Response>)> onResponse
+    )
+{
+    auto channel=pimpl->channel(priority);
+    if (channel->isDisconnected())
+    {
+        HATN_CTX_SCOPE_ERROR("network is disconnected")
+        onResponse(network::networkError(network::NetworkError::NETWORK_NOT_CONNECTED));
+        return;
+    }
+
+    // hold the stub alive for the duration of the call; a concurrent close()/reconnect()
+    // can reset channel->stub, so copy it under the channel mutex and bail if the channel
+    // has been torn down (close() does not set the disconnected flag).
+    std::shared_ptr<grpc::GenericStub> stub;
+    {
+        common::MutexScopedLock l{channel->mutex};
+        stub = channel->stub;
+    }
+    if (!stub)
+    {
+        HATN_CTX_SCOPE_ERROR("grpc channel not initialized")
+        onResponse(network::networkError(network::NetworkError::NETWORK_NOT_CONNECTED));
+        return;
+    }
+
+    // create context and register pending request
+    auto context=channel->addRequest(reqAddr);
+
+    // setup deadline
+    if (config().fieldValue(grpc_config::unary_deadline_timeout)!=0)
+    {
+        context->set_wait_for_ready(true);
+        std::chrono::system_clock::time_point deadline =
+            std::chrono::system_clock::now() + std::chrono::seconds(config().fieldValue(grpc_config::unary_deadline_timeout));
+        context->set_deadline(deadline);
+    }
+
+    // add metadata to context
+    for (const auto& h : metadata)
+    {
+        context->AddMetadata(h.first,h.second);
+    }
+
+    // prepare request and response buffers
+    grpc::Slice slice(message->data(),message->size());
+    grpc::ByteBuffer requestBuf(&slice,1);
+    auto responseBuf=std::make_shared<grpc::ByteBuffer>();
+
+    grpc::StubOptions opt;
+
+    // invoke unary call; the completion runs on a transport thread
+    stub->UnaryCall(
+        context.get(),
+        method,
+        opt,
+        &requestBuf,
+        responseBuf.get(),
+        [pimpl=pimpl,priority,reqAddr,responseBuf,context,message,onResponse{std::move(onResponse)}](grpc::Status status) mutable
+        {
+            auto response=pimpl->handleResponse(
+                context,
+                status,
+                *responseBuf
+            );
+
+            pimpl->channel(priority)->removeRequest(reqAddr);
+            onResponse(std::move(response));
+        }
+    );
+}
+
+//--------------------------------------------------------------------------
+
+void GrpcTransport::sendStreamImpl(
+        api::Priority priority,
+        uintptr_t reqAddr,
+        std::string method,
+        std::vector<std::pair<std::string,std::string>> metadata,
+        common::ByteArrayShared message,
+        clientapi::StreamChannel::ReadCb onMessage
+    )
+{
+    auto channel=pimpl->channel(priority);
+    if (channel->isDisconnected())
+    {
+        HATN_CTX_SCOPE_ERROR("network is disconnected")
+        onMessage(network::networkError(network::NetworkError::NETWORK_NOT_CONNECTED),{});
+        return;
+    }
+
+    // hold the stub alive for the duration of the call; a concurrent close()/reconnect()
+    // can reset channel->stub, so copy it under the channel mutex and bail if the channel
+    // has been torn down (close() does not set the disconnected flag).
+    std::shared_ptr<grpc::GenericStub> stub;
+    {
+        common::MutexScopedLock l{channel->mutex};
+        stub = channel->stub;
+    }
+    if (!stub)
+    {
+        HATN_CTX_SCOPE_ERROR("grpc channel not initialized")
+        onMessage(network::networkError(network::NetworkError::NETWORK_NOT_CONNECTED),{});
+        return;
+    }
+
+    // create stream (with its own context) and register it
+    auto stream=channel->addStream(reqAddr,priority,pimpl);
+    auto context=stream->context();
+
+    // add metadata to context
+    for (const auto& h : metadata)
+    {
+        context->AddMetadata(h.first,h.second);
+    }
+
+    // prepare request buffer
+    grpc::Slice slice(message->data(),message->size());
+    grpc::ByteBuffer requestBuf(&slice,1);
+
+    grpc::StubOptions opt;
+
+    // wrap the grpc-free read callback so the pending request is dropped on error
+    auto cb=[pimpl=pimpl,priority,reqAddr,onMessage{std::move(onMessage)}](const Error& ec, clientapi::Response response) mutable
+    {
+        if (ec)
+        {
+            pimpl->channel(priority)->removeRequest(reqAddr);
+        }
+        onMessage(ec,std::move(response));
+    };
+
+    stub->PrepareBidiStreamingCall(context.get(),method,opt,stream.get());
+    stream->startStream(&requestBuf,std::move(cb));
+}
+
+//--------------------------------------------------------------------------
+
+void GrpcTransport::cancelRequestImpl(api::Priority priority, uintptr_t reqAddr)
+{
+    pimpl->channel(priority)->cancelRequest(reqAddr);
 }
 
 //--------------------------------------------------------------------------

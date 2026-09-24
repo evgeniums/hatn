@@ -640,4 +640,247 @@ BOOST_AUTO_TEST_CASE(FindUpdateCreate)
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 }
 
+// Retraction of a stale index entry after a PARTIAL field update.
+//
+// The case: a bool field that is part of a composite index's key, left UNSET at creation, then
+// flipped to true via db::update::field() (not a whole-object save). The object's own row is
+// updated correctly, but a query that filters on that field AT THE INDEX LAYER can still return
+// it -- the old index entry was never retracted, so the scan still finds the record at its
+// previous key position and returns content that has since changed underneath it.
+//
+// Established 2026-08-27 by running the identical scenario against both index kinds: the
+// retraction works on a NON-UNIQUE composite index and fails on a UNIQUE one. That is the whole
+// finding, so both are kept below -- modelUniqueFlag() (fails) and modelPlainFlag() (passes) are
+// identical in every respect except HATN_DB_UNIQUE_INDEX vs HATN_DB_INDEX.
+//
+// NOTE on probing an unset field: `flag` has no explicit default (HDU_FIELD), so an unset value
+// encodes as a Null sentinel that is byte-different from an explicit `false`. `eq false`
+// therefore does NOT match a never-set row -- only an `in` over a From-First interval spans both
+// Null and false. Every "is it still on the not-true side" probe below uses that interval for
+// exactly this reason; asking with `eq false` reports 0 for untouched records and looks like a
+// second bug when it is only the documented Null semantics.
+template <typename ModelT>
+auto notTrueInterval()
+{
+    return query::Interval<query::BoolValue>(false,query::IntervalType::First,
+                                             false,query::IntervalType::Closed);
+}
+
+// All records currently on the not-true side of the index (Null or explicit false).
+template <typename ModelT, typename IdxT, typename SortFieldT, typename FlagFieldT>
+auto notTrueQuery(std::shared_ptr<Client> client, Topic topic,
+                  const ModelT& model, const IdxT& idx, SortFieldT sortField, FlagFieldT flagField)
+{
+    auto notTrue=notTrueInterval<ModelT>();
+    auto w=query::where(sortField,query::lte,query::Last).and_(flagField,query::in,notTrue);
+    auto q=makeQuery(idx,std::move(w),topic);
+    return client->find(model,q);
+}
+
+// All records explicitly on the true side.
+template <typename ModelT, typename IdxT, typename SortFieldT, typename FlagFieldT>
+auto trueQuery(std::shared_ptr<Client> client, Topic topic,
+               const ModelT& model, const IdxT& idx, SortFieldT sortField, FlagFieldT flagField)
+{
+    auto w=query::where(sortField,query::lte,query::Last).and_(flagField,query::eq,true);
+    auto q=makeQuery(idx,std::move(w),topic);
+    return client->find(model,q);
+}
+
+// Single-record probes, pinning the leading sort field to one exact value so the query can only
+// ever match that one object -- this is what proves the finding is about the index entry itself
+// and not about range/interval semantics.
+template <typename ModelT, typename IdxT, typename SortFieldT, typename FlagFieldT>
+auto oneRecordNotTrue(std::shared_ptr<Client> client, Topic topic, const ObjectId& sortVal,
+                      const ModelT& model, const IdxT& idx, SortFieldT sortField, FlagFieldT flagField)
+{
+    auto notTrue=notTrueInterval<ModelT>();
+    auto w=query::where(sortField,query::eq,sortVal).and_(flagField,query::in,notTrue);
+    auto q=makeQuery(idx,std::move(w),topic);
+    return client->find(model,q);
+}
+
+template <typename ModelT, typename IdxT, typename SortFieldT, typename FlagFieldT>
+auto oneRecordTrue(std::shared_ptr<Client> client, Topic topic, const ObjectId& sortVal,
+                   const ModelT& model, const IdxT& idx, SortFieldT sortField, FlagFieldT flagField)
+{
+    auto w=query::where(sortField,query::eq,sortVal).and_(flagField,query::eq,true);
+    auto q=makeQuery(idx,std::move(w),topic);
+    return client->find(model,q);
+}
+
+// The scenario itself, run identically against either model. `startExplicitFalse` selects
+// whether flag begins as a Null sentinel or as an explicit false, which isolates whether the
+// Null starting position is what matters. `useTransaction` runs the update inside an explicit
+// transaction, since a transaction's write-batch could plausibly handle index retraction
+// differently from the auto-committing single-call path.
+template <typename ModelT, typename IdxT, typename UnitT, typename SortFieldT, typename FlagFieldT>
+void runFlagUpdateScenario(std::shared_ptr<Client> client,
+                           const ModelT& model, const IdxT& idx,
+                           SortFieldT sortField, FlagFieldT flagField,
+                           bool startExplicitFalse, bool useTransaction)
+{
+    Topic topic1{"topic1"};
+
+    std::vector<ObjectId> oids;
+    std::vector<ObjectId> sorts;
+    for (size_t i=0;i<3;i++)
+    {
+        auto o=makeInitObject<UnitT>();
+        // sort MUST be set: an unset field encodes as a Null sentinel that the leading
+        // `lte Last` clause does not match, which would make every query below return 0.
+        auto sortVal=ObjectId::generateId();
+        o.setFieldValue(sortField,sortVal);
+        if (startExplicitFalse)
+        {
+            o.setFieldValue(flagField,false);
+        }
+        auto ec=client->create(topic1,model,&o);
+        BOOST_REQUIRE(!ec);
+        oids.push_back(o.fieldValue(object::_id));
+        sorts.push_back(sortVal);
+    }
+
+    // sanity: all three sit on the not-true side to begin with
+    auto r0=notTrueQuery(client,topic1,model,idx,sortField,flagField);
+    BOOST_REQUIRE(!r0);
+    BOOST_REQUIRE_EQUAL(r0.value().size(),3);
+
+    // the partial field update under test
+    auto updateReq=update::request(update::field(flagField,update::set,true));
+    if (useTransaction)
+    {
+        auto txFn=[&](Transaction* tx) -> Error
+        {
+            return client->update(topic1,model,oids[0],updateReq,tx);
+        };
+        auto ec=client->transaction(txFn);
+        BOOST_REQUIRE(!ec);
+    }
+    else
+    {
+        auto ur=client->update(topic1,model,oids[0],updateReq);
+        BOOST_REQUIRE(!ur);
+    }
+
+    // the row's own content is always correct -- only the index is ever in question
+    auto r1=client->read(topic1,model,oids[0]);
+    BOOST_REQUIRE(!r1);
+    BOOST_CHECK_EQUAL(r1.value()->fieldValue(flagField),true);
+
+    // per-record probes first: these are the decisive ones, since each pins `sort` to a single
+    // exact value and so cannot be explained by range semantics
+    for (size_t i=0;i<3;i++)
+    {
+        BOOST_TEST_CONTEXT("i="<<i)
+        {
+            auto asNotTrue=oneRecordNotTrue(client,topic1,sorts[i],model,idx,sortField,flagField);
+            BOOST_REQUIRE(!asNotTrue);
+            auto asTrue=oneRecordTrue(client,topic1,sorts[i],model,idx,sortField,flagField);
+            BOOST_REQUIRE(!asTrue);
+            BOOST_TEST_MESSAGE(fmt::format("record[{}]{} indexed under not-true={} true={}",
+                                           i,(i==0?" (UPDATED)":""),
+                                           asNotTrue.value().size(),asTrue.value().size()));
+            if (i==0)
+            {
+                // the updated record must have MOVED: off the not-true side, onto the true side
+                BOOST_CHECK_EQUAL(asNotTrue.value().size(),0);
+                BOOST_CHECK_EQUAL(asTrue.value().size(),1);
+            }
+            else
+            {
+                BOOST_CHECK_EQUAL(asNotTrue.value().size(),1);
+                BOOST_CHECK_EQUAL(asTrue.value().size(),0);
+            }
+        }
+    }
+
+    // aggregate view of the same thing
+    auto rTrue=trueQuery(client,topic1,model,idx,sortField,flagField);
+    BOOST_REQUIRE(!rTrue);
+    BOOST_TEST_MESSAGE(fmt::format("aggregate: true -> {} (expect 1)",rTrue.value().size()));
+    BOOST_CHECK_EQUAL(rTrue.value().size(),1);
+
+    auto r2=notTrueQuery(client,topic1,model,idx,sortField,flagField);
+    BOOST_REQUIRE(!r2);
+    BOOST_TEST_MESSAGE(fmt::format("aggregate: not-true -> {} (expect 2)",r2.value().size()));
+    BOOST_CHECK_EQUAL(r2.value().size(),2);
+}
+
+// --- the failing model: UNIQUE composite index ---
+
+BOOST_AUTO_TEST_CASE(UniqueIndexFlagUpdateFromUnset)
+{
+    HATN_CTX_SCOPE("UniqueIndexFlagUpdateFromUnset")
+    init();
+    auto s1=initSchema(modelUniqueFlag());
+    auto handler=[&s1](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
+    {
+        setSchemaToClient(client,s1);
+        runFlagUpdateScenario<decltype(modelUniqueFlag()),decltype(uidxflag_sort_idx()),uidxflag::type>(
+            client,modelUniqueFlag(),uidxflag_sort_idx(),uidxflag::sort,uidxflag::flag,false,false);
+    };
+    PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
+}
+
+BOOST_AUTO_TEST_CASE(UniqueIndexFlagUpdateFromExplicitFalse)
+{
+    HATN_CTX_SCOPE("UniqueIndexFlagUpdateFromExplicitFalse")
+    init();
+    auto s1=initSchema(modelUniqueFlag());
+    auto handler=[&s1](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
+    {
+        setSchemaToClient(client,s1);
+        runFlagUpdateScenario<decltype(modelUniqueFlag()),decltype(uidxflag_sort_idx()),uidxflag::type>(
+            client,modelUniqueFlag(),uidxflag_sort_idx(),uidxflag::sort,uidxflag::flag,true,false);
+    };
+    PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
+}
+
+BOOST_AUTO_TEST_CASE(UniqueIndexFlagUpdateInTransaction)
+{
+    HATN_CTX_SCOPE("UniqueIndexFlagUpdateInTransaction")
+    init();
+    auto s1=initSchema(modelUniqueFlag());
+    auto handler=[&s1](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
+    {
+        setSchemaToClient(client,s1);
+        runFlagUpdateScenario<decltype(modelUniqueFlag()),decltype(uidxflag_sort_idx()),uidxflag::type>(
+            client,modelUniqueFlag(),uidxflag_sort_idx(),uidxflag::sort,uidxflag::flag,false,true);
+    };
+    PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
+}
+
+// --- the control: identical scenario on a NON-UNIQUE index, which passes ---
+// If this ever starts failing too, the bug is not unique-index-specific after all and the
+// diagnosis above needs revisiting.
+
+BOOST_AUTO_TEST_CASE(PlainIndexFlagUpdateFromUnset)
+{
+    HATN_CTX_SCOPE("PlainIndexFlagUpdateFromUnset")
+    init();
+    auto s1=initSchema(modelPlainFlag());
+    auto handler=[&s1](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
+    {
+        setSchemaToClient(client,s1);
+        runFlagUpdateScenario<decltype(modelPlainFlag()),decltype(nidxflag_sort_idx()),nidxflag::type>(
+            client,modelPlainFlag(),nidxflag_sort_idx(),nidxflag::sort,nidxflag::flag,false,false);
+    };
+    PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
+}
+
+BOOST_AUTO_TEST_CASE(PlainIndexFlagUpdateInTransaction)
+{
+    HATN_CTX_SCOPE("PlainIndexFlagUpdateInTransaction")
+    init();
+    auto s1=initSchema(modelPlainFlag());
+    auto handler=[&s1](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
+    {
+        setSchemaToClient(client,s1);
+        runFlagUpdateScenario<decltype(modelPlainFlag()),decltype(nidxflag_sort_idx()),nidxflag::type>(
+            client,modelPlainFlag(),nidxflag_sort_idx(),nidxflag::sort,nidxflag::flag,false,true);
+    };
+    PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
+}
+
 BOOST_AUTO_TEST_SUITE_END()

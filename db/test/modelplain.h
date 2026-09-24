@@ -100,7 +100,44 @@ HATN_DB_MODEL(modelPlain,plain,plain_f1_idx()
           ,plain_f17_idx()
 )
 
+// Models for the boolean-flag-in-a-composite-index update case (see testupdate.cpp's
+// runFlagUpdateScenario()): a bool field that is part of a composite index's key, left UNSET at
+// creation, then flipped to true by a PARTIAL field update (db::update::field(), not a
+// whole-object save). The question under test is whether the old index entry is retracted.
+//
+// `flag`/`other` deliberately have NO explicit default (HDU_FIELD, not HDU_DEFAULT_FIELD): an
+// unset field serializes as a Null sentinel rather than the type default, so it sits at a key
+// position byte-different from an explicit `false`. That is why the queries in the test span it
+// with an `in` over a From-First interval instead of a plain `eq`.
+//
+// Two models, IDENTICAL except that one index is UNIQUE and the other is not -- that single
+// difference is the whole point. Established 2026-08-27: the retraction works on the NON-unique
+// index and fails on the UNIQUE one. Keeping both makes the contrast a permanent regression
+// test rather than a one-off observation, and stops a future fix from silently regressing only
+// one of the two paths.
+HDU_UNIT_WITH(uidxflag,(HDU_BASE(object)),
+              HDU_FIELD(sort,TYPE_OBJECT_ID,1)
+              HDU_FIELD(flag,TYPE_BOOL,2)
+              HDU_FIELD(other,TYPE_BOOL,3)
+              )
+
+HDU_UNIT_WITH(nidxflag,(HDU_BASE(object)),
+              HDU_FIELD(sort,TYPE_OBJECT_ID,1)
+              HDU_FIELD(flag,TYPE_BOOL,2)
+              HDU_FIELD(other,TYPE_BOOL,3)
+              )
+
+//! The failing case: composite UNIQUE index over (sort, flag, other).
+HATN_DB_UNIQUE_INDEX(uidxflag_sort_idx,uidxflag::sort,uidxflag::flag,uidxflag::other)
+HATN_DB_MODEL(modelUniqueFlag,uidxflag,uidxflag_sort_idx())
+
+//! The control: same fields, same composite key, same update -- but not unique. Passes.
+HATN_DB_INDEX(nidxflag_sort_idx,nidxflag::sort,nidxflag::flag,nidxflag::other)
+HATN_DB_MODEL(modelPlainFlag,nidxflag,nidxflag_sort_idx())
+
 void registerModelPlain();
+void registerModelUniqueFlag();
+void registerModelPlainFlag();
 void initRocksDb();
 
 #endif // HATNDBTESTMODELS9_H

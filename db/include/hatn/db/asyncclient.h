@@ -100,14 +100,81 @@ class HATN_DB_EXPORT AsyncClient : public common::WithMappedThreads,
 
         Error closeDbSync()
         {
-            Error ec;
-            std::ignore=threads()->thread()->execSync(
-                [&ec,this,self{shared_from_this()}]()
+            // ec is heap-allocated and kept alive via shared_ptr, not captured by reference: if
+            // execSync() below times out, closeDbSync() returns while the queued lambda may still
+            // be running on the db thread — a `&ec` capture would leave it writing through a
+            // dangling reference to a destroyed stack local. The shared_ptr keeps it valid
+            // regardless. Also: execSync()'s own return value (e.g. TIMEOUT) was previously
+            // discarded via std::ignore=, so a timed-out close silently reported OK; it is now
+            // surfaced and takes priority over whatever (possibly stale) value *ec holds.
+            auto ec=std::make_shared<Error>();
+            auto execEc=threads()->thread()->execSync(
+                [ec,this,self{shared_from_this()}]()
                 {
-                    ec=m_client->closeDb();
+                    *ec=m_client->closeDb();
                 }
             );
-            return ec;
+            if (execEc)
+            {
+                return execEc;
+            }
+            return *ec;
+        }
+
+        // Mobile background-lifecycle hooks (see db::Client::pauseBackgroundWork()/
+        // resumeBackgroundWork()/flush()): posted onto the db thread like every other
+        // operation here, so callers on another thread (e.g. the app thread) never touch the
+        // Client directly.
+        template <typename ContextT, typename CallbackT>
+        void pauseBackgroundWork(
+                common::SharedPtr<ContextT> ctx,
+                CallbackT cb
+            )
+        {
+            common::postAsyncTask(
+                threads()->thread(),
+                ctx,
+                [ctx,this,self{shared_from_this()}](auto, auto cb)
+                {
+                    cb(std::move(ctx),m_client->pauseBackgroundWork());
+                },
+                std::move(cb)
+            );
+        }
+
+        template <typename ContextT, typename CallbackT>
+        void resumeBackgroundWork(
+                common::SharedPtr<ContextT> ctx,
+                CallbackT cb
+            )
+        {
+            common::postAsyncTask(
+                threads()->thread(),
+                ctx,
+                [ctx,this,self{shared_from_this()}](auto, auto cb)
+                {
+                    cb(std::move(ctx),m_client->resumeBackgroundWork());
+                },
+                std::move(cb)
+            );
+        }
+
+        template <typename ContextT, typename CallbackT>
+        void flush(
+                common::SharedPtr<ContextT> ctx,
+                CallbackT cb,
+                bool sync=true
+            )
+        {
+            common::postAsyncTask(
+                threads()->thread(),
+                ctx,
+                [ctx,this,self{shared_from_this()},sync](auto, auto cb)
+                {
+                    cb(std::move(ctx),m_client->flush(sync));
+                },
+                std::move(cb)
+            );
         }
 
         template <typename ContextT, typename CallbackT>

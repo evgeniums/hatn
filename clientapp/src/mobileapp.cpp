@@ -40,6 +40,7 @@
 #include <hatn/clientapp/mobileplatformcontext.h>
 #include <hatn/clientapp/testservicedb.h>
 #include <hatn/clientapp/mobileapp.h>
+#include <hatn/clientapp/mobileusererror.h>
 #include <hatn/clientapp/eventdispatcher.h>
 #include <hatn/clientapp/clientappsettings.h>
 #include <hatn/clientapp/lockingcontroller.h>
@@ -53,6 +54,52 @@ HATN_LOG_MODULE_INIT(mobileapp,HATN_CLIENTAPP_EXPORT)
 HATN_CLIENTAPP_MOBILE_NAMESPACE_BEGIN
 
 HATN_CLIENT_SERVER_USING
+
+//-----------------------------------------------------------------------------
+
+namespace {
+
+UserErrorMapper& userErrorMapperInstance()
+{
+    // Function-local static avoids static-init-order hazards; default is a no-op so hatn
+    // behaves exactly as before this hook existed until an app installs a real mapper.
+    static UserErrorMapper mapper=[](const HATN_NAMESPACE::Error&, lib::string_view, lib::string_view, Error&)
+    {
+    };
+    return mapper;
+}
+
+} // anonymous namespace
+
+//-----------------------------------------------------------------------------
+
+void setUserErrorMapper(UserErrorMapper mapper)
+{
+    userErrorMapperInstance()=std::move(mapper);
+}
+
+//-----------------------------------------------------------------------------
+
+void fillError(Error& out, const HATN_NAMESPACE::Error& ec, lib::string_view service, lib::string_view method)
+{
+    if (ec)
+    {
+        out.code=ec.code();
+        out.codeString=ec.codeString();
+        out.message=ec.message();
+    }
+    else
+    {
+        out.code=0;
+        out.codeString.clear();
+        out.message.clear();
+    }
+    out.userCode=0;
+    out.disposition=common::ApiErrorDisposition::Unknown;
+    out.retryAfter=0;
+    out.userParams.clear();
+    userErrorMapperInstance()(ec,service,method,out);
+}
 
 //-----------------------------------------------------------------------------
 
@@ -238,7 +285,9 @@ void MobileApp::exec(
         if (msgR)
         {
             HATN_CTX_ERROR_RECORDS(msgR.error(),"failed to make message",{"bridge_srv",service},{"bridge_mthd",method})
-            callback(Error{msgR.error().value(),msgR.error().codeString(),msgR.error().message()},Response{});
+            Error err;
+            fillError(err,msgR.error(),service,method);
+            callback(std::move(err),Response{});
             return;
         }
         req.message=msgR.takeValue();
@@ -287,7 +336,9 @@ void MobileApp::exec(
             }
         }
 
-        callback(Error{ec.value(),ec.codeString(),ec.message()},std::move(response));
+        Error err;
+        fillError(err,ec,service,method);
+        callback(std::move(err),std::move(response));
     };
 
     // invoke
@@ -386,9 +437,7 @@ int MobileApp::getAppConfig(
     if (!pimpl->app->app().configTree().isSet(key,true))
     {
         auto ec=clientAppError(ClientAppError::APPLICATION_CONFIG_NOT_SET);
-        error.code=ec.code();
-        error.codeString=ec.codeString();
-        error.message=ec.message();
+        fillError(error,ec);
         return ec.code();
     }
 
@@ -396,9 +445,7 @@ int MobileApp::getAppConfig(
     auto r=serializer.serialize(pimpl->app->app().configTree(),key);
     if (r)
     {
-        error.code=r.error().code();
-        error.codeString=r.error().codeString();
-        error.message=r.error().message();
+        fillError(error,r.error());
         return r.error().code();
     }
     jsonValue=r.value();
@@ -418,9 +465,7 @@ int MobileApp::getAppSetting(
     if (!pimpl->app->appSettings()->configTree().isSet(key,true))
     {
         auto ec=clientAppError(ClientAppError::APPLICATION_SETTING_NOT_SET);
-        error.code=ec.code();
-        error.codeString=ec.codeString();
-        error.message=ec.message();
+        fillError(error,ec);
         return ec.code();
     }
 
@@ -428,9 +473,7 @@ int MobileApp::getAppSetting(
     auto r=serializer.serialize(pimpl->app->appSettings()->configTree(),key);
     if (r)
     {
-        error.code=r.error().code();
-        error.codeString=r.error().codeString();
-        error.message=r.error().message();
+        fillError(error,r.error());
         return r.error().code();
     }
     jsonValue=r.value();
@@ -448,9 +491,7 @@ int MobileApp::getFileSetting(
     auto r=pimpl->app->fileSettings().getJson(key);
     if (r)
     {
-        error.code=r.error().code();
-        error.codeString=r.error().codeString();
-        error.message=r.error().message();
+        fillError(error,r.error());
         return r.error().code();
     }
     jsonValue=r.value();
@@ -468,9 +509,7 @@ int MobileApp::setFileSetting(
     auto ec=pimpl->app->fileSettings().setJson(key,jsonValue);
     if (ec)
     {
-        error.code=ec.code();
-        error.codeString=ec.codeString();
-        error.message=ec.message();
+        fillError(error,ec);
         return ec.code();
     }
     return 0;
@@ -487,9 +526,7 @@ int doGetFileSetting(HATN_CLIENTAPP_NAMESPACE::ClientAppFileSettings& fs, const 
     value=fs.template getAs<T>(key,ec);
     if (ec)
     {
-        error.code=ec.code();
-        error.codeString=ec.codeString();
-        error.message=ec.message();
+        fillError(error,ec);
         return ec.code();
     }
     return 0;
@@ -501,9 +538,7 @@ int doSetFileSetting(HATN_CLIENTAPP_NAMESPACE::ClientAppFileSettings& fs, const 
     auto ec=fs.set(key,std::move(value));
     if (ec)
     {
-        error.code=ec.code();
-        error.codeString=ec.codeString();
-        error.message=ec.message();
+        fillError(error,ec);
         return ec.code();
     }
     return 0;

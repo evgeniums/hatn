@@ -134,6 +134,16 @@ class RawTransport : public base::ConfigObject<raw_transport_config::type>
             //! @todo Handle reconnect
         }
 
+        void suspend()
+        {
+            //! @todo Handle background suspend
+        }
+
+        void resume()
+        {
+            //! @todo Handle foreground resume
+        }
+
     private:
 
         ConnectionPool<RouterT> m_connectionPool;

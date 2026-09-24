@@ -160,7 +160,7 @@ Result<typename ModelT::SharedPtr> ReadObjectT::operator ()(
     {
         HATN_CTX_SCOPE_PUSH("partition",partition->range)
     }
-    HATN_CTX_DEBUG("")
+    HATN_CTX_DEBUG(100,"")
 
     // construct key
     ROCKSDB_NAMESPACE::Slice objectIdS{idData.data(),idData.size()};

@@ -157,6 +157,12 @@ Error RawTransport<RouterT,Traits>::parseResponse(
         nativeError->mutableApiError()->setFamily(std::string{errUnit.fieldValue(protocol::response_error_message::family)});
         nativeError->mutableApiError()->setStatus(std::string{errUnit.fieldValue(protocol::response_error_message::status)});
         nativeError->mutableApiError()->setDataType(std::string{errUnit.fieldValue(protocol::response_error_message::data_type)});
+        nativeError->mutableApiError()->setStringCode(std::string{errUnit.fieldValue(protocol::response_error_message::string_code)});
+        nativeError->mutableApiError()->setDetails(std::string{errUnit.fieldValue(protocol::response_error_message::details)});
+        nativeError->mutableApiError()->setDisposition(
+            common::apiErrorDispositionFromString(errUnit.fieldValue(protocol::response_error_message::disposition))
+        );
+        nativeError->mutableApiError()->setRetryAfter(errUnit.fieldValue(protocol::response_error_message::retry_after));
         const auto& dataField=errUnit.field(protocol::response_error_message::data);
         if (dataField.isSet())
         {

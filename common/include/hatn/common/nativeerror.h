@@ -290,7 +290,9 @@ class HATN_COMMON_EXPORT NativeError
 
 inline Error chainError(Error&& prev, std::string message)
 {
-    auto native=std::make_shared<NativeError>(message);
+    auto native=std::make_shared<NativeError>(message,-1,prev.category());
+    native->setSystemCategory(prev.systemCategory());
+    native->setBoostCategory(prev.boostCategory());
     auto code=prev.code();
     native->setPrevError(std::move(prev));
     auto ec=Error{code,std::move(native)};

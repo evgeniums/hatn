@@ -26,7 +26,8 @@ CrashReporter::~CrashReporter() = default;
 
 void CrashReporterRegistry::registerProvider(std::shared_ptr<CrashReporter> reporter)
 {
-    m_reporters[reporter->name()] = std::move(reporter);
+    auto key = reporter->name();
+    m_reporters[key] = std::move(reporter);
 }
 
 //--------------------------------------------------------------------------

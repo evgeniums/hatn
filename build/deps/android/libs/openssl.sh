@@ -35,7 +35,14 @@ export CFLAGS=-fPIC
 cd $lib_build_dir
 
 #$folder/Configure $target -D__ANDROID_API__=$android_api_level --prefix=$toolchain_install_path -static no-shared no-tests enable-engine
-$folder/Configure $target --prefix=$toolchain_install_path -static no-shared no-tests enable-engine no-apps
+# No "-static" here: per OpenSSL INSTALL.md it implies no-dso/no-pic/no-shared AND no-threads.
+# no-threads makes every CRYPTO lock a no-op and the "thread-local" ERR state a shared global,
+# which corrupts the heap under concurrent EVP use (e.g. parallel HKDF from RocksDB background
+# threads -> Scudo "race on chunk header" abort). no-shared alone already yields static libs;
+# PIC comes from CFLAGS=-fPIC above. "threads" is the default but kept explicit as a guard.
+# After rebuilding, verify: llvm-nm --defined-only -A libcrypto.a | grep CRYPTO_THREAD_lock_new
+# must point at threads_pthread.o, not threads_none.o.
+$folder/Configure $target --prefix=$toolchain_install_path threads no-shared no-tests enable-engine no-apps
 make install_sw
 
 export PATH=$keep_path

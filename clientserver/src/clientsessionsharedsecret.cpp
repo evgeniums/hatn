@@ -15,6 +15,7 @@
 #include <hatn/clientserver/auth/authprotocol.h>
 #include <hatn/clientserver/auth/clientsessionsharedsecret.h>
 
+#include <hatn/dataunit/ipp/syntax.ipp>
 #include <hatn/api/ipp/session.ipp>
 #include <hatn/clientserver/ipp/clientsession.ipp>
 #include <hatn/clientserver/ipp/clientauthprotocolsharedsecret.ipp>

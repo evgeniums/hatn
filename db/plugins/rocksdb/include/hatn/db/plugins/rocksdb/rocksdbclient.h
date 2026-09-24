@@ -66,6 +66,10 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
         void doOpenDb(const ClientConfig& config, Error& ec, base::config_object::LogRecords& records, bool creatIfNotExists) override;
         void doCloseDb(Error& ec) override;
 
+        Error doPauseBackgroundWork() override;
+        Error doResumeBackgroundWork() override;
+        Error doFlush(bool sync) override;
+
         Error doAddDatePartitions(const std::vector<ModelInfo>& models, const std::set<common::DateRange>& dateRanges) override;
         Error doDeleteDatePartitions(const std::vector<ModelInfo>& models, const std::set<common::DateRange>& dateRanges) override;
 

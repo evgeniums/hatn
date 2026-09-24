@@ -248,7 +248,7 @@ void ClientSessionTraits<AuthProtocols...>::refresh(common::SharedPtr<ContextT> 
             callback(std::move(ctx),clientServerError(ClientServerError::AUTH_COMPLETION_FAILED));
             return;
         }
-#if 1
+#if 0
         std::cout << "ClientSessionTraits::refresh[handleTokens] resp: " << authCompleteMsg.toString(true) << std::endl;
 #endif
         // handle tokens

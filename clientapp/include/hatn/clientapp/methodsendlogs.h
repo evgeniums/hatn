@@ -12,12 +12,14 @@
 */
 /** @file clientapp/methodsendlogs.h
   *
-  * SystemService method: send application logs to developers (stub implementation).
+  * SystemService method: send application logs to developers.
   *
   * Request message fields:
-  *   file_names  — repeated string, optional (log file paths; used on mobile)
+  *   file_names  — repeated string, optional: additional log file paths in the
+  *                 local filesystem (e.g. iOS/Android platform-specific logs
+  *                 provided by Swift/Kotlin). The live client core log is always
+  *                 included implicitly by the method — callers must not add it.
   *   comments    — string, optional (user-supplied comments)
-  * Log byte data travels in request.buffers, NOT in message fields.
   */
 
 /****************************************************************************/

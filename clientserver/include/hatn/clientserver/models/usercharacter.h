@@ -89,9 +89,20 @@ struct UserCharacterPrivSectionTraits
 using UserCharacterPrivSectionFeature=common::FeatureSet<UserCharacterPrivSectionTraits>;
 using UserCharacterPruvSections=UserCharacterPrivSectionFeature::Features;
 
-//! Object with avatar
+//! Object with avatar.
+//!
+//! task-character-avatar-inline-icon.md (A6): `avatar` is the uid of the files2/server Image;
+//! `avatar_icon` carries the 160x160 `icon` rung's ENCODED bytes inline (~1.4-1.9 KB), so a bulk
+//! render site paints without any fetch. The pair is ADDITIVE - field 55 keeps its type and
+//! meaning, so every existing with_avatar::avatar site is untouched.
+//!
+//! avatar_icon is never authoritative on its own: it is the icon of the image `avatar` names,
+//! and a receiver imports it into files2 under that uid (usercharacters/avatariconimport.h). An
+//! avatar_icon with no `avatar` uid must be IGNORED - it has no stable identity to key an
+//! import on.
 HDU_UNIT(with_avatar,
     HDU_FIELD(avatar,avatar_object::TYPE,55)
+    HDU_FIELD(avatar_icon,TYPE_BYTES,56)
 )
 
 //! Public character's data

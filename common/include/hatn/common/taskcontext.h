@@ -466,6 +466,12 @@ class TaskSubcontext
             return m_mainCtx->sharedFromThis();
         }
 
+        //! Check if main task context is set, i.e. mainCtx()/sharedMainCtx() are safe to call.
+        bool hasMainCtx() const noexcept
+        {
+            return m_mainCtx!=nullptr;
+        }
+
         void setMainCtx(TaskContext* mainContext)
         {
             m_mainCtx=mainContext;

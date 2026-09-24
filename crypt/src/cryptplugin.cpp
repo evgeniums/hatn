@@ -186,16 +186,25 @@ common::Error CryptPlugin::findAlgorithm(CryptAlgorithmConstP &alg, CryptAlgorit
 //---------------------------------------------------------------
 common::Error CryptPlugin::randBytes(char *data, size_t size) const
 {
-    if (!m_randGen)
+    // Same broken double-checked lock the template randContainer() in cryptplugin.h had, and
+    // fixed the same way -- see that function's own comment for the full analysis. Both null
+    // checks and the call itself used to read m_randGen unsynchronized, so two threads racing
+    // the lazy init could each construct a generator, the second assignment destroying the
+    // first while another thread was already about to make a virtual call through it.
+    common::SharedPtr<RandomGenerator> gen;
     {
         common::MutexScopedLock l(m_algMutex);
-        const_cast<CryptPlugin*>(this)->m_randGen=createRandomGenerator();
+        if (!m_randGen)
+        {
+            const_cast<CryptPlugin*>(this)->m_randGen=createRandomGenerator();
+        }
+        gen=m_randGen;
     }
-    if (!m_randGen)
+    if (!gen)
     {
         return cryptError(CryptError::GENERAL_FAIL);
     }
-    return m_randGen->randBytes(data,size);
+    return gen->randBytes(data,size);
 }
 
 //---------------------------------------------------------------

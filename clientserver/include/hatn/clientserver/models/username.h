@@ -55,13 +55,21 @@ struct formatUsernameT
             return std::string{};
         }
 
+        // An unset schema is treated as the default "host" schema so that objects/references
+        // populated without an explicit schema (the common case) still compare equal.
+        auto hostSchema=[](const username::type& u)
+        {
+            const auto& s=u.fieldValue(username::schema);
+            return s.empty() || s==USERNAME_SCHEMA_HOST;
+        };
+
         if (obj.fieldValue(username::domain).empty() ||
                 (
                     obj.fieldValue(username::domain)==ref.fieldValue(username::domain)
                     &&
-                    obj.fieldValue(username::schema)==ref.fieldValue(username::schema)
+                    hostSchema(obj)
                     &&
-                    obj.fieldValue(username::schema)==USERNAME_SCHEMA_HOST
+                    hostSchema(ref)
                 )
             )
         {

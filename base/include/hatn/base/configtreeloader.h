@@ -221,7 +221,8 @@ class HATN_BASE_EXPORT ConfigTreeLoader
             ConfigTree& target,
             lib::string_view source,
             const ConfigTreePath& root=ConfigTreePath(),
-            const std::string& format=std::string()
+            const std::string& format=std::string(),
+            config_tree::ArrayMerge arrayMergeMode=config_tree::ArrayMerge::Merge
         ) const;
 
     private:

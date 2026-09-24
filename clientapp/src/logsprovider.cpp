@@ -26,7 +26,8 @@ LogsProvider::~LogsProvider() = default;
 
 void LogsProviderRegistry::registerProvider(std::shared_ptr<LogsProvider> provider)
 {
-    m_providers[provider->name()] = std::move(provider);
+    auto key = provider->name();
+    m_providers[key] = std::move(provider);
 }
 
 //--------------------------------------------------------------------------

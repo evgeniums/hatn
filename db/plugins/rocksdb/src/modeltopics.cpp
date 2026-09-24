@@ -215,7 +215,7 @@ Result<size_t> ModelTopics::count(
         return Error{OK};
     };
 
-    auto eachPartition=[multipleTopics,&eachTopic,&handler,&ks,&ksTo,&rdOpts,&model](std::shared_ptr<RocksdbPartition>& partition)
+    auto eachPartition=[multipleTopics,&eachTopic,&handler,&ks,&rdOpts](std::shared_ptr<RocksdbPartition>& partition)
     {
         if (multipleTopics)
         {
@@ -562,7 +562,7 @@ bool MergeModelTopic::FullMergeV2(
     return true;
 }
 
-bool MergeModelTopic::PartialMergeMulti(const Slice& key,
+bool MergeModelTopic::PartialMergeMulti(const Slice& /*key*/,
                        const std::deque<Slice>& operand_list,
                        std::string* new_value, ROCKSDB_NAMESPACE::Logger*) const
 {

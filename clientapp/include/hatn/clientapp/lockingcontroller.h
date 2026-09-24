@@ -48,6 +48,16 @@ class HATN_CLIENTAPP_EXPORT LockingController : public std::enable_shared_from_t
         constexpr static const char* ForegroundEvent="foreground";
         constexpr static const char* BackgroundEvent="background";
 
+        // Distinct from FgBgEventCategory on purpose: on desktop, fg_bg's BackgroundEvent also
+        // fires when the window is merely hidden to the system tray (MainWindow::closeEvent,
+        // Qt::ApplicationHidden) — a state where the app must stay connected to keep receiving
+        // messages. SleepWakeEventCategory is driven only by genuine OS sleep/wake
+        // (whitemdesktop's SystemSleepMonitor) and is what network-suspend/RocksDB-pause must
+        // subscribe to on desktop instead of fg_bg. See whitem/docs/background-lifecycle.md.
+        constexpr static const char* SleepWakeEventCategory="sleep_wake";
+        constexpr static const char* WakeEvent="wake";
+        constexpr static const char* SleepEvent="sleep";
+
         constexpr static const char* SettingsLockingSection="clientapp.locking";
         constexpr static const char* SettingsPassphraseSection="clientapp.passphrase";
         constexpr static const char* SettingsPassphraseThrottleSection="clientapp.passphrase.throttle";
@@ -79,6 +89,13 @@ class HATN_CLIENTAPP_EXPORT LockingController : public std::enable_shared_from_t
 
         void setBackground();
         void setForeground();
+
+        // Publishes SleepWakeEventCategory only — deliberately does not touch m_background or
+        // the lock-on-background side effect (OS sleep is a network/DB signal, not a locking
+        // signal; auto-lock stays driven by setBackground()/setForeground() via window-hide /
+        // application-state changes, as before desktop sleep/wake support was added).
+        void setSystemSleeping();
+        void setSystemAwake();
 
         bool isLocked() const
         {

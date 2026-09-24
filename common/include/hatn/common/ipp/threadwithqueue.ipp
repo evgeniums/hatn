@@ -44,6 +44,13 @@ class ThreadWithQueueTraits_p
         int maxHandlersPerLoop=0;
         std::atomic<int> lockForAdd;
 
+        // Queued PLUS currently-executing tasks. queue->size() alone excludes the task the
+        // thread is actively running (it's popped before execution), so a thread pool
+        // balancing on queueDepth() sees every busy thread as idle and piles everything onto
+        // one of them - see ThreadPoolWithQueuesTraits_p::selectThread(). Incremented in
+        // doPost() before postImpl(), decremented in taskLoop() after the handler returns.
+        std::atomic<size_t> pendingCount{0};
+
         ThreadQ<TaskT,ThreadWithQueueTraits>* threadQueueInterface;
 
         ThreadWithQueueTraits_p(
@@ -80,6 +87,7 @@ class ThreadWithQueueTraits_p
                 {
                     (*currentTask)();
                     queue->freeItem(currentItem);
+                    pendingCount.fetch_sub(1,std::memory_order_relaxed);
                     if (maxHandlersPerLoop!=0 && ++processedCount>=maxHandlersPerLoop)
                     {
                         thread->execAsync(
@@ -148,6 +156,7 @@ void ThreadWithQueueTraits<TaskT>::doPost(
 {
     d->queue->incPostingRefCount();
     bool scheduleAsync=d->queue->isEmpty();
+    d->pendingCount.fetch_add(1,std::memory_order_relaxed);
     postImpl(std::forward<Arg>(task));
     d->queue->decPostingRefCount();
     if (scheduleAsync)
@@ -255,6 +264,7 @@ void ThreadWithQueue<TaskT>::clearQueue()
     if (isStopped() || !isStarted())
     {
         this->traits().d->queue->clear();
+        this->traits().d->pendingCount.store(0,std::memory_order_relaxed);
     }
     else
     {
@@ -263,6 +273,7 @@ void ThreadWithQueue<TaskT>::clearQueue()
                 [this]()
                 {
                     this->traits().d->queue->clear();
+                    this->traits().d->pendingCount.store(0,std::memory_order_relaxed);
                 }
             )
         )
@@ -277,6 +288,13 @@ template <typename TaskT>
 bool ThreadWithQueue<TaskT>::isQueueEmpty() const noexcept
 {
     return this->traits().d->queue->isEmpty();
+}
+
+//---------------------------------------------------------------
+template <typename TaskT>
+size_t ThreadWithQueue<TaskT>::pendingDepth() const noexcept
+{
+    return this->traits().d->pendingCount.load(std::memory_order_relaxed);
 }
 
 //---------------------------------------------------------------

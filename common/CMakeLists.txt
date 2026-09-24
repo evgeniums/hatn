@@ -3,6 +3,16 @@ PROJECT(hatncommon)
 
 HATN_MODULE(common TRUE)
 
+# Default timeout for Thread::execSync(), ms. Empty (the default) leaves thread.h's own
+# platform preset in effect (10000 on BUILD_ANDROID/BUILD_IOS, 30000 elsewhere). Override with
+# -DHATN_EXECSYNC_TIMEOUT_MS=<ms> at configure time, or export the same-named env var beforehand.
+IF (DEFINED ENV{HATN_EXECSYNC_TIMEOUT_MS})
+    SET (_execsync_timeout_default $ENV{HATN_EXECSYNC_TIMEOUT_MS})
+ELSE()
+    SET (_execsync_timeout_default "")
+ENDIF()
+SET (HATN_EXECSYNC_TIMEOUT_MS "${_execsync_timeout_default}" CACHE STRING "Default Thread::execSync() timeout in ms (empty = platform preset from thread.h)")
+
 IF (HATN_SMARTPOINTERS_STD)
     SET (COMMON_CONFIG_H_TEXT "${COMMON_CONFIG_H_TEXT}\n#ifndef HATN_SMARTPOINTERS_STD \n    #define HATN_SMARTPOINTERS_STD\n#endif")
 ENDIF()
@@ -55,6 +65,7 @@ SET (HEADERS
     include/hatn/common/commonerrorcodes.h
     include/hatn/common/errorcategory.h
     include/hatn/common/errorstack.h
+    include/hatn/common/apierrordisposition.h
     include/hatn/common/apierror.h
     include/hatn/common/result.h
 
@@ -79,6 +90,7 @@ SET (HEADERS
     include/hatn/common/memorylockeddata.h
     include/hatn/common/bytearray.h
     include/hatn/common/fixedbytearray.h
+    include/hatn/common/terminatehandler.h
     include/hatn/common/thread.h
     include/hatn/common/queue.h
     include/hatn/common/queuetmpl.h
@@ -232,6 +244,7 @@ SET (SOURCES
     src/bytearray.cpp
     src/locker.cpp
     src/sharedlocker.cpp
+    src/terminatehandler.cpp
     src/thread.cpp
     src/interface.cpp
     src/environment.cpp
@@ -296,6 +309,14 @@ TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME} PUBLIC
 IF (APPLE)
     TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PUBLIC -DBOOST_STACKTRACE_USE_NOOP)
 ENDIF(APPLE)
+
+# Override Thread::execSync()'s default timeout only if explicitly configured; otherwise thread.h's
+# own #ifndef-guarded platform preset applies untouched. PUBLIC so consumers including thread.h see
+# the same value (the macro backs a default function argument, which must be consistent wherever
+# execSync() is called, not just inside hatncommon itself).
+IF (NOT HATN_EXECSYNC_TIMEOUT_MS STREQUAL "")
+    TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME} PUBLIC HATN_EXECSYNC_TIMEOUT_MS=${HATN_EXECSYNC_TIMEOUT_MS})
+ENDIF()
 
 # boost::stacktrace uses EnumProcessModules/GetModuleInformation on Windows
 IF (WIN32)

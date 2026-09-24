@@ -18,12 +18,21 @@
 #ifndef HATNMOBILEAPP_H
 #define HATNMOBILEAPP_H
 
+// This header is on the whitembridge C-bridge include path (via
+// whitemclient/clientapp/mobileapp.h), which compiles with only $WHITEMCLIENT_APP_DIR/include -
+// no boost, no function2 (function2 is not installed at all). Every include below must be
+// transitively free of both. In particular do not re-add <hatn/common/error.h>,
+// <hatn/common/apierror.h> or <hatn/common/stdwrappers.h> here; the user-error mapper API that
+// needed them lives in <hatn/clientapp/mobileusererror.h>, which is not bridge-facing.
+
 #include <string>
 #include <vector>
 #include <functional>
 #include <memory>
 
 #include <hatn/app/appname.h>
+
+#include <hatn/common/apierrordisposition.h>
 
 #include <hatn/clientapp/clientappdefs.h>
 #include <hatn/clientapp/confirmationdescriptor.h>
@@ -113,13 +122,34 @@ struct Error
     std::string codeString;
     std::string message;
 
+    //! App-defined user-presentable classification of this error, filled by the mapper
+    //! installed via setUserErrorMapper() - see fillError() below. 0 means "not classified"
+    //! (no mapper installed, or the mapper left it at its default). hatn itself does not define
+    //! what the values mean; whitemclient owns that vocabulary (whitemclient/usererrorcodes.h).
+    int userCode=0;
+    //! ApiErrorDisposition of the classified error - Unknown (0) when the server stated none.
+    common::ApiErrorDisposition disposition=common::ApiErrorDisposition::Unknown;
+    //! Seconds to wait before retrying; meaningful only when disposition==RetryAfter.
+    int retryAfter=0;
+    //! Positional display parameters for a parameterized userCode, pre-serialized as strings by
+    //! the mapper. hatn does not interpret them - the app's vocabulary documents, per code,
+    //! how many there are and what each position means. Empty for non-parameterized codes.
+    std::vector<std::string> userParams;
+
     void reset()
     {
         code=0;
         codeString.clear();
         message.clear();
+        userCode=0;
+        disposition=common::ApiErrorDisposition::Unknown;
+        retryAfter=0;
+        userParams.clear();
     }
 };
+
+// UserErrorMapper / setUserErrorMapper / fillError moved to mobileusererror.h - see the comment
+// at the top of this file. Include <hatn/clientapp/mobileusererror.h> to use them.
 
 using Callback=std::function<void (Error, Response response)>;
 

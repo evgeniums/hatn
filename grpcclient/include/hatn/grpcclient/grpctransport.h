@@ -19,8 +19,15 @@
 #ifndef HATNGRPCTRANSPORT_H
 #define HATNGRPCTRANSPORT_H
 
+#include <cstdint>
+#include <functional>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include <hatn/common/threadwithqueue.h>
 #include <hatn/common/singleton.h>
+#include <hatn/common/bytearray.h>
 
 #include <hatn/base/configobject.h>
 #include <hatn/dataunit/unitwrapper.h>
@@ -32,6 +39,8 @@
 #include <hatn/api/apiconstants.h>
 #include <hatn/api/priority.h>
 #include <hatn/api/client/defaulttraits.h>
+#include <hatn/api/client/clientresponse.h>
+#include <hatn/api/client/streamchannel.h>
 
 #include <hatn/grpcclient/grpcclientdefs.h>
 #include <hatn/grpcclient/grpcrouter.h>
@@ -43,6 +52,8 @@ HATN_API_NAMESPACE_END
 HATN_GRPCCLIENT_NAMESPACE_BEGIN
 
 namespace common=HATN_COMMON_NAMESPACE;
+namespace api=HATN_API_NAMESPACE;
+namespace clientapi=HATN_API_NAMESPACE::client;
 
 constexpr const uint32_t DefaultUnaryDeadlineTimeout=25;
 // Ping-response timeout. Worst-case dead-socket detection = keep_alive_period +
@@ -124,12 +135,39 @@ constexpr const uint32_t DefaultMaxReconnectBackoffMs=10000;
 constexpr const uint32_t DefaultInitialReconnectBackoffMs=1000;
 
 // Minimum interval the client allows between keepalive pings sent on a connection
-// with NO data frames flowing (e.g. a stuck stream after a WiFi<->VPN switch).
-// gRPC's default floor here is tens of seconds and OVERRIDES keep_alive_period,
-// so a zombie socket is only detected after that floor + keep_alive_timeout
-// (observed ~60-70 s) instead of keep_alive_period + keep_alive_timeout. Keep this
-// at/below keep_alive_period so pings actually flow at the configured cadence.
+// with NO data frames flowing (e.g. a stuck stream after a WiFi<->VPN switch). This
+// is exactly the situation of the event-listener stream: it half-closes its write
+// side right after the subscribe message and never sends data again, so without
+// this arg gRPC's own floor (tens of seconds, observed default ~300 s) overrides
+// keep_alive_period and a zombie socket is only detected after that floor +
+// keep_alive_timeout instead of keep_alive_period + keep_alive_timeout. Fed into
+// GRPC_ARG_HTTP2_MIN_SENT_PING_INTERVAL_WITHOUT_DATA_MS in PriorityChannel::init().
+// Keep at/below keep_alive_period so pings actually flow at the configured cadence.
 constexpr const uint32_t DefaultMinSentPingIntervalWithoutDataMs=5000;
+
+// Application-level stream heartbeat message type sent by the server inside
+// stream_response wrappers on server-streaming calls. Liveness only: consumed and
+// discarded by the app-level stream reader, never surfaced as a real event.
+constexpr const char* StreamHeartbeatMessageType="hatn.stream.heartbeat";
+
+// Heartbeat period (seconds) the client requests from the server for streaming
+// calls, sent as the stream_heartbeat_header request metadata. The server sends
+// heartbeats at min(its own configured period, this value), so this value alone
+// bounds how stale a client-side stall watchdog can safely be. 0 disables the
+// request entirely (client gets no heartbeats, e.g. talking to an older server).
+constexpr const uint32_t DefaultStreamHeartbeatPeriod=20;
+
+// Safety net for mobile backgrounding: if a channel somehow ends up with no active
+// calls (e.g. the event-listener stream was closed) but the app-level suspend() was
+// not invoked for some reason, gRPC's own idle-timeout will still drop the socket
+// after this many ms of inactivity instead of leaving it (and its keepalive pings)
+// alive indefinitely. 0 disables the arg entirely (desktop default). Set comfortably
+// above keep_alive_period so it never fights normal keepalive traffic.
+#if defined (BUILD_ANDROID) || defined (BUILD_IOS)
+constexpr const uint32_t DefaultClientIdleTimeoutMs=60000;
+#else
+constexpr const uint32_t DefaultClientIdleTimeoutMs=0;
+#endif
 
 HDU_UNIT(grpc_config,
     HDU_FIELD(maximum_concurrent_calls,TYPE_UINT32,1,false,100)
@@ -145,6 +183,7 @@ HDU_UNIT(grpc_config,
     HDU_FIELD(auth_tag_header,TYPE_STRING,11,false,"x-hatn-atag")
     HDU_FIELD(config_json,TYPE_STRING,12,false,DefaultConfigJson)
     HDU_FIELD(unary_deadline_timeout,TYPE_UINT32,13,false,DefaultUnaryDeadlineTimeout)
+    HDU_FIELD(min_sent_ping_interval_without_data_ms,TYPE_UINT32,14,false,DefaultMinSentPingIntervalWithoutDataMs)
     HDU_FIELD(error_response_type,TYPE_STRING,15,false,"grpc_api_server.Error")
     HDU_FIELD(keep_alive_period,TYPE_UINT32,16,false,DefaultKeepAlivePeriod)
     HDU_FIELD(keep_alive_timeout,TYPE_UINT32,17,false,DefaultKeepAliveTimeout)
@@ -154,6 +193,14 @@ HDU_UNIT(grpc_config,
     HDU_FIELD(max_pings_without_data,TYPE_UINT32,21,false,DefaultMaxPingsWithoutData)
     HDU_FIELD(max_reconnect_backoff_ms,TYPE_UINT32,22,false,DefaultMaxReconnectBackoffMs)
     HDU_FIELD(initial_reconnect_backoff_ms,TYPE_UINT32,23,false,DefaultInitialReconnectBackoffMs)
+    HDU_FIELD(client_idle_timeout_ms,TYPE_UINT32,24,false,DefaultClientIdleTimeoutMs)
+    HDU_FIELD(stream_heartbeat_header,TYPE_STRING,25,false,"x-hatn-stream-hb")
+    HDU_FIELD(stream_heartbeat_period,TYPE_UINT32,26,false,DefaultStreamHeartbeatPeriod)
+    // See whitemdesktop/docs/error-contract.md. error_details_header existed on the wire (evgo
+    // always sends x-hatn-edetails) but this config had no field name for it until now.
+    HDU_FIELD(error_details_header,TYPE_STRING,27,false,"x-hatn-edetails")
+    HDU_FIELD(error_disposition_header,TYPE_STRING,28,false,"x-hatn-edisposition")
+    HDU_FIELD(error_retry_after_header,TYPE_STRING,29,false,"x-hatn-eretry-after")
 )
 
 namespace detail {
@@ -258,8 +305,59 @@ class HATN_GRPCCLIENT_EXPORT GrpcTransport : public base::ConfigObject<grpc_conf
         // waiting for keepalive timeout to fire.
         void reconnect();
 
+        // Mobile background/foreground lifecycle: unlike updateNetworkState(true), which only
+        // cancels in-flight RPCs/streams and marks the channel disconnected while leaving the
+        // underlying grpc::Channel/stub (and its socket + keepalive pings) alive, suspend()
+        // destroys the channel objects outright (same effect as closeChannels()), which is the
+        // only way to actually drop the TCP socket. resume() rebuilds them (same as
+        // initChannels()), symmetric with setRouter()'s init/close pairing. Call suspend() when
+        // the app enters background and resume() when it returns to foreground.
+        void suspend();
+        void resume();
+
+        // ---- gRPC-encapsulation boundary -----------------------------------
+        // These non-template methods own every gRPC type and are compiled only
+        // into hatngrpcclient.dll (exported via the class-level export macro).
+        // The header template sendRequest()/cancelRequest() (see grpctransport.ipp)
+        // extract grpc-free data from the request and call into these, so gRPC,
+        // abseil and protobuf never leak into consumer modules. reqAddr is
+        // reinterpret_cast<uintptr_t>(req.get()) and keys the pending-request /
+        // stream registries. onResponse/onMessage are constructed in the caller
+        // (capturing req + the user callback) and run on the transport thread.
+
+        void sendUnaryImpl(
+            api::Priority priority,
+            uintptr_t reqAddr,
+            std::string method,
+            std::vector<std::pair<std::string,std::string>> metadata,
+            common::ByteArrayShared message,
+            std::function<void(Result<clientapi::Response>)> onResponse
+        );
+
+        void sendStreamImpl(
+            api::Priority priority,
+            uintptr_t reqAddr,
+            std::string method,
+            std::vector<std::pair<std::string,std::string>> metadata,
+            common::ByteArrayShared message,
+            clientapi::StreamChannel::ReadCb onMessage
+        );
+
+        void cancelRequestImpl(
+            api::Priority priority,
+            uintptr_t reqAddr
+        );
+
     private:
 
+        // Creates the per-priority PriorityChannel map entries (structure only, no gRPC
+        // channel objects yet). Called once from setRouter(), before any traffic exists.
+        // Must never be called again afterwards: the map is read without synchronization
+        // from gRPC reactor/callback threads (see GrpcTransport_p::channel()), so mutating
+        // its structure (e.g. from resume()) concurrently with those reads is undefined
+        // behavior. Existing PriorityChannel entries are never erased, only closed, so
+        // "populate once, then only touch existing entries" is sufficient.
+        void populateChannels();
         void initChannels();
         void closeChannels();
 

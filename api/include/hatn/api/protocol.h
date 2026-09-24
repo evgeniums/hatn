@@ -61,6 +61,11 @@ constexpr const size_t AuthProtocolNameLengthMax=8;
 constexpr const size_t ResponseMsgTypeLengthMax=32;
 constexpr const size_t ResponseFamilyNameLengthMax=32;
 constexpr const size_t ResponseStatusLengthMax=32;
+//! Matches evgo generic_error.ErrorHolder.Code's own validation cap (max=64) - see
+//! whitemdesktop/docs/error-contract.md.
+constexpr const size_t ResponseCodeLengthMax=64;
+//! Longest disposition string value is "unsupported"/"retry_after"/"user_action" (11 chars).
+constexpr const size_t ResponseDispositionLengthMax=16;
 constexpr const size_t TenancyIdLengthMax=32;
 constexpr const size_t LocaleNameLengthMax=16;
 constexpr const size_t IpAddressLength=32;

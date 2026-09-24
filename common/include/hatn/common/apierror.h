@@ -23,6 +23,7 @@
 #include <hatn/common/common.h>
 #include <hatn/common/format.h>
 #include <hatn/common/sharedptr.h>
+#include <hatn/common/apierrordisposition.h>
 
 HATN_COMMON_NAMESPACE_BEGIN
 
@@ -51,6 +52,34 @@ class HATN_COMMON_EXPORT ApiErrorCategory
 };
 
 class ByteArrayManaged;
+
+//! ApiErrorDisposition itself now lives in apierrordisposition.h (included above) - kept
+//! boost/function2-free for hatn/clientapp/mobileapp.h's sake. These string helpers stay here
+//! since they need lib::string_view from stdwrappers.h, which mobileapp.h must not pull in.
+
+inline const char* apiErrorDispositionString(ApiErrorDisposition disposition) noexcept
+{
+    switch (disposition)
+    {
+        case (ApiErrorDisposition::Permanent): return "permanent";
+        case (ApiErrorDisposition::Unsupported): return "unsupported";
+        case (ApiErrorDisposition::Retry): return "retry";
+        case (ApiErrorDisposition::RetryAfter): return "retry_after";
+        case (ApiErrorDisposition::UserAction): return "user_action";
+        case (ApiErrorDisposition::Unknown): break;
+    }
+    return "";
+}
+
+inline ApiErrorDisposition apiErrorDispositionFromString(lib::string_view value) noexcept
+{
+    if (value=="permanent") return ApiErrorDisposition::Permanent;
+    if (value=="unsupported") return ApiErrorDisposition::Unsupported;
+    if (value=="retry") return ApiErrorDisposition::Retry;
+    if (value=="retry_after") return ApiErrorDisposition::RetryAfter;
+    if (value=="user_action") return ApiErrorDisposition::UserAction;
+    return ApiErrorDisposition::Unknown;
+}
 
 //! API error is used to hold information to be sent back as a result of some request or API command.
 class HATN_COMMON_EXPORT ApiError
@@ -104,9 +133,14 @@ class HATN_COMMON_EXPORT ApiError
         {
             std::string str;
 
+            // m_cat is nullptr for every wire-parsed ApiError (the client reconstructs one from
+            // a response's code/status/family/description fields, never from a category), so
+            // the m_cat->... calls below must not run unguarded - nested/fallback branches
+            // degrade to the plain field instead of dereferencing a null category.
+
             if (!m_description.empty())
             {
-                if (m_nestedMessage)
+                if (m_nestedMessage && m_cat!=nullptr)
                 {
                     str=m_cat->message(m_code,translator);
                     fmt::format_to(std::back_inserter(str),": {}",m_description);
@@ -117,7 +151,7 @@ class HATN_COMMON_EXPORT ApiError
             }
             else if (!m_status.empty())
             {
-                if (m_nestedMessage)
+                if (m_nestedMessage && m_cat!=nullptr)
                 {
                     str=m_cat->message(m_code,translator);
                     fmt::format_to(std::back_inserter(str),": {}",m_status);
@@ -126,6 +160,10 @@ class HATN_COMMON_EXPORT ApiError
                 return m_status;
             }
 
+            if (m_cat==nullptr)
+            {
+                return m_stringCode;
+            }
             return m_cat->message(m_code,translator);
         }
 
@@ -171,13 +209,20 @@ class HATN_COMMON_EXPORT ApiError
 
         bool isNull() const noexcept
         {
-            return m_code==0;
+            return m_code==0 && m_stringCode.empty();
         }
 
         template <typename T>
         bool is(T code, const ApiErrorCategory& cat) const noexcept
         {
             return static_cast<int>(code)==m_code && isFamily(cat);
+        }
+
+        //! Match against a server-authored string code (evgo generic_error.Code), e.g.
+        //! apiErr->is("file_content_gone"). See whitemdesktop/docs/error-contract.md.
+        bool is(lib::string_view stringCode) const noexcept
+        {
+            return !stringCode.empty() && stringCode==m_stringCode;
         }
 
         bool isFamily(const ApiErrorCategory& cat) const noexcept
@@ -190,6 +235,72 @@ class HATN_COMMON_EXPORT ApiError
             return other==family();
         }
 
+        void setStringCode(std::string code)
+        {
+            m_stringCode=std::move(code);
+        }
+
+        const std::string& stringCode() const noexcept
+        {
+            return m_stringCode;
+        }
+
+        void setDetails(std::string details)
+        {
+            m_details=std::move(details);
+        }
+
+        const std::string& details() const noexcept
+        {
+            return m_details;
+        }
+
+        void setDisposition(ApiErrorDisposition disposition) noexcept
+        {
+            m_disposition=disposition;
+        }
+
+        ApiErrorDisposition disposition() const noexcept
+        {
+            return m_disposition;
+        }
+
+        void setRetryAfter(int seconds) noexcept
+        {
+            m_retryAfter=seconds;
+        }
+
+        int retryAfter() const noexcept
+        {
+            return m_retryAfter;
+        }
+
+        //! This request will never succeed as issued / this call is unsupported - a client must
+        //! not retry it automatically. False (not just "no") when the server said nothing -
+        //! callers that need to distinguish must check isStated() first.
+        bool isTerminal() const noexcept
+        {
+            return m_disposition==ApiErrorDisposition::Permanent
+                   || m_disposition==ApiErrorDisposition::Unsupported;
+        }
+
+        //! Worth retrying (possibly after a delay or a user action) - the mirror of
+        //! isTerminal(), and likewise false while isStated() is false.
+        bool isRetryable() const noexcept
+        {
+            return m_disposition==ApiErrorDisposition::Retry
+                   || m_disposition==ApiErrorDisposition::RetryAfter
+                   || m_disposition==ApiErrorDisposition::UserAction;
+        }
+
+        //! Whether the server expressed a disposition opinion at all. When false, neither
+        //! isTerminal() nor isRetryable() carries any information - callers fall back to
+        //! whatever heuristic they used before this contract existed.
+        bool isStated() const noexcept
+        {
+            return m_disposition!=ApiErrorDisposition::Unknown;
+        }
+
     private:
 
         const ApiErrorCategory* m_cat;
@@ -200,6 +311,11 @@ class HATN_COMMON_EXPORT ApiError
         std::string m_status;
         std::string m_family;
         bool m_nestedMessage;
+
+        std::string m_stringCode;
+        std::string m_details;
+        ApiErrorDisposition m_disposition=ApiErrorDisposition::Unknown;
+        int m_retryAfter=0;
 };
 
 //---------------------------------------------------------------
