@@ -1,0 +1,87 @@
+#[[
+    Copyright (c) 2020 - current, Evgeny Sidorov (decfile.com), All rights reserved.
+
+    Distributed under the Boost Software License, Version 1.0. (See accompanying
+    file LICENSE or copy at http://www.boost.org/LICENSE_1_0.txt)
+]]
+
+#[[
+    task-spellcheck.md: CMake shim for upstream hunspell (github.com/hunspell/hunspell), which
+    ships autotools (autogen.sh -> configure) plus checked-in MSVC projects and NO CMake build of
+    its own. Copied over the clone's own CMakeLists.txt (there isn't one) by hunspell.sh/.bat
+    before building, so desktop/Windows/iOS/Android all build it the SAME way -- same in-tree-fixup
+    arrangement build/deps/desktop/libs/rapidjson.sh uses for rapidjson.patch.
+
+    Source list and hunvisapi.h.in's one substitution (@HAVE_VISIBILITY@) verified against
+    src/hunspell/Makefile.am and hunvisapi.h.in in the v1.7.2 tag directly -- see
+    libhunspell_1_7_la_SOURCES there. No config.h/HAVE_CONFIG_H anywhere in these sources, so none
+    is synthesized here.
+]]
+
+CMAKE_MINIMUM_REQUIRED(VERSION 3.16)
+PROJECT(hunspell CXX)
+
+# This is a standalone configure/build step run BEFORE hatn itself is configured (see
+# build/deps/desktop/libs/hunspell.sh), so it does not inherit hatn's own CMAKE_CXX_STANDARD --
+# without setting one here the compiler falls back to its oldest default dialect, and hunspell's
+# sources (range-based for, auto, lambdas) do not compile under that at all (verified: csutil.cxx
+# fails outright on AppleClang's C++98 default).
+SET(CMAKE_CXX_STANDARD 14)
+SET(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+SET(HAVE_VISIBILITY 1)
+CONFIGURE_FILE(
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/hunspell/hunvisapi.h.in
+    ${CMAKE_CURRENT_BINARY_DIR}/generated/hunspell/hunvisapi.h
+    @ONLY
+)
+
+ADD_LIBRARY(hunspell STATIC
+    src/hunspell/affentry.cxx
+    src/hunspell/affixmgr.cxx
+    src/hunspell/csutil.cxx
+    src/hunspell/filemgr.cxx
+    src/hunspell/hashmgr.cxx
+    src/hunspell/hunspell.cxx
+    src/hunspell/hunzip.cxx
+    src/hunspell/phonet.cxx
+    src/hunspell/replist.cxx
+    src/hunspell/suggestmgr.cxx
+)
+
+TARGET_INCLUDE_DIRECTORIES(hunspell
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/generated>
+        $<INSTALL_INTERFACE:include>
+    PRIVATE
+        src/hunspell
+)
+
+TARGET_COMPILE_DEFINITIONS(hunspell
+    # Static by construction here -- see Findhunspell.cmake's own INTERFACE_COMPILE_DEFINITIONS,
+    # which a consumer picks up automatically through the imported target rather than repeating
+    # this.
+    PUBLIC HUNSPELL_STATIC
+    # Matches upstream's own AM_CXXFLAGS (Makefile.am) -- without it hunvisapi.h's non-static leg
+    # would export nothing on a platform that does take that branch.
+    PRIVATE BUILDING_LIBHUNSPELL
+)
+
+SET_TARGET_PROPERTIES(hunspell PROPERTIES
+    POSITION_INDEPENDENT_CODE ON
+    OUTPUT_NAME hunspell
+)
+
+INSTALL(TARGETS hunspell ARCHIVE DESTINATION lib)
+INSTALL(
+    DIRECTORY src/hunspell/
+    DESTINATION include/hunspell
+    FILES_MATCHING
+        PATTERN "*.hxx"
+        PATTERN "*.h"
+        PATTERN "hunvisapi.h" EXCLUDE
+)
+INSTALL(
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/generated/hunspell/hunvisapi.h
+    DESTINATION include/hunspell
+)

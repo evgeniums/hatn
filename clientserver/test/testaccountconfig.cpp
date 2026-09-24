@@ -22,6 +22,7 @@
 
 #include <hatn/clientserver/clientservererror.h>
 #include <hatn/clientserver/accountconfigparser.h>
+#include <hatn/clientserver/models/accountconfigformat.h>
 
 #include <hatn/test/multithreadfixture.h>
 
@@ -144,6 +145,37 @@ static void testAccountConfig(std::shared_ptr<CryptPlugin>& plugin, const std::s
     du::WireBufSolid cfgTokenBuf11;
     ret=du::io::serialize(cfgToken1,cfgTokenBuf11);
     BOOST_REQUIRE_GT(ret,0);
+
+    // classifyAccountConfig() (accountconfigformat.h) must agree with what this fixture actually
+    // is -- exercised here across every real shape (plain/encrypted/expired/malformed) and every
+    // crypto plugin, rather than only against the hand-built minimal fixtures in
+    // whitemclient/test/testaccountconfigformat.cpp.
+    {
+        auto info=classifyAccountConfig(cfgTokenBuf11.mainContainer()->stringView());
+        if (cfg.mailformed)
+        {
+            // content is swapped for cfg1's pretty-printed toString(true) text, which is neither
+            // a CryptContainer header nor a deserializable account_config -- fails classification
+            // exactly like it fails parseAccountConfig() below, just without an Error to report.
+            BOOST_CHECK(!info.isAccountConfig);
+        }
+        else
+        {
+            BOOST_CHECK(info.isAccountConfig);
+            BOOST_CHECK_EQUAL(info.encrypted,cfg.encrypted);
+            if (!cfg.encrypted)
+            {
+                // Classification never needs a passphrase, so it sees expiry even when encrypted
+                // is false; when encrypted is true the passphrase-gated fields (including
+                // valid_till) are unknowable without decrypting, so expired stays at its default.
+                BOOST_CHECK_EQUAL(info.expired,cfg.expired);
+            }
+            else
+            {
+                BOOST_CHECK(!info.expired);
+            }
+        }
+    }
 
 #ifdef HATN_SAVE_TEST_FILES
 

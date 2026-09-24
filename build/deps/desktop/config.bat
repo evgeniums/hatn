@@ -34,6 +34,24 @@ SET GRPC_VERSION=1.78.1
 )
 ECHO "Using gRPC version %GRPC_VERSION%"
 
+REM task-spellcheck.md. Not in the default DEP_LIBS above -- opt-in, same as gRPC.
+IF NOT DEFINED HUNSPELL_VERSION (
+SET HUNSPELL_VERSION=1.7.2
+)
+ECHO "Using hunspell version %HUNSPELL_VERSION%"
+
+REM hatn media module (Ogg/Opus). Not in the default DEP_LIBS above -- opt-in, same as gRPC and
+REM hunspell. The media module still builds without them, just with no Opus backend.
+IF NOT DEFINED OGG_VERSION (
+SET OGG_VERSION=1.3.5
+)
+ECHO "Using libogg version %OGG_VERSION%"
+
+IF NOT DEFINED OPUS_VERSION (
+SET OPUS_VERSION=1.5.2
+)
+ECHO "Using libopus version %OPUS_VERSION%"
+
 IF NOT DEFINED COMPILER_VERSION (
 SET COMPILER_VERSION=14.51
 )

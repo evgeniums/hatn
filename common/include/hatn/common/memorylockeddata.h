@@ -47,7 +47,8 @@ class HATN_COMMON_EXPORT MemoryLocker
         /**
          * Lock region [p; p+n) in RAM.
          *
-         * Throws an exception if failed.
+         * Throws an exception if failed, unless HATN_MEMORY_LOCK_BEST_EFFORT is defined, in which
+         * case a page that can not be locked is reported and then used unlocked.
          */
         static void lockRegion(void *p, size_t n);
 
@@ -58,7 +59,15 @@ class HATN_COMMON_EXPORT MemoryLocker
 
     private:
 
-        static void doLockRegion(void *p, size_t n);
+        /**
+         * Lock a single page.
+         *
+         * @return true if the page is now locked by the OS.
+         *
+         * Throws if the OS refused to lock the page, unless HATN_MEMORY_LOCK_BEST_EFFORT is
+         * defined, in which case the refusal is reported once and false is returned.
+         */
+        static bool doLockRegion(void *p, size_t n);
         static void doUnlockRegion(void *p, size_t n);
 
         static const size_t pageSize;
@@ -66,6 +75,14 @@ class HATN_COMMON_EXPORT MemoryLocker
         typedef size_t pagenum_t;
         static pagenum_t addr2pagenum(void *p);
         static void* pagenumFirstByte(pagenum_t page);
+
+        /**
+         * Release pages [first; endExclusive) that were counted by lockRegion().
+         *
+         * Pages missing from lockedCounter are skipped: with best effort locking they were never
+         * locked by the OS, so unlocking them would fail. The caller must hold mutex.
+         */
+        static void unlockPages(pagenum_t first, pagenum_t endExclusive);
 
         static std::map<pagenum_t, unsigned long> lockedCounter;
         static std::mutex mutex;
@@ -208,10 +225,12 @@ class HATN_COMMON_EXPORT MemoryLockedArray
 
         /**
          * @brief Copy ctor
+         *
+         * Not noexcept: copying allocates, and allocation of memory locked data can throw.
          */
         MemoryLockedArray(
             const MemoryLockedArray& other
-        ) noexcept
+        )
         {
             copy(other);
         }

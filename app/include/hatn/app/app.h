@@ -199,6 +199,51 @@ class HATN_APP_EXPORT App
         Error createAppDataFolder();
 
         /**
+         * @brief Merge a config source into the preload tree used to resolve the app data
+         *        folder and data folder suffix before the real config load.
+         *
+         * Lets a caller that assembles config from several layers (e.g. a desktop app's
+         * base/platform/label/opaque resource chain) resolve app.data_folder and
+         * app.data_folder_suffix from the WHOLE merged chain before any of it is applied,
+         * instead of from the first layer only. Does not touch the main config tree. Follow
+         * with resolveAppDataFolder() once all layers have been preloaded.
+         */
+        Error preloadConfigString(
+            common::lib::string_view source,
+            const std::string& format=std::string(),
+            HATN_BASE_NAMESPACE::config_tree::ArrayMerge arrayMergeMode=HATN_BASE_NAMESPACE::config_tree::ArrayMerge::Merge
+        );
+
+        //! @brief Same as preloadConfigString() but reads from a file.
+        Error preloadConfigFile(
+            const std::string& fileName,
+            const std::string& format=std::string()
+        );
+
+        /**
+         * @brief Resolve the app data folder and data folder suffix from the preload tree.
+         *
+         * Idempotent: neither m_dataFolderSuffix nor m_appDataFolder is overwritten once
+         * non-empty, so an explicit setDataFolderSuffix()/setAppDataFolder() always wins over
+         * whatever was preloaded from config.
+         */
+        void resolveAppDataFolder();
+
+        /**
+         * @brief Set data folder suffix explicitly, overriding app.data_folder_suffix in config.
+         *
+         * Must be called before the first loadConfigString()/loadConfigFile()/
+         * resolveAppDataFolder() call in order to take effect.
+         */
+        void setDataFolderSuffix(std::string suffix);
+
+        //! @brief Resolved data folder suffix, empty when none is configured.
+        const std::string& dataFolderSuffix() const noexcept
+        {
+            return m_dataFolderSuffix;
+        }
+
+        /**
          * @brief Set explicit data folder (holds DB, .init, estk.dat).
          *
          * When empty (default), dataFolder() falls back to appDataFolder() so
@@ -379,6 +424,8 @@ class HATN_APP_EXPORT App
         void logAppStop();
 
         std::string evalAppDataFolder(const HATN_BASE_NAMESPACE::ConfigTree& configTree) const;
+        std::string evalDataFolderSuffix(const HATN_BASE_NAMESPACE::ConfigTree& configTree) const;
+        HATN_BASE_NAMESPACE::ConfigTree& preloadConfigTree();
 
         AppName m_appName;
 
@@ -395,6 +442,14 @@ class HATN_APP_EXPORT App
 
         std::string m_appDataFolder;
         std::string m_appsDataFolder;
+
+        /** Suffix appended to the app folder name: "<execName>-<suffix>". Set explicitly via
+         *  setDataFolderSuffix(), or resolved from app.data_folder_suffix in config by
+         *  resolveAppDataFolder(). */
+        std::string m_dataFolderSuffix;
+        /** Throwaway tree used only to resolve the app data folder/suffix before the real
+         *  config load -- see preloadConfigString()/preloadConfigFile()/resolveAppDataFolder(). */
+        std::shared_ptr<HATN_BASE_NAMESPACE::ConfigTree> m_preloadConfigTree;
 
         /** Explicitly configured data folder (empty = fall back to appDataFolder). */
         std::string m_dataFolder;

@@ -5,7 +5,25 @@ FUNCTION(CREATE_CONFIG_FILE MODULE_NAME MODULE_HEADERS_PATH)
     SET (CONFIG_FILE "include/hatn/${MODULE_HEADERS_PATH}/config.h")
     MESSAGE(STATUS "Creating config file ${CONFIG_FILE}")
 
-    IF (NOT EXISTS ${HATN_BINARY_DIR}/${CONFIG_FILE})
+    # Regenerated whenever its CONTENT would change, not merely when the file is absent.
+    #
+    # This used to be `IF (NOT EXISTS ...)`, which froze config.h at whatever the FIRST configure
+    # of a build tree produced. An optional dependency that appeared later (the case that exposed
+    # this: hunspell installed into the deps prefix after the tree was configured) was then found
+    # by FIND_PACKAGE and even linked, while the HATN_USE_* macro that actually compiles its
+    # backend in stayed absent from the stale header -- so the feature silently did not exist, and
+    # no amount of reconfiguring or rebuilding fixed it short of deleting the file by hand.
+    #
+    # Still guarded against a POINTLESS rewrite (FILE(WRITE) would bump the mtime and rebuild
+    # everything that includes config.h on every configure), which is what the original EXISTS
+    # check was really protecting: the text is assembled first, compared against what is already
+    # on disk, and written only if they differ.
+    SET (WRITE_CONFIG_FILE TRUE)
+    IF (EXISTS ${HATN_BINARY_DIR}/${CONFIG_FILE})
+        SET (WRITE_CONFIG_FILE FALSE)
+    ENDIF()
+
+    IF (TRUE)
         STRING(REGEX REPLACE "^hatn" "" MODULE_NAME ${MODULE_NAME})
         STRING (TOUPPER ${MODULE_NAME} UPPER_MODULE_NAME)
 
@@ -44,7 +62,7 @@ ${CONFIG_H_TEXT}
         ENDFOREACH()
 
 
-        FILE(WRITE ${HATN_BINARY_DIR}/${CONFIG_FILE}
+        SET (NEW_CONFIG_FILE_TEXT
 "/***************************************************/\n\
 /*****This file is auto-generated. Do not edit.*****/\n\
 /***************************************************/\n\
@@ -60,6 +78,18 @@ ${CONFIG_H_TEXT}
 ${CONFIG_H_TEXT}
 "
         )
+
+        IF (NOT WRITE_CONFIG_FILE)
+            FILE(READ ${HATN_BINARY_DIR}/${CONFIG_FILE} OLD_CONFIG_FILE_TEXT)
+            IF (NOT "${OLD_CONFIG_FILE_TEXT}" STREQUAL "${NEW_CONFIG_FILE_TEXT}")
+                MESSAGE(STATUS "Config file ${CONFIG_FILE} is out of date, regenerating it")
+                SET (WRITE_CONFIG_FILE TRUE)
+            ENDIF()
+        ENDIF()
+
+        IF (WRITE_CONFIG_FILE)
+            FILE(WRITE ${HATN_BINARY_DIR}/${CONFIG_FILE} "${NEW_CONFIG_FILE_TEXT}")
+        ENDIF()
 
     ENDIF()
 

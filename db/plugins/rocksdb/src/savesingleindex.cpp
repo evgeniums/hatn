@@ -61,6 +61,20 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT SaveSingleIndex(
 #endif
             std::string bufv;
             ROCKSDB_NAMESPACE::Slice v{indexValue,&bufv};
+
+            // The uniqueness probe below deliberately provokes SaveUniqueKey::Merge() to fail
+            // when the key already exists (that failure IS how a duplicate is detected). Without
+            // a save point, the failing merge operand stays queued in the transaction's write
+            // batch: if the caller treats DUPLICATE_UNIQUE_KEY as recoverable and goes on to
+            // commit this same transaction (a common and intentional pattern -- catch the
+            // duplicate, findOneForUpdate + update instead, return OK), that poisoned operand is
+            // written into the memtable/SST. From then on the merge operator runs over
+            // (existing value + operand) on every read of that key and fails permanently
+            // ("Corruption: Merge operator failed"), eventually latching a RocksDB background
+            // error that takes the whole database read-only. The save point guarantees the probe
+            // never leaves a trace beyond this function, regardless of what the caller does with
+            // the transaction afterwards.
+            tx->SetSavePoint();
             status=tx->Merge(cf,k,v);
             if (status.ok())
             {
@@ -73,6 +87,13 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT SaveSingleIndex(
 #if 0
                 std::cout<<"Unique index " << logKey(k)  << " failed to merge" << std::endl;
 #endif
+                auto rollbackStatus=tx->RollbackToSavePoint();
+                if (!rollbackStatus.ok())
+                {
+                    HATN_CTX_ERROR_RECORDS(makeError(DbError::SAVE_INDEX_FAILED,rollbackStatus),
+                        "failed to rollback poisoned unique index merge probe",{"dupl_key",logKey(k)})
+                }
+
                 if (status.subcode()==ROCKSDB_NAMESPACE::Status::SubCode::kMergeOperatorFailed)
                 {
                     auto ec=dbError(DbError::DUPLICATE_UNIQUE_KEY);
@@ -82,6 +103,7 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT SaveSingleIndex(
 
                 return makeError(DbError::SAVE_INDEX_FAILED,status);
             }
+            tx->PopSavePoint();
         }
     }
     if (put)
