@@ -230,7 +230,7 @@ FUNCTION(ADD_HATN_CTESTS MODULE_NAME)
                                 ADD_HATN_MODULES(${TARGET_EXE} PRIVATE ${HATN_MODULES})
 				ADD_DEPENDENCIES(${PROJECT_NAME} ${TARGET_EXE})
 				
-                                LINK_HATN_PLUGINS(${TARGET_EXE} ${MODULE_NAME})
+                                LINK_HATN_PLUGINS(${TARGET_EXE} ${MODULE_NAME} PRIVATE)
 				
                                 ADD_HATN_CTEST(${SUITE_NAME}-all "ALL" "")
                                 ADD_HATN_CTEST(${SUITE_NAME} "SUITE" --run_test=${SUITE_NAME})
