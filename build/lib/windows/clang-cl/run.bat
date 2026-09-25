@@ -24,8 +24,8 @@ REM Pin the archiver to llvm-lib.exe (MSVC-compatible COFF librarian, bundled ne
 REM clang-cl in %LLVM_ROOT%\bin). Without this, CMake's auto-detected CMAKE_AR can resolve
 REM to llvm-ar.exe (GNU/Unix archive format) instead, which produces a .lib that MSVC's
 REM link.exe rejects with "LNK4003: invalid library format; library ignored" - this only
-REM shows up for libraries actually built STATIC under this profile (e.g. the client lib,
-REM which whitemclient/CMakeLists.txt forces to STATIC in Release regardless of BUILD_STATIC);
+REM shows up for libraries actually built STATIC under this profile (e.g. the client lib
+REM when whitemclient's WHITEM_STATIC_CLIENT_LIBS=ON, regardless of BUILD_STATIC);
 REM SHARED libs are unaffected since their .lib is an import lib written by link.exe itself.
 SET LLVM_LIB=
 FOR %%i IN (llvm-lib.exe) DO SET "LLVM_LIB=%%~$PATH:i"
