@@ -531,7 +531,7 @@ class SubunitT : public Field, public UnitType
 
         /** Get field's value. */
         template <typename T>
-        auto fieldValue(T&& fieldName) const noexcept -> decltype(auto)
+        auto fieldValue(T&& fieldName) const -> decltype(auto)
         {
             return field(std::forward<T>(fieldName)).value();
         }
