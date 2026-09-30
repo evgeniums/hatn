@@ -67,6 +67,7 @@ enum class UserCharacterPrivSection : uint32_t
     ReadOnlyPubSections,
     ReadOnlyPrivSections,
     Sharing,
+    Status, //!< Online status sharing, content is status_sharing
 
     END=32
 };
@@ -84,6 +85,16 @@ struct UserCharacterPrivSectionTraits
 {
     using MaskType=uint32_t;
     using Feature=UserCharacterPrivSection;
+};
+
+//! Audiences of the online-status sharing setting, bits of user_character_private::status_hidden_from.
+//! The mask is INVERTED: a set bit hides the status from that audience, zero shares with everyone.
+enum StatusSharingAudience : uint32_t
+{
+    StatusHiddenFromContacts=0x1,
+    StatusHiddenFromPersonalChats=0x2,
+    StatusHiddenFromGroupChats=0x4,
+    StatusHiddenFromInvitations=0x8
 };
 
 using UserCharacterPrivSectionFeature=common::FeatureSet<UserCharacterPrivSectionTraits>;
@@ -124,6 +135,8 @@ HDU_UNIT_WITH(user_character_private,(HDU_BASE(with_revision)),
     HDU_FIELD(notifications,notifications::TYPE,3)
     HDU_FIELD(read_only_pub_sections,TYPE_UINT32,4)
     HDU_FIELD(read_only_priv_sections,TYPE_UINT32,5)
+    HDU_FIELD(status_hidden_from,TYPE_UINT32,6) //!< Inverted mask of audiences the online status is NOT shared with, see StatusSharingAudience
+    HDU_FIELD(status_mutual_only,TYPE_BOOL,7) //!< Show status only to those whose own status this character can see
 )
 
 HDU_UNIT_WITH(user_character_full,(HDU_BASE(db::object)),
@@ -178,6 +191,13 @@ HDU_UNIT_WITH(update_character,(HDU_BASE(with_revision)),
     HDU_FIELD(section_type,HDU_TYPE_ENUM(UserCharacterSectionType),1)
     HDU_FIELD(section,TYPE_UINT32,2)
     HDU_FIELD(content,TYPE_DATAUNIT,3)
+)
+
+//! Content of a private-section update with section UserCharacterPrivSection::Status.
+//! Tags are the server's StatusSharing message. A missing content resets the setting to default.
+HDU_UNIT(status_sharing,
+    HDU_FIELD(hidden_from,TYPE_UINT32,1)
+    HDU_FIELD(mutual_only,TYPE_BOOL,2)
 )
 
 HDU_UNIT(update_character_resp,
@@ -293,6 +313,13 @@ bool userCharacterPrivSectionsEqual(UserCharacterPrivSection section, const T1& 
         case (UserCharacterPrivSection::Sharing):
         {
             return HATN_DATAUNIT_NAMESPACE::subunitsEqual(user_character_private::shared_from,l,r);
+        }
+        break;
+
+        case (UserCharacterPrivSection::Status):
+        {
+            return HATN_DATAUNIT_NAMESPACE::fieldEqual(user_character_private::status_hidden_from,l,r)
+                   && HATN_DATAUNIT_NAMESPACE::fieldEqual(user_character_private::status_mutual_only,l,r);
         }
         break;
 
