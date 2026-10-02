@@ -22,6 +22,7 @@
 #include <map>
 #include <memory>
 #include <functional>
+#include <mutex>
 
 #include <hatn/common/flatmap.h>
 #include <hatn/common/stdwrappers.h>
@@ -99,13 +100,16 @@ struct IndexKeyUpdateCmp
 
 using IndexKeyUpdateSet=common::pmr::set<IndexKeyUpdate,IndexKeyUpdateCmp>;
 
-template <typename ObjectT>
+//! Takes the model the update runs against: the index is taken from it, never captured from the
+//! model init() was called with (see RocksdbModelT::init()).
+template <typename ModelT>
 using UpdateIndexKeyExtractor=
             std::function<void (
+                    const ModelT& model,
                     Keys& keysHandler,
                     const lib::string_view& topic,
                     const ROCKSDB_NAMESPACE::Slice& objectId,
-                    const ObjectT* obj,
+                    const typename ModelT::Type* obj,
                     IndexKeyUpdateSet& keys
             )>;
 
@@ -120,6 +124,7 @@ class RocksdbModelT
         static void init(const T& model);
 
         static void updatingKeys(
+            const ModelT& model,
             Keys& keysHandler,
             const update::Request& request,
             const lib::string_view& topic,
@@ -133,7 +138,7 @@ class RocksdbModelT
 
     private:
 
-        static std::multimap<FieldPath,UpdateIndexKeyExtractor<ObjectT>,FieldPathCompare> updateIndexKeyExtractors;
+        static std::multimap<FieldPath,UpdateIndexKeyExtractor<ModelT>,FieldPathCompare> updateIndexKeyExtractors;
         static common::FlatSet<FieldPath,FieldPathCompare> ttlFields;
 };
 
