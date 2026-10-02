@@ -41,6 +41,7 @@
 #include <hatn/clientapp/testservicedb.h>
 #include <hatn/clientapp/mobileapp.h>
 #include <hatn/clientapp/mobileusererror.h>
+#include <hatn/clientapp/mobileserializer.h>
 #include <hatn/clientapp/eventdispatcher.h>
 #include <hatn/clientapp/clientappsettings.h>
 #include <hatn/clientapp/lockingcontroller.h>
@@ -70,6 +71,42 @@ UserErrorMapper& userErrorMapperInstance()
 }
 
 } // anonymous namespace
+
+//-----------------------------------------------------------------------------
+
+namespace {
+
+MobileMessageSerializer& mobileMessageSerializerInstance()
+{
+    // Same shape as userErrorMapperInstance(): a no-op default keeps the plain Unit::toString()
+    // output until an app installs a hook.
+    static MobileMessageSerializer serializer=[](const std::string&, HATN_DATAUNIT_NAMESPACE::Unit&, std::string&)
+    {
+        return false;
+    };
+    return serializer;
+}
+
+} // anonymous namespace
+
+//-----------------------------------------------------------------------------
+
+void setMobileMessageSerializer(MobileMessageSerializer serializer)
+{
+    mobileMessageSerializerInstance()=std::move(serializer);
+}
+
+//-----------------------------------------------------------------------------
+
+std::string serializeMobileMessage(const std::string& messageTypeName, HATN_DATAUNIT_NAMESPACE::Unit& unit)
+{
+    std::string json;
+    if (mobileMessageSerializerInstance()(messageTypeName,unit,json))
+    {
+        return json;
+    }
+    return unit.toString();
+}
 
 //-----------------------------------------------------------------------------
 
@@ -322,7 +359,7 @@ void MobileApp::exec(
         response.confirmation=std::move(resp.confirmation);
         if (resp.message)
         {
-            response.messageJson=resp.message.get()->toString();
+            response.messageJson=serializeMobileMessage(response.messageTypeName,*resp.message.get());
         }
         if (!resp.buffers.empty())
         {
@@ -392,7 +429,7 @@ size_t MobileApp::subscribeEvent(
         ntfcn.messageTypeName=event->messageTypeName;
         if (event->message)
         {
-            ntfcn.messageJson=event->message.get()->toString();
+            ntfcn.messageJson=serializeMobileMessage(ntfcn.messageTypeName,*event->message.get());
         }
         if (!event->buffers.empty())
         {
