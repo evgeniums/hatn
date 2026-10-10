@@ -176,7 +176,10 @@ HDU_UNIT_WITH(user_character_login,(HDU_BASE(db::object),HDU_BASE(with_user_char
 )
 
 HDU_UNIT_WITH(character,(HDU_BASE(user_character_full),HDU_BASE(at_server),HDU_BASE(with_uid)),
-              )
+    //! Manual position in the owner's list of characters, kept on the client only and never set
+    //! by the server. 0/unset = natural order; N>0 = pinned at place N above all the others.
+    HDU_FIELD(position,TYPE_UINT32,200)
+)
 
 HDU_UNIT_WITH(character_sync,(HDU_BASE(db::object),HDU_BASE(with_ledger_rev)),
     HDU_FIELD(character,TYPE_OBJECT_ID,1)
