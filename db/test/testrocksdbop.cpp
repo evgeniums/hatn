@@ -31,6 +31,7 @@
 #include <rocksdb/merge_operator.h>
 
 #include <hatn/db/plugins/rocksdb/detail/fieldtostringbuf.ipp>
+#include <hatn/db/plugins/rocksdb/rocksdberror.h>
 
 HATN_COMMON_USING
 HATN_ROCKSDB_USING
@@ -377,6 +378,20 @@ BOOST_FIXTURE_TEST_CASE(ConcurrentMerge, HATN_TEST_NAMESPACE::DbTestFixture)
     BOOST_REQUIRE(status.ok());
     auto result=std::stol(readVal);
     BOOST_CHECK_EQUAL(result,count*jobs);
+}
+
+BOOST_AUTO_TEST_CASE(NoSpaceStatusError)
+{
+    // disk-full status carries ENOSPC as the cause, so callers can tell it from other I/O errors
+    auto noSpace=makeError(hatn::db::DbError::TX_COMMIT_FAILED,rocksdb::Status::NoSpace("test"));
+    BOOST_REQUIRE(noSpace);
+    BOOST_CHECK(noSpace.is(hatn::db::DbError::TX_COMMIT_FAILED,hatn::db::DbErrorCategory::getCategory()));
+    BOOST_CHECK_EQUAL(noSpace.errorCondition(),static_cast<int>(std::errc::no_space_on_device));
+    BOOST_CHECK(noSpace.codeString().find(":std-generic-28")!=std::string::npos);
+
+    auto other=makeError(hatn::db::DbError::TX_COMMIT_FAILED,rocksdb::Status::IOError("test"));
+    BOOST_REQUIRE(other);
+    BOOST_CHECK(other.codeString().find(':')==std::string::npos);
 }
 
 #else

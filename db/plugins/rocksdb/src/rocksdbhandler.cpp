@@ -16,6 +16,8 @@
 
 /****************************************************************************/
 
+#include <chrono>
+
 #include <rocksdb/db.h>
 
 #include <hatn/logcontext/contextlogger.h>
@@ -49,6 +51,49 @@ RocksdbHandler_p::~RocksdbHandler_p()
     if (db!=nullptr)
     {
         delete db;
+    }
+}
+
+//---------------------------------------------------------------
+
+void RocksdbHandler_p::maybeResume()
+{
+    if (readOnly || db==nullptr || !bgErrorSuspected.load(std::memory_order_relaxed))
+    {
+        return;
+    }
+
+    constexpr const int64_t ResumeIntervalMs=1000;
+    auto nowMs=std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::steady_clock::now().time_since_epoch()
+                ).count();
+    auto last=lastResumeAttemptMs.load(std::memory_order_relaxed);
+    if (last!=0 && (nowMs-last)<ResumeIntervalMs)
+    {
+        return;
+    }
+    // only one thread per interval performs the attempt
+    if (!lastResumeAttemptMs.compare_exchange_strong(last,nowMs))
+    {
+        return;
+    }
+
+    HATN_CTX_SCOPE("rocksdb-resume")
+
+    auto status=db->Resume();
+    if (status.ok())
+    {
+        bgErrorSuspected.store(false,std::memory_order_relaxed);
+        HATN_CTX_INFO("rocksdb recovered from background error")
+    }
+    else if (status.IsBusy())
+    {
+        HATN_CTX_INFO("rocksdb recovery already in progress")
+    }
+    else
+    {
+        // keep the flag, the next write attempt will retry; typically the disk is still full
+        HATN_CTX_ERROR(makeError(DbError::TX_COMMIT_FAILED,status),"failed to resume rocksdb after background error")
     }
 }
 
@@ -96,6 +141,9 @@ Error RocksdbHandler::transaction(const TransactionFn& fn, Transaction* tx, bool
         return commonError(CommonError::UNSUPPORTED);
     }
 
+    // leave the stopped state after a previous disk-full error, if the space is available again
+    d->maybeResume();
+
     // create rocksdb tx
     RocksdbTransaction rocksdbTx{this};
     if (!rocksdbTx.m_native)
@@ -125,6 +173,7 @@ Error RocksdbHandler::transaction(const TransactionFn& fn, Transaction* tx, bool
         auto status=rocksdbTx.m_native->Commit();
         if (!status.ok())
         {
+            d->noteWriteStatus(status);
             copyRocksdbError(ec,DbError::TX_COMMIT_FAILED,status);
         }
     }
