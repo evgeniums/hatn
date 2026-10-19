@@ -42,8 +42,7 @@ SET (HEADERS
     include/hatn/base/configobject.h
     include/hatn/base/spellchecker.h
     include/hatn/base/stemmer.h
-    include/hatn/base/languagedetector.h
-    include/hatn/base/hunspellchecker.h
+    include/hatn/base/languagedetector.h    
 )
 
 SET (HEADERS
@@ -62,7 +61,6 @@ SET (SOURCES
     src/spellchecker.cpp
     src/stemmer.cpp
     src/languagedetector.cpp
-    src/hunspellchecker.cpp
 )
 
 BUILD_HATN_MODULE()
@@ -71,12 +69,31 @@ BUILD_HATN_MODULE()
 # BUILD_HATN_MODULE().
 FIND_PACKAGE(hunspell)
 
+IF(BUILD_ANDROID OR BUILD_IOS)
+
+MESSAGE(STATUS "hunspell spell checker disabled for mobile platforms")
+
+ELSE()
+
 IF(hunspell_FOUND)
     MESSAGE(STATUS "hunspell found, enabling spell checking backend")
+
+    SET (HEADERS
+        ${HEADERS}
+        include/hatn/base/hunspellchecker.h
+    )
+
+    SET (SOURCES
+        ${SOURCES}
+        src/hunspellchecker.cpp
+    )
+
     TARGET_LINK_LIBRARIES(${PROJECT_NAME} PRIVATE hunspell::hunspell)
 ELSE()
     # STATUS, not WARNING: hunspell is opt-in at the dependency level (not in the default
     # dep_libs list, see build/deps/desktop/config.sh), so a warning here would fire on every
     # default build and train people to ignore warnings.
     MESSAGE(STATUS "hunspell NOT found, spell checking backend disabled")
+ENDIF()
+
 ENDIF()
