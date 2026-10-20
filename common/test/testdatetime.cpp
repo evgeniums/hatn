@@ -697,6 +697,114 @@ BOOST_AUTO_TEST_CASE(TestDateTime)
     BOOST_CHECK(dt13.isNull());
 }
 
+BOOST_AUTO_TEST_CASE(TestDateTimeMidnight)
+{
+    // 2026-10-20 00:00:00.000 UTC
+    auto midnightMs=DateTime{Date{2026,10,20},Time::makeInRange(0,0,0,1)}.toEpochMs()-1;
+
+    // midnight is a valid time of day for datetime
+    DateTime dt1;
+    BOOST_CHECK_NO_THROW(dt1=DateTime::fromEpochMs(midnightMs));
+    BOOST_CHECK(dt1.isValid());
+    BOOST_CHECK(!dt1.isNull());
+    BOOST_CHECK_EQUAL(dt1.date().year(),2026);
+    BOOST_CHECK_EQUAL(dt1.date().month(),10);
+    BOOST_CHECK_EQUAL(dt1.date().day(),20);
+    BOOST_CHECK_EQUAL(dt1.time().hour(),0);
+    BOOST_CHECK_EQUAL(dt1.time().minute(),0);
+    BOOST_CHECK_EQUAL(dt1.time().second(),0);
+    BOOST_CHECK_EQUAL(dt1.time().millisecond(),0);
+    BOOST_CHECK_EQUAL(dt1.toEpochMs(),midnightMs);
+    BOOST_CHECK_EQUAL(dt1.toIsoString(),std::string{"2026-10-20T00:00:00Z"});
+
+    // packed number round trip
+    auto n1=dt1.toNumber();
+    BOOST_CHECK(n1!=0);
+    auto r1=DateTime::fromNumber(n1);
+    BOOST_REQUIRE(!r1);
+    BOOST_CHECK(r1.value()==dt1);
+    BOOST_CHECK_EQUAL(r1.value().toEpochMs(),midnightMs);
+    DateTime dt2;
+    BOOST_CHECK(!dt2.setNumber(n1));
+    BOOST_CHECK(dt2.isValid());
+
+    // timezone
+    auto tz=3*60;
+    auto midnightTzMs=midnightMs-tz*60*1000;
+    DateTime dt3;
+    BOOST_CHECK_NO_THROW(dt3=DateTime::fromEpochMs(midnightTzMs,tz));
+    BOOST_CHECK(dt3.isValid());
+    BOOST_CHECK_EQUAL(dt3.time().hour(),0);
+    BOOST_CHECK_EQUAL(dt3.toEpochMs(),midnightTzMs);
+    BOOST_CHECK_EQUAL(dt3.timezone(),tz);
+    auto r3=DateTime::fromNumber(dt3.toNumber());
+    BOOST_REQUIRE(!r3);
+    BOOST_CHECK(r3.value()==dt3);
+
+    // conversion of timezone to midnight
+    auto utc3=DateTime::toTimezone(dt3,0);
+    BOOST_REQUIRE(!utc3);
+    BOOST_CHECK_EQUAL(utc3.value().toEpochMs(),midnightTzMs);
+
+    // epoch
+    DateTime dt4;
+    BOOST_CHECK_NO_THROW(dt4=DateTime::fromEpochMs(0));
+    BOOST_CHECK(dt4.isValid());
+    BOOST_CHECK_EQUAL(dt4.toEpochMs(),0);
+
+    // add landing on midnight
+    auto dt5=DateTime{Date{2026,10,19},Time{23,0,0,0},0};
+    BOOST_CHECK_NO_THROW(dt5.addHours(1));
+    BOOST_CHECK(dt5.isValid());
+    BOOST_CHECK(dt5==dt1);
+
+    // ctor
+    DateTime dt6;
+    BOOST_CHECK_NO_THROW(dt6=DateTime{Date{2026,10,20},Time{},0});
+    BOOST_CHECK(dt6.isValid());
+    BOOST_CHECK(dt6==dt1);
+
+    // parse
+    for (const char* str : {"2026-10-20T00:00:00.000Z","2026-10-20T00:00:00Z","20261020T00:00:00Z"})
+    {
+        auto p=DateTime::parseIsoString(str);
+        BOOST_REQUIRE_MESSAGE(!p,str);
+        BOOST_CHECK_MESSAGE(p.value()==dt1,str);
+        BOOST_CHECK_MESSAGE(p.value().isValid(),str);
+    }
+    auto p1=DateTime::parseIsoString("2026-10-20T00:00:00+03:00");
+    BOOST_REQUIRE(!p1);
+    BOOST_CHECK_EQUAL(p1.value().toEpochMs(),midnightTzMs);
+
+    // iso string of midnight can be parsed back
+    auto p2=DateTime::parseIsoString(dt1.toIsoString());
+    BOOST_REQUIRE(!p2);
+    BOOST_CHECK(p2.value()==dt1);
+
+    // null is still null
+    DateTime dt7;
+    BOOST_CHECK(dt7.isNull());
+    BOOST_CHECK_EQUAL(dt7.toNumber(),0);
+    BOOST_CHECK(DateTime::fromNumber(0).value().isNull());
+
+    // out of range time still throws
+    BOOST_CHECK_THROW(Time::makeInRange(24,0,0,0),std::runtime_error);
+    BOOST_CHECK(!Time::validateRange(0,0,0,0));
+    BOOST_CHECK(Time::validateRange(24,0,0,0));
+}
+
+BOOST_AUTO_TEST_CASE(TestTimeMidnightStandalone)
+{
+    // standalone time still treats midnight as null
+    BOOST_CHECK(Time::validate(0,0,0,0));
+    BOOST_CHECK(Time::parse("00:00:00",Time::FormatPrecision::Second));
+    auto t=Time::parse("00:00:00",Time::FormatPrecision::Second,false,true);
+    BOOST_REQUIRE(!t);
+    BOOST_CHECK(t.value().isNull());
+    BOOST_CHECK(!Time::makeInRange(0,0,0,0).isValid());
+    BOOST_CHECK(Time::makeInRange(0,0,0,1).isValid());
+}
+
 BOOST_AUTO_TEST_CASE(TestDateRange)
 {
     DateRange r0;

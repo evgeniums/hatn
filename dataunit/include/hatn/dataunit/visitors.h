@@ -490,7 +490,20 @@ struct HATN_DATAUNIT_EXPORT visitors
                             cleanup();
                             return false;
                         }
-                        if (!parser->fn(obj,wired,obj.factory()))
+                        // a field deserializer must not bring down the application on malformed
+                        // input, e.g. out of range value that makes some value type throw
+                        bool fieldParsed=false;
+                        try
+                        {
+                            fieldParsed=parser->fn(obj,wired,obj.factory());
+                        }
+                        catch (const std::exception& e)
+                        {
+                            rawError(RawErrorCode::FIELD_PARSING_FAILED,parser->fieldId,"exception while parsing field {} at offset {}: {}",parser->fieldName,wired.currentOffset(),e.what());
+                            cleanup();
+                            return false;
+                        }
+                        if (!fieldParsed)
                         {
                             rawError(RawErrorCode::FIELD_PARSING_FAILED,parser->fieldId,"failed to parse field {} at offset {}",parser->fieldName,wired.currentOffset());
                             cleanup();
