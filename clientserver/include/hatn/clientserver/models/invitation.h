@@ -89,7 +89,8 @@ enum class InvitationPublishMode
     Public,
     Link,
     Qrcode,
-    File
+    File,
+    Member //!< published for the other members of one group chat only, never found by username or link
 };
 
 enum class InvitationReuseMode
