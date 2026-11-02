@@ -265,12 +265,14 @@ class HATN_COMMON_EXPORT Time
          * @param str Source string.
          * @param precision Format precision.
          * @param ampm Truu if AM/PM mode is used.
+         * @param allowMidnight Accept 00:00:00.000, used when the time is a part of DateTime.
          * @return Operation result.
          */
         static Result<Time> parse(
             const lib::string_view& str,
             FormatPrecision precision=FormatPrecision::Second,
-            bool ampm=false
+            bool ampm=false,
+            bool allowMidnight=false
         );
 
         /**
@@ -324,15 +326,61 @@ class HATN_COMMON_EXPORT Time
         template <typename HourT, typename MinuteT, typename SecondT, typename MillisecondT>
         static Error validate(HourT hour, MinuteT minute, SecondT second, MillisecondT ms=0) noexcept
         {
-            if (hour>=24 || minute>=60 || second>=60 || ms>=1000)
-            {
-                return CommonError::INVALID_TIME_FORMAT;
-            }
+            HATN_CHECK_RETURN(validateRange(hour,minute,second,ms))
             if (hour==0 && minute==0 && second==0 && ms==0)
             {
                 return CommonError::INVALID_TIME_FORMAT;
             }
             return OK;
+        }
+
+        /**
+         * @brief Validate ranges of time fields only.
+         * @param hour Hour.
+         * @param minute Minute.
+         * @param second Second.
+         * @param ms Millisecond.
+         * @return Validation result.
+         *
+         * Unlike validate(), this accepts 00:00:00.000. Standalone Time treats it as null, but
+         * for a time of day inside DateTime it is a legitimate value (start of the day).
+         */
+        template <typename HourT, typename MinuteT, typename SecondT, typename MillisecondT>
+        static Error validateRange(HourT hour, MinuteT minute, SecondT second, MillisecondT ms=0) noexcept
+        {
+            if (hour>=24 || minute>=60 || second>=60 || ms>=1000)
+            {
+                return CommonError::INVALID_TIME_FORMAT;
+            }
+            return OK;
+        }
+
+        Error validateRange() const noexcept
+        {
+            return validateRange(m_hour,m_minute,m_second,m_millisecond);
+        }
+
+        /**
+         * @brief Make time of day that may be 00:00:00.000.
+         * @param hour Hour.
+         * @param minute Minute.
+         * @param second Second.
+         * @param ms Millisecond.
+         * @return Constructed time.
+         * @throws Only if some field is out of range, never for midnight.
+         *
+         * The result of midnight is null as a standalone Time, see isValid().
+         */
+        template <typename HourT, typename MinuteT, typename SecondT, typename MillisecondT>
+        static Time makeInRange(HourT hour, MinuteT minute, SecondT second, MillisecondT ms=0)
+        {
+            HATN_CHECK_THROW(validateRange(hour,minute,second,ms))
+            Time t;
+            t.m_hour=static_cast<decltype(t.m_hour)>(hour);
+            t.m_minute=static_cast<decltype(t.m_minute)>(minute);
+            t.m_second=static_cast<decltype(t.m_second)>(second);
+            t.m_millisecond=static_cast<decltype(t.m_millisecond)>(ms);
+            return t;
         }
 
         Error validate(bool resetInvalid=true) const noexcept

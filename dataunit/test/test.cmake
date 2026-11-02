@@ -17,6 +17,7 @@ SET (TEST_SOURCES
     ${DATAUNIT_TEST_SRC}/testdynamicsubunit.cpp
     ${DATAUNIT_TEST_SRC}/testsubunit.cpp
     ${DATAUNIT_TEST_SRC}/testmap.cpp
+    ${DATAUNIT_TEST_SRC}/testwirejson.cpp
 )
 
 SET (TEST_HEADERS

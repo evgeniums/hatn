@@ -65,6 +65,7 @@ Error ModelTopics::update(
         );
     if (!status.ok())
     {
+        handler.p()->noteWriteStatus(status);
         return makeError(DbError::MODEL_TOPIC_RELATION_SAVE,status);
     }
     return OK;

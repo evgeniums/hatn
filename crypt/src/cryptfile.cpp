@@ -271,6 +271,11 @@ Error CryptFile::doOpen(Mode mode, bool headerOnly)
                 {
                     HATN_CHECK_THROW(doSeek(0))
                 }
+
+                // doSeek() moves the real cursor only, so the logical cursor reported by pos()
+                // must be brought in step with it, otherwise pos() stays at the 0 left by
+                // doClose() and an append handle reports 0 instead of size()
+                m_seekCursor=m_cursor;
             }
         }
         else
@@ -559,12 +564,17 @@ Error CryptFile::seek(uint64_t pos)
 #ifdef HATN_FORWARD_PLAINFILE
     return m_file->seek(pos);
 #else
+    //! @todo Ensure allowed positions for corresponding opening modes
+
+    // set before the early return below: the logical cursor can be ahead of the real one (a seek
+    // past the end does not move m_cursor), and seeking back to where the real cursor already is
+    // must still bring the logical one back, or the next write would pad and land at the stale
+    // position instead of the requested one
+    m_seekCursor=pos;
     if (pos==m_cursor)
     {
         return OK;
     }
-    //! @todo Ensure allowed positions for corresponding opening modes
-    m_seekCursor=pos;
     if (pos>m_size)
     {
         return OK;

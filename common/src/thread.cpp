@@ -86,8 +86,17 @@ struct Timer final
 
     std::atomic<bool> stopped;
 
+    /* An asio cancel() only aborts a wait that is PENDING. If stop() lands while timeout() is
+       already inside handler(), there is nothing to abort, so the re-arm below would fire and
+       the timer would run on forever -- with uninstallTimer(id,true) spinning on stopped, which
+       never becomes true. This flag is what stop() leaves behind for that case: a handler that
+       starts after it, or finishes after it, retires instead of re-arming. */
+    std::atomic<bool> stopping;
+
     void stop()
     {
+        stopping.store(true,std::memory_order_release);
+
         if (highResTimer!=nullptr)
         {
             highResTimer->cancel();
@@ -100,18 +109,30 @@ struct Timer final
 
     void timeout(const boost::system::error_code& ec)
     {
-        if (ec != boost::asio::error::operation_aborted)
+        if (ec != boost::asio::error::operation_aborted
+            && !stopping.load(std::memory_order_acquire))
         {
-            if (!handler() || runOnce)
+            const bool retired=!handler() || runOnce;
+            if (retired || stopping.load(std::memory_order_acquire))
             {
                 stopped.store(true,std::memory_order_release);
-                if (uninstall) {
+
+                /* ONLY a timer that retired BY ITSELF asks to be uninstalled. If stopping is set,
+                   uninstallTimer() is already running for this timer: it erased the map entry
+                   before calling stop() and is now waiting on `stopped`, so a posted uninstall
+                   would find nothing to erase -- and would run LATER, on an io_context whose
+                   Thread the caller is very likely tearing down the moment that wait returns,
+                   dereferencing a Thread_p that is already gone. */
+                if (retired && uninstall) {
                     boost::asio::post(asioContext,uninstall);
                     // asioContext.post(uninstall);
                 }
             }
             else
-            {                
+            {
+                /* A stop() that lands between the check above and the async_wait below still finds
+                   nothing to cancel, so this wait does get armed -- but the check on entry retires
+                   it at the next tick, bounding the wait in uninstallTimer by one period. */
                 if (highResTimer!=nullptr)
                 {
                     highResTimer->expires_after(std::chrono::microseconds(periodUs));
@@ -142,7 +163,8 @@ struct Timer final
             handler(handler),
             runOnce(runOnce),
             uninstall(uninstall),
-            stopped(false)
+            stopped(false),
+            stopping(false)
     {
         if (highResolution)
         {

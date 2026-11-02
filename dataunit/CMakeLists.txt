@@ -53,6 +53,7 @@ SET (HEADERS
     include/hatn/dataunit/ipp/wirebuf.ipp
 
     include/hatn/dataunit/visitors.h
+    include/hatn/dataunit/wirejson.h
     include/hatn/dataunit/tags.h
 
     include/hatn/dataunit/unitmeta.h
@@ -77,6 +78,7 @@ SET (SOURCES
     src/unitstrings.cpp
     src/datauniterror.cpp
     src/objectid.cpp
+    src/wirejson.cpp
 )
 
 # check if string literals are suuported by compiler

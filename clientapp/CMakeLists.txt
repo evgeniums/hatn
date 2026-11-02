@@ -71,6 +71,7 @@ SET (SOURCES
         ${HEADERS}
         include/hatn/clientapp/mobileapp.h
         include/hatn/clientapp/mobileusererror.h
+        include/hatn/clientapp/mobileserializer.h
         include/hatn/clientapp/mobileplatformcontext.h
     )
 

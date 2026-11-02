@@ -35,6 +35,11 @@ HDU_UNIT_WITH(cache_object,(HDU_BASE(HATN_DB_NAMESPACE::object),
     HDU_FIELD(data_type,TYPE_STRING,1)
     HDU_FIELD(data,TYPE_DATAUNIT,2)
     HDU_FIELD(deleted,TYPE_BOOL,3)
+    //! When the cached object was last confirmed current by its authority (e.g. a server
+    //! revision check). Unset means "never confirmed" -- a row written before this field existed,
+    //! or one assembled from a secondary copy -- and reads back as stale. Distinct from
+    //! object::updated_at, which moves on every write.
+    HDU_FIELD(validated_at,TYPE_DATETIME,4)
 )
 
 HATN_CLIENT_SERVER_NAMESPACE_END

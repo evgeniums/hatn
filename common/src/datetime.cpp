@@ -43,7 +43,8 @@ namespace {
     {
         boost::posix_time::time_duration dt=pt.time_of_day();
         auto ms=dt.total_milliseconds()-dt.total_seconds()*1000;
-        return Time{dt.hours(),dt.minutes(),dt.seconds(),ms};
+        // midnight is a valid time of day inside DateTime, see Time::makeInRange()
+        return Time::makeInRange(dt.hours(),dt.minutes(),dt.seconds(),ms);
     }
 
     DateTime makeDateTime(const boost::posix_time::ptime& pt, int16_t tz)
@@ -321,7 +322,7 @@ bool Date::isLeapYear(uint16_t year)
 
 //---------------------------------------------------------------
 
-Result<Time> Time::parse(const lib::string_view& str, FormatPrecision precision, bool ampm)
+Result<Time> Time::parse(const lib::string_view& str, FormatPrecision precision, bool ampm, bool allowMidnight)
 {
     if (str.empty())
     {
@@ -470,6 +471,12 @@ Result<Time> Time::parse(const lib::string_view& str, FormatPrecision precision,
             }
         }
 
+        if (allowMidnight)
+        {
+            HATN_CHECK_EC(validateRange(hour,minute,second,millisecond))
+            return Time::makeInRange(hour,minute,second,millisecond);
+        }
+
         HATN_CHECK_EC(validate(hour,minute,second,millisecond))
         return Time{hour,minute,second,millisecond};
     }
@@ -538,10 +545,10 @@ Result<DateTime> DateTime::parseIsoString(const lib::string_view& str)
 
     auto parseTime=[&dt](const lib::string_view& str)
     {
-        auto time=Time::parse(str,Time::FormatPrecision::Millisecond);
+        auto time=Time::parse(str,Time::FormatPrecision::Millisecond,false,true);
         if (time)
         {
-            time=Time::parse(str,Time::FormatPrecision::Number);
+            time=Time::parse(str,Time::FormatPrecision::Number,false,true);
             if (time)
             {
                 return time.error();
@@ -712,7 +719,7 @@ DateTime DateTime::fromEpochMs(int64_t value, int16_t tz)
 
     return DateTime{
         Date{date.year(),date.month(),date.day()},
-        Time{dt.hours(),dt.minutes(),dt.seconds(),ms},
+        Time::makeInRange(dt.hours(),dt.minutes(),dt.seconds(),ms),
         tz
     };
 }

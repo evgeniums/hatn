@@ -20,6 +20,7 @@
 #define HATNROCKSDBHANDLER_IPP
 
 #include <map>
+#include <atomic>
 #include <map>
 
 #include <rocksdb/db.h>
@@ -196,6 +197,23 @@ class HATN_ROCKSDB_SCHEMA_EXPORT RocksdbHandler_p
 
 
         bool blobEnabled;
+
+        //! Set when a write failed with an I/O error (typically ENOSPC) that may have put
+        //! RocksDB into the stopped state with a background error. RocksDB does not leave
+        //! that state by itself without an SstFileManager, so maybeResume() calls DB::Resume().
+        std::atomic<bool> bgErrorSuspected{false};
+        std::atomic<int64_t> lastResumeAttemptMs{0};
+
+        void noteWriteStatus(const ROCKSDB_NAMESPACE::Status& status) noexcept
+        {
+            if (!status.ok() && status.IsIOError())
+            {
+                bgErrorSuspected.store(true,std::memory_order_relaxed);
+            }
+        }
+
+        //! Try to leave the background error state, at most once per second.
+        void maybeResume();
 
         Result<std::shared_ptr<RocksdbPartition>> partition(uint32_t partitionKey) const noexcept
         {

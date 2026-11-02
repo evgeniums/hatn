@@ -48,6 +48,9 @@ HDU_UNIT(account_config,
     HDU_FIELD(feedback_dsn,TYPE_STRING,17)
     HDU_FIELD(feedback_release,TYPE_STRING,18)
     HDU_FIELD(feedback_environment,TYPE_STRING,19)
+    // When set, the client publishes the username invitation of a character on its own: after the
+    // account is activated and whenever the character's username is set.
+    HDU_FIELD(auto_publish_username_invitation,TYPE_BOOL,20)
 )
 
 HDU_UNIT(account_config_token,

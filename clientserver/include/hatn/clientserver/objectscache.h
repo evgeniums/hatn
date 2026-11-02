@@ -17,11 +17,15 @@
 #define HATNOBJECTSCACHE_H
 
 #include <memory>
+#include <vector>
+#include <cstdint>
 
 #include <hatn/common/thread.h>
 #include <hatn/common/pmr/allocatorfactory.h>
 #include <hatn/app/app.h>
 #include <hatn/app/eventdispatcher.h>
+
+#include <hatn/dataunit/objectid.h>
 
 #include <hatn/clientserver/clientserver.h>
 #include <hatn/clientserver/models/oid.h>
@@ -38,6 +42,11 @@ class CacheConfig
         constexpr static size_t DefaultInmemTtlSeconds=300;
         constexpr static size_t DefaultCapacity=100;
         constexpr static const char* DefaultEventCategory="cache";
+
+        //! put() validation time: "now".
+        constexpr static int64_t ValidatedNow=-1;
+        //! put() validation time: never confirmed by the authority, reads back as stale.
+        constexpr static int64_t NotValidated=0;
 };
 
 class AbstractCache : public CacheConfig
@@ -69,9 +78,12 @@ class ObjectsCache : public AbstractCache
         {
             Value value;
             bool missed;
+            //! The value is served but was last confirmed longer ago than invalidateAfterSeconds()
+            //! (or never): the caller should revalidate it with its authority.
+            bool stale;
 
-            Result(Value value={}, bool missed=false)
-                : value(std::move(value)),missed(missed)
+            Result(Value value={}, bool missed=false, bool stale=false)
+                : value(std::move(value)),missed(missed),stale(stale)
             {}
 
             bool isNull() const
@@ -82,6 +94,8 @@ class ObjectsCache : public AbstractCache
 
         using FetchCb=std::function<void (const common::Error&, Result)>;
         using CompletionCb=std::function<void ()>;
+        //! Revisions aligned with the requested uids; a null ObjectId means "not held".
+        using RevisionsCb=std::function<void (std::vector<HATN_DATAUNIT_NAMESPACE::ObjectId>)>;
 
         ObjectsCache();
 
@@ -136,7 +150,8 @@ class ObjectsCache : public AbstractCache
             Value item,
             lib::string_view topic={},
             Uid uid={},
-            CacheOptions opt={}
+            CacheOptions opt={},
+            int64_t validatedAtMs=ValidatedNow
         );
 
         void touch(
@@ -154,6 +169,37 @@ class ObjectsCache : public AbstractCache
             Uid uid={},
             CacheOptions opt={}
         );
+
+        /**
+         * @brief Record that the held object was confirmed current by its authority just now.
+         *
+         * Memory items keep their LRU position; the db row gets validated_at=now and, when
+         * opt.dbTtl()!=0, a new expire_at.
+         */
+        void markValidated(
+            common::SharedPtr<Context> ctx,
+            CompletionCb callback,
+            lib::string_view topic,
+            Uid uid,
+            CacheOptions opt={}
+        );
+
+        /**
+         * @brief Revisions currently held for uids, from memory (without touching) or else from
+         *        the db tier in one query.
+         */
+        void knownRevisions(
+            common::SharedPtr<Context> ctx,
+            RevisionsCb callback,
+            lib::string_view topic,
+            std::vector<Uid> uids,
+            CacheOptions opt={}
+        );
+
+        //! 0 (default) disables staleness: every hit is fresh.
+        void setInvalidateAfterSeconds(size_t value);
+
+        size_t invalidateAfterSeconds() const;
 
         void setTtlSeconds(size_t ttlSecs);
 

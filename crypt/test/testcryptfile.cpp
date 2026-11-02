@@ -1333,9 +1333,33 @@ static void checkAppend(std::shared_ptr<CryptPlugin>& plugin, const std::string&
             BOOST_TEST_MESSAGE(ec.message());
         }
         BOOST_REQUIRE(!ec);
+
+        // opening for append must report the end of the file, like any other file API:
+        // pos() used to stay at the 0 left by the previous close()
+        auto sizeAtOpen=cryptFile2.size(ec);
+        BOOST_REQUIRE(!ec);
+        BOOST_CHECK_EQUAL(sizeAtOpen,plaintext1.size());
+        auto posAtOpen=cryptFile2.pos(ec);
+        BOOST_REQUIRE(!ec);
+        BOOST_CHECK_EQUAL(posAtOpen,sizeAtOpen);
+
+        // the explicit "go to the end" of an append handle must be a no-op, not a reset:
+        // seek() used to return early before updating the position it reports
+        ec=cryptFile2.seek(sizeAtOpen);
+        BOOST_REQUIRE(!ec);
+        auto posAfterSeek=cryptFile2.pos(ec);
+        BOOST_REQUIRE(!ec);
+        BOOST_CHECK_EQUAL(posAfterSeek,sizeAtOpen);
+
         written=cryptFile2.write(plaintext0,ec);
         BOOST_REQUIRE(!ec);
         BOOST_CHECK_EQUAL(written,plaintext0.size());
+
+        // appending advances from the end, not from 0
+        auto posAfterWrite=cryptFile2.pos(ec);
+        BOOST_REQUIRE(!ec);
+        BOOST_CHECK_EQUAL(posAfterWrite,sizeAtOpen+plaintext0.size());
+
         cryptFile2.close();
 
         // read and compare data
@@ -1375,6 +1399,119 @@ static void checkAppend(std::shared_ptr<CryptPlugin>& plugin, const std::string&
     CryptFile cryptFile1(masterKey.get(),suite.get());
     ec=cryptFile1.open(cryptFilename1,CryptFile::Mode::append_existing);
     BOOST_CHECK(ec);
+}
+
+/*
+ * Seeking past the end records the requested position without moving the real cursor, so that the
+ * next write pads with zeros up to it. Seeking back to where the real cursor already is must undo
+ * that, otherwise the write lands at the stale position instead of the requested one - silent data
+ * misplacement, not just a wrong pos().
+ */
+static void checkSeekBackAfterSeekBeyondEnd(std::shared_ptr<CryptPlugin>& plugin, const std::string& path)
+{
+    auto cipherSuiteFile=fmt::format("{}/cryptcontainer-ciphersuite1.json",path);
+    auto keyFile=fmt::format("{}/cryptfile-stamp-key.dat",path);
+
+    if (!boost::filesystem::exists(cipherSuiteFile)
+        ||
+        !boost::filesystem::exists(keyFile)
+        )
+    {
+        return;
+    }
+
+    ByteArray cipherSuiteJson;
+    auto ec=cipherSuiteJson.loadFromFile(cipherSuiteFile);
+    HATN_REQUIRE(!ec);
+    auto suite=std::make_shared<CipherSuite>();
+    ec=suite->loadFromJSON(cipherSuiteJson);
+    HATN_REQUIRE(!ec);
+
+    CipherSuitesGlobal::instance().addSuite(suite);
+    auto engine=std::make_shared<CryptEngine>(plugin.get());
+    CipherSuitesGlobal::instance().setDefaultEngine(std::move(engine));
+
+    const CryptAlgorithm* aeadAlg=nullptr;
+    ec=suite->aeadAlgorithm(aeadAlg);
+    if (ec)
+    {
+        return;
+    }
+    HATN_REQUIRE(aeadAlg);
+
+    const CryptAlgorithm* kdfAlg=nullptr;
+    ec=suite->pbkdfAlgorithm(kdfAlg);
+    if (ec)
+    {
+        return;
+    }
+
+    common::SharedPtr<SymmetricKey> masterKey;
+    masterKey=plugin->createPassphraseKey();
+    HATN_REQUIRE(masterKey);
+    ec=masterKey->importFromFile(keyFile,ContainerFormat::RAW_PLAIN);
+    HATN_REQUIRE(!ec)
+
+    auto cryptFilename=fmt::format("{}/cryptfile-seekback1.dat",hatn::test::MultiThreadFixture::tmpPath());
+    ec=FileUtils::remove(cryptFilename);
+    BOOST_REQUIRE(!ec);
+
+    ByteArray head{"0123456789"};
+    ByteArray tail{"abcdef"};
+
+    CryptFile cryptFile(masterKey.get(),suite.get());
+    ec=cryptFile.open(cryptFilename,CryptFile::Mode::write);
+    BOOST_REQUIRE(!ec);
+
+    auto written=cryptFile.write(head.data(),head.size(),ec);
+    BOOST_REQUIRE(!ec);
+    BOOST_CHECK_EQUAL(written,head.size());
+    auto sizeAfterHead=cryptFile.size(ec);
+    BOOST_REQUIRE(!ec);
+    BOOST_CHECK_EQUAL(sizeAfterHead,head.size());
+
+    // ask for a position well past the end, then take it back
+    ec=cryptFile.seek(sizeAfterHead+1000);
+    BOOST_REQUIRE(!ec);
+    BOOST_CHECK_EQUAL(cryptFile.pos(ec),sizeAfterHead+1000);
+    BOOST_REQUIRE(!ec);
+
+    ec=cryptFile.seek(sizeAfterHead);
+    BOOST_REQUIRE(!ec);
+    BOOST_CHECK_EQUAL(cryptFile.pos(ec),sizeAfterHead);
+    BOOST_REQUIRE(!ec);
+
+    // must append right after head, with no zero padding in between
+    written=cryptFile.write(tail.data(),tail.size(),ec);
+    BOOST_REQUIRE(!ec);
+    BOOST_CHECK_EQUAL(written,tail.size());
+    BOOST_CHECK_EQUAL(cryptFile.size(ec),head.size()+tail.size());
+    BOOST_REQUIRE(!ec);
+
+    cryptFile.close(ec);
+    BOOST_REQUIRE(!ec);
+
+    ByteArray readBack;
+    ec=cryptFile.readAll(readBack);
+    BOOST_REQUIRE(!ec);
+    ByteArray expected{head};
+    expected.append(tail);
+    BOOST_CHECK_EQUAL(readBack.size(),expected.size());
+    BOOST_CHECK(readBack==expected);
+}
+
+BOOST_AUTO_TEST_CASE(CheckSeekBackAfterSeekBeyondEnd)
+{
+    CryptPluginTest::instance().eachPlugin<CryptTestTraits>(
+        [](std::shared_ptr<CryptPlugin>& plugin)
+        {
+            CipherSuitesGlobal::instance().reset();
+            checkSeekBackAfterSeekBeyondEnd(plugin,PluginList::assetsPath("crypt"));
+            CipherSuitesGlobal::instance().reset();
+            checkSeekBackAfterSeekBeyondEnd(plugin,PluginList::assetsPath("crypt",plugin->info()->name));
+            CipherSuitesGlobal::instance().reset();
+        }
+        );
 }
 
 BOOST_AUTO_TEST_CASE(CheckAppend)

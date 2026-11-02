@@ -205,10 +205,13 @@ class HATN_COMMON_EXPORT DateTime
         /**
          * @brief Check if datetime is valid.
          * @return True if valid.
+         *
+         * Datetime is null when its date is null. Time of day 00:00:00.000 is a valid value here
+         * (start of the day), unlike a standalone Time where it means "not set".
          */
         bool isValid() const noexcept
         {
-            return m_date.isValid() && m_time.isValid() && isTimezoneValid(m_tz);
+            return m_date.isValid() && !m_time.validateRange() && isTimezoneValid(m_tz);
         }
 
         /**
@@ -776,7 +779,7 @@ class HATN_COMMON_EXPORT DateTime
         Error validate(const Date& date, const Time& time, int16_t tz) const noexcept
         {
             HATN_CHECK_RETURN(date.validate())
-            HATN_CHECK_RETURN(time.validate())
+            HATN_CHECK_RETURN(time.validateRange())
             HATN_CHECK_RETURN(validateTz(tz))
             return OK;
         }

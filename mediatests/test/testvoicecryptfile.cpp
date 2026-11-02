@@ -612,9 +612,7 @@ BOOST_AUTO_TEST_CASE(PausedPreListenAndAppend)
     ec=file->open(path,common::File::Mode::append_existing);
     BOOST_REQUIRE_MESSAGE(!ec,ec.message());
     BOOST_CHECK_EQUAL(file->size(ec),sizeAtPause);
-    // CryptFile::pos() reads a cursor that only seek() updates, so it says 0 here although the next write
-    // goes to the end; that the audio lands at the end is what the decode below shows.
-    BOOST_TEST_MESSAGE("pos() after open in append_existing: "<<file->pos(ec)<<" (size "<<sizeAtPause<<")");
+    BOOST_CHECK_EQUAL(file->pos(ec),sizeAtPause);
 
     ec=recorder.resume();
     BOOST_REQUIRE_MESSAGE(!ec,ec.message());
@@ -688,9 +686,10 @@ BOOST_AUTO_TEST_CASE(AppendExistingLandsAtEnd)
         ec=file->open(path,common::File::Mode::append_existing);
         BOOST_REQUIRE_MESSAGE(!ec,"append_existing at "<<size<<": "<<ec.message());
         BOOST_CHECK_EQUAL(file->size(ec),static_cast<uint64_t>(size));
-        // pos() is not asserted: see PausedPreListenAndAppend. The read back below proves where the write went.
+        BOOST_CHECK_EQUAL(file->pos(ec),static_cast<uint64_t>(size));
         BOOST_REQUIRE_EQUAL(file->write(second.data(),second.size(),ec),second.size());
         BOOST_REQUIRE_MESSAGE(!ec,ec.message());
+        BOOST_CHECK_EQUAL(file->pos(ec),static_cast<uint64_t>(size)+second.size());
         file->close(ec);
         BOOST_REQUIRE_MESSAGE(!ec,ec.message());
 

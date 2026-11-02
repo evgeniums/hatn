@@ -65,9 +65,10 @@ struct SharedInvitationInfo
     //! kind maps to an enumerator this build declares (isKnownSharedInvitationKind()).
     bool knownKind=false;
 
-    //! knownKind AND version is within maxSharedInvitationVersion(kind). False for a kind whose
-    //! value is merely RESERVED (GroupChat today, whose max is 0) as well as for a genuinely newer
-    //! version of a supported kind -- in both cases the honest message is "update the app".
+    //! knownKind AND version is within maxSharedInvitationVersion(kind). False for a kind this
+    //! build enumerates but whose max version is 0 (reserved, not implemented) as well as for a
+    //! genuinely newer version of a supported kind -- in both cases the honest message is "update
+    //! the app".
     bool supportedVersion=false;
 
     //! The payload field this kind uses is actually set (field 2 for Character, field 5 otherwise).

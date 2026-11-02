@@ -180,7 +180,7 @@ Result<typename ModelT::SharedPtr> updateSingle(
         auto ttlUpdated=RocksdbModelT<modelType>::checkTtlFieldUpdated(request);
         const auto& k=key;
         IndexKeyUpdateSet oldKeys{factory->dataAllocator<IndexKeyUpdate>()};
-        RocksdbModelT<modelType>::updatingKeys(keys,request,topic,objectIdS,obj.get(),oldKeys,ttlUpdated);
+        RocksdbModelT<modelType>::updatingKeys(model,keys,request,topic,objectIdS,obj.get(),oldKeys,ttlUpdated);
 
         // apply request to object
         ec=update::ApplyRequest(obj.get(),request);
@@ -210,7 +210,7 @@ Result<typename ModelT::SharedPtr> updateSingle(
 
         // extract new keys for updated fields
         IndexKeyUpdateSet newKeys{factory->dataAllocator<IndexKeyUpdate>()};
-        RocksdbModelT<modelType>::updatingKeys(keys,request,topic,objectIdS,obj.get(),newKeys,ttlUpdated);
+        RocksdbModelT<modelType>::updatingKeys(model,keys,request,topic,objectIdS,obj.get(),newKeys,ttlUpdated);
 
         // find keys difference
         for (auto& newKey : newKeys)

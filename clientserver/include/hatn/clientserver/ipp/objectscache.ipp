@@ -16,6 +16,9 @@
 #ifndef HATNOBJECTSCACHE_IPP
 #define HATNOBJECTSCACHE_IPP
 
+#include <map>
+#include <type_traits>
+
 #include <hatn/common/locker.h>
 #include <hatn/common/cachelruttl.h>
 #include <hatn/common/meta/chain.h>
@@ -51,9 +54,12 @@ class ObjectsCache_p
         struct Item
         {
             Value value;
+            //! Epoch ms of the last confirmation by the authority; NotValidated (0) = never.
+            int64_t validatedAtMs=CacheConfig::NotValidated;
             size_t updateSubscriptionId=0;
 
-            Item(Value value) : value(std::move(value))
+            Item(Value value, int64_t validatedAtMs=CacheConfig::NotValidated)
+                : value(std::move(value)),validatedAtMs(validatedAtMs)
             {}
         };
 
@@ -135,6 +141,58 @@ class ObjectsCache_p
 
     CacheDbModelsProvider* dbModelProvider=nullptr;
 
+    //! 0 disables staleness.
+    int64_t invalidateAfterMs=0;
+
+    static int64_t resolveValidatedAt(int64_t validatedAtMs)
+    {
+        if (validatedAtMs==CacheConfig::ValidatedNow)
+        {
+            return common::DateTime::millisecondsSinceEpoch();
+        }
+        return validatedAtMs;
+    }
+
+    bool isStale(int64_t validatedAtMs) const
+    {
+        if (invalidateAfterMs==0)
+        {
+            return false;
+        }
+        if (validatedAtMs<=CacheConfig::NotValidated)
+        {
+            return true;
+        }
+        return (common::DateTime::millisecondsSinceEpoch()-validatedAtMs)>invalidateAfterMs;
+    }
+
+    //! Validation time recorded on a cache db row, NotValidated when absent.
+    template <typename CacheItemT>
+    static int64_t rowValidatedAt(const CacheItemT& cacheItem)
+    {
+        const auto& f=cacheItem->field(cache_object::validated_at);
+        if (!f.isSet())
+        {
+            return CacheConfig::NotValidated;
+        }
+        return f.value().toEpochMs();
+    }
+
+    //! Traits::getDbItem may optionally take the cache topic as its last argument.
+    template <typename CallbackT>
+    void getDbItem(common::SharedPtr<typename Traits::Context> ctx, CallbackT callback, Uid uid, lib::string_view topic)
+    {
+        if constexpr (std::is_invocable_v<decltype(&Traits::getDbItem),Derived*,common::SharedPtr<typename Traits::Context>,CallbackT,Uid,lib::string_view>)
+        {
+            Traits::getDbItem(derived,std::move(ctx),std::move(callback),std::move(uid),topic);
+        }
+        else
+        {
+            (void)topic;
+            Traits::getDbItem(derived,std::move(ctx),std::move(callback),std::move(uid));
+        }
+    }
+
     auto& dbModel()
     {
         auto m=dbModelProvider->model(dbModelName);
@@ -208,6 +266,25 @@ class ObjectsCache_p
         Uid uid;
         lib::string_view topic;
         std::vector<std::string> ids;
+    };
+
+    //! Rows matching any of a set of ids, ignoring version/index (used for bulk revision lookups).
+    struct IdsQueryBuilder
+    {
+        auto operator()() const
+        {
+            auto query=HATN_DB_NAMESPACE::makeQuery(
+                uidIdx(),
+                db::where(with_uid_idx::ids,HATN_DB_NAMESPACE::query::in,*ids),
+                *topic
+            );
+            // one row per matching uid; the default limit (100) could cut a full batch short
+            query.setLimit(0);
+            return query;
+        }
+
+        std::shared_ptr<std::vector<std::string>> ids;
+        std::shared_ptr<std::string> topic;
     };
 
     auto dbQuery(Uid uid, lib::string_view topic) const
@@ -500,9 +577,11 @@ void ObjectsCache<Traits,Derived>::remove(
     auto db=Traits::db(pimpl->derived,ctx,topic);
     if (db && opt.cacheInDb())
     {
+        // owned copy of the topic for the asynchronous delete, see put()
+        auto topicHolder=std::make_shared<std::string>(topic);
         db->deleteMany(
             std::move(ctx),
-            [callback](auto,auto)
+            [callback,topicHolder](auto,auto)
             {
                 if (callback)
                 {
@@ -510,9 +589,9 @@ void ObjectsCache<Traits,Derived>::remove(
                 }
             },
             pimpl->dbModel(),
-            pimpl->dbQuery(uid,topic),
+            pimpl->dbQuery(uid,*topicHolder),
             nullptr,
-            topic
+            *topicHolder
         );
     }
     else if (callback)
@@ -530,10 +609,13 @@ void ObjectsCache<Traits,Derived>::put(
         Value item,
         lib::string_view topic,
         Uid uid,
-        CacheOptions opt
+        CacheOptions opt,
+        int64_t validatedAtMs
     )
 {    
     HATN_CTX_ENTER_SCOPE("objectscache::put")
+
+    validatedAtMs=ObjectsCache_p<Traits,Derived>::resolveValidatedAt(validatedAtMs);
     HATN_CTX_DEBUG(10,"objectscache::put")
 
     if (item && !uid)
@@ -571,7 +653,7 @@ void ObjectsCache<Traits,Derived>::put(
     }
 
     // setup subscription to event of item updating
-    typename ObjectsCache_p<Traits,Derived>::Item localItem{item};
+    typename ObjectsCache_p<Traits,Derived>::Item localItem{item,validatedAtMs};
 
     auto localUid=uid.local();
 //! @todo Implement cache event handling
@@ -654,7 +736,10 @@ void ObjectsCache<Traits,Derived>::put(
         HATN_CTX_DEBUG(10,"put cache object to inmem cache")
         if (localUid)
         {
-            pimpl->localCache.pushItem(localUid,localItem);
+            // pushItem() keeps an existing entry as it is (map emplace), so replace its value
+            auto& inserted=pimpl->localCache.pushItem(localUid,localItem);
+            inserted.value=item;
+            inserted.validatedAtMs=validatedAtMs;
         }
     }
     else
@@ -670,12 +755,16 @@ void ObjectsCache<Traits,Derived>::put(
         auto serverUid=uid.server();
         if (serverUid)
         {
-            pimpl->serverCache.pushItem(serverUid,item);
+            auto& inserted=pimpl->serverCache.pushItem(serverUid,localItem);
+            inserted.value=item;
+            inserted.validatedAtMs=validatedAtMs;
         }
         auto guid=uid.global();
         if (guid)
         {
-            pimpl->guidCache.pushItem(uid.global(),item);
+            auto& inserted=pimpl->guidCache.pushItem(uid.global(),localItem);
+            inserted.value=item;
+            inserted.validatedAtMs=validatedAtMs;
         }
     }
 
@@ -688,6 +777,12 @@ void ObjectsCache<Traits,Derived>::put(
         auto db=Traits::db(pimpl->derived,ctx,topic);
         if (db)
         {
+            // The write below is asynchronous and both its query and db::Topic only VIEW the
+            // topic string: keep an owned copy alive until it completes, or a caller whose topic
+            // string dies first (e.g. one owned by a network callback) makes the lookup miss the
+            // existing row and create a second one under a garbage topic.
+            auto topicHolder=std::make_shared<std::string>(topic);
+
             HATN_CTX_STACK_BARRIER_ON("objectscache::put")
             HATN_CTX_STACK_BARRIER_ON("[saveindbcache]")
 
@@ -732,6 +827,21 @@ void ObjectsCache<Traits,Derived>::put(
             {
                 request->emplace_back(
                     HATN_DB_NAMESPACE::update::field(with_expire::expire_at,db::update::unset)
+                );
+            }
+
+            if (validatedAtMs>CacheConfig::NotValidated)
+            {
+                auto validatedAt=common::DateTime::fromEpochMs(validatedAtMs);
+                obj->setFieldValue(cache_object::validated_at,validatedAt);
+                request->emplace_back(
+                    HATN_DB_NAMESPACE::update::field(cache_object::validated_at,db::update::set,validatedAt)
+                );
+            }
+            else
+            {
+                request->emplace_back(
+                    HATN_DB_NAMESPACE::update::field(cache_object::validated_at,db::update::unset)
                 );
             }
 
@@ -790,7 +900,7 @@ void ObjectsCache<Traits,Derived>::put(
             // update or create cache object
             db->findUpdateCreate(
                 std::move(ctx),
-                [ids=std::move(ids),callback](auto,auto dbResult){
+                [ids=std::move(ids),topicHolder,callback](auto,auto dbResult){
                     if (callback)
                     {
                         HATN_CTX_DEBUG(10,"done saving cache object in db")
@@ -804,13 +914,22 @@ void ObjectsCache<Traits,Derived>::put(
                     HATN_CTX_STACK_BARRIER_OFF("objectscache::put")
                 },
                 pimpl->dbModel(),
-                pimpl->dbQuery(uid,topic),
+                pimpl->dbQuery(uid,*topicHolder),
                 std::move(request),
                 std::move(obj),
                 HATN_DB_NAMESPACE::update::ModifyReturn::After,
                 nullptr,
-                topic
+                *topicHolder
             );
+        }
+        else
+        {
+            // no db for this topic: memory only, but the caller still gets its completion
+            HATN_CTX_LEAVE_SCOPE()
+            if (callback)
+            {
+                callback();
+            }
         }
     }
     else
@@ -866,7 +985,7 @@ ObjectsCache<Traits,Derived>::get(
         if (item1!=nullptr)
         {
             found=true;
-            return item1->value;
+            return Result{item1->value,false,pimpl->isStale(item1->validatedAtMs)};
         }
 
         // try to find in server cache
@@ -875,7 +994,7 @@ ObjectsCache<Traits,Derived>::get(
         if (item2!=nullptr)
         {
             found=true;
-            return item2->value;
+            return Result{item2->value,false,pimpl->isStale(item2->validatedAtMs)};
         }
 
         // try to find in global cache
@@ -884,7 +1003,7 @@ ObjectsCache<Traits,Derived>::get(
         if (item3!=nullptr)
         {
             found=true;
-            return item3->value;
+            return Result{item3->value,false,pimpl->isStale(item3->validatedAtMs)};
         }
     }
 
@@ -991,17 +1110,20 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
 
         HATN_CTX_DEBUG(10,"put object to inmem cache")
 
-        // put item to in-memory cache
+        // put item to in-memory cache, carrying over the row's own validation time
         auto result=r.takeValue();
+        auto validatedAt=ObjectsCache_p<Traits,Derived>::rowValidatedAt(cacheItem);
+        auto stale=pimpl->isStale(validatedAt);
         put(std::move(ctx),
-            [callback,result]()
+            [callback,result,stale]()
             {
-                callback({},std::move(result));
+                callback({},Result{std::move(result),false,stale});
             },
             result,
             lib::string_view{},
             uid,
-            opt.cache_in_db_off()
+            opt.cache_in_db_off(),
+            validatedAt
         );
     };
 
@@ -1075,7 +1197,7 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
 
                     updateInmem(cacheItem);
                 };
-                Traits::getDbItem(pimpl->derived,ctx,getDbCb,uid);
+                pimpl->getDbItem(ctx,getDbCb,uid,topic);
             }
             else
             {
@@ -1143,22 +1265,30 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
                 return;
             }
 
+            // An item assembled by the traits from the application's own tables is authoritative
+            // only when it carries a revision (e.g. the user's own record). One assembled from a
+            // secondary copy carries none and is served stale, so the caller revalidates it.
+            auto validatedAt=object->field(with_revision::revision).isSet()
+                                   ? CacheConfig::ValidatedNow
+                                   : CacheConfig::NotValidated;
+            auto stale=validatedAt==CacheConfig::NotValidated && pimpl->isStale(validatedAt);
             put(
                 std::move(ctx),
-                [callback,object]()
+                [callback,object,stale]()
                 {
                     if (callback)
                     {
-                        callback({},std::move(object));
+                        callback({},Result{std::move(object),false,stale});
                     }
                 },
                 object,
                 topic,
                 std::move(uid),
-                opt
+                opt,
+                validatedAt
             );
         };
-        Traits::getDbItem(pimpl->derived,ctx,cb,uid);
+        pimpl->getDbItem(ctx,cb,uid,topic);
     };
 
     auto farFetch=[asynGuard,this](
@@ -1231,6 +1361,257 @@ void ObjectsCache<Traits,Derived>::invokeFetch(
         std::move(farFetch)
     );
     chain(std::move(ctx),callback,topic,std::move(uid),std::move(bySubject),opt);
+}
+
+//--------------------------------------------------------------------------
+
+template <typename Traits, typename Derived>
+void ObjectsCache<Traits,Derived>::setInvalidateAfterSeconds(size_t value)
+{
+    common::MutexScopedLock l{pimpl->locker};
+    pimpl->invalidateAfterMs=static_cast<int64_t>(value)*1000;
+}
+
+//--------------------------------------------------------------------------
+
+template <typename Traits, typename Derived>
+size_t ObjectsCache<Traits,Derived>::invalidateAfterSeconds() const
+{
+    return static_cast<size_t>(pimpl->invalidateAfterMs/1000);
+}
+
+//--------------------------------------------------------------------------
+
+template <typename Traits, typename Derived>
+void ObjectsCache<Traits,Derived>::markValidated(
+        common::SharedPtr<Context> ctx,
+        CompletionCb callback,
+        lib::string_view topicView,
+        Uid uid,
+        CacheOptions opt
+    )
+{
+    auto nowMs=common::DateTime::millisecondsSinceEpoch();
+
+    if (opt.cacheInMem())
+    {
+        pimpl->lock();
+        auto stamp=[nowMs](auto* item)
+        {
+            if (item!=nullptr)
+            {
+                item->validatedAtMs=nowMs;
+            }
+        };
+        auto localUid=uid.local();
+        if (localUid)
+        {
+            stamp(pimpl->localCache.item(localUid));
+        }
+        auto serverUid=uid.server();
+        if (serverUid)
+        {
+            stamp(pimpl->serverCache.item(serverUid));
+        }
+        auto guid=uid.global();
+        if (guid)
+        {
+            stamp(pimpl->guidCache.item(guid));
+        }
+        pimpl->unlock();
+    }
+
+    using DbT=std::decay_t<decltype(Traits::db(pimpl->derived,ctx,topicView))>;
+    auto db=opt.cacheInDb() ? DbT{Traits::db(pimpl->derived,ctx,topicView)} : DbT{};
+    if (!db)
+    {
+        if (callback)
+        {
+            callback();
+        }
+        return;
+    }
+
+    auto topic=std::make_shared<std::string>(topicView);
+    auto validatedAt=common::DateTime::fromEpochMs(nowMs);
+    auto request=HATN_DB_NAMESPACE::update::sharedRequest(
+        HATN_DB_NAMESPACE::update::field(cache_object::validated_at,db::update::set,validatedAt)
+    );
+    if (opt.dbTtl()!=0)
+    {
+        auto expireAt=common::DateTime::currentUtc();
+        expireAt.addSeconds(static_cast<int>(opt.dbTtl()));
+        request->emplace_back(
+            HATN_DB_NAMESPACE::update::field(with_expire::expire_at,db::update::set,expireAt)
+        );
+    }
+
+    db->updateMany(
+        std::move(ctx),
+        [callback,topic](auto,auto)
+        {
+            if (callback)
+            {
+                callback();
+            }
+        },
+        pimpl->dbModel(),
+        pimpl->dbQuery(uid,*topic),
+        std::move(request),
+        nullptr,
+        *topic
+    );
+}
+
+//--------------------------------------------------------------------------
+
+template <typename Traits, typename Derived>
+void ObjectsCache<Traits,Derived>::knownRevisions(
+        common::SharedPtr<Context> ctx,
+        RevisionsCb callback,
+        lib::string_view topicView,
+        std::vector<Uid> uids,
+        CacheOptions opt
+    )
+{
+    using ObjectId=HATN_DATAUNIT_NAMESPACE::ObjectId;
+
+    auto revisions=std::make_shared<std::vector<ObjectId>>(uids.size());
+    std::vector<size_t> missed;
+
+    auto revisionOf=[](const Value& value)
+    {
+        if (!value)
+        {
+            return ObjectId{};
+        }
+        return value->fieldValue(with_revision::revision);
+    };
+
+    // memory tier, without touching LRU positions
+    if (opt.cacheInMem())
+    {
+        pimpl->lock();
+        for (size_t i=0;i<uids.size();i++)
+        {
+            const auto& uid=uids[i];
+            const typename ObjectsCache_p<Traits,Derived>::Item* item=nullptr;
+            auto localUid=uid.local();
+            if (localUid)
+            {
+                item=pimpl->localCache.item(localUid);
+            }
+            if (item==nullptr)
+            {
+                auto serverUid=uid.server();
+                if (serverUid)
+                {
+                    item=pimpl->serverCache.item(serverUid);
+                }
+            }
+            if (item==nullptr)
+            {
+                auto guid=uid.global();
+                if (guid)
+                {
+                    item=pimpl->guidCache.item(guid);
+                }
+            }
+            if (item!=nullptr && item->value)
+            {
+                (*revisions)[i]=revisionOf(item->value);
+            }
+            else
+            {
+                missed.push_back(i);
+            }
+        }
+        pimpl->unlock();
+    }
+    else
+    {
+        for (size_t i=0;i<uids.size();i++)
+        {
+            missed.push_back(i);
+        }
+    }
+
+    using DbT=std::decay_t<decltype(Traits::db(pimpl->derived,ctx,topicView))>;
+    auto db=(!missed.empty() && opt.cacheInDb()) ? DbT{Traits::db(pimpl->derived,ctx,topicView)} : DbT{};
+    if (!db)
+    {
+        callback(std::move(*revisions));
+        return;
+    }
+
+    // db tier, one query for all missed uids
+    auto topic=std::make_shared<std::string>(topicView);
+    auto ids=std::make_shared<std::vector<std::string>>();
+    auto missedUids=std::make_shared<std::vector<std::pair<size_t,std::vector<std::string>>>>();
+    for (auto idx : missed)
+    {
+        auto uidIds=uids[idx].ids();
+        for (const auto& id : uidIds)
+        {
+            ids->push_back(id);
+        }
+        missedUids->emplace_back(idx,std::move(uidIds));
+    }
+    if (ids->empty())
+    {
+        callback(std::move(*revisions));
+        return;
+    }
+
+    auto query=HATN_DB_NAMESPACE::wrapQueryBuilder(
+        typename ObjectsCache_p<Traits,Derived>::IdsQueryBuilder{ids,topic},
+        *topic
+    );
+    db->find(
+        std::move(ctx),
+        [callback,revisions,missedUids,ids,topic](auto, auto dbResult)
+        {
+            if (dbResult)
+            {
+                HATN_CTX_ERROR(dbResult.error(),"failed to read revisions of cache objects")
+                callback(std::move(*revisions));
+                return;
+            }
+
+            std::map<std::string,ObjectId> byId;
+            for (const auto& dbObj : dbResult.value())
+            {
+                const auto* row=dbObj.template as<cache_object::managed>();
+                if (row->fieldValue(cache_object::deleted) || !row->field(with_revision::revision).isSet())
+                {
+                    continue;
+                }
+                auto revision=row->fieldValue(with_revision::revision);
+                const auto& rowIds=row->field(with_uid_idx::ids);
+                for (size_t i=0;i<rowIds.count();i++)
+                {
+                    byId.emplace(std::string{rowIds.at(i).stringView()},revision);
+                }
+            }
+
+            for (const auto& missedUid : *missedUids)
+            {
+                for (const auto& id : missedUid.second)
+                {
+                    auto it=byId.find(id);
+                    if (it!=byId.end())
+                    {
+                        (*revisions)[missedUid.first]=it->second;
+                        break;
+                    }
+                }
+            }
+            callback(std::move(*revisions));
+        },
+        pimpl->dbModel(),
+        std::move(query),
+        *topic
+    );
 }
 
 //--------------------------------------------------------------------------
