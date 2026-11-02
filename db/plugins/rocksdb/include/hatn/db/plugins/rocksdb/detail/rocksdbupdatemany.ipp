@@ -84,20 +84,24 @@ UpdateManyT::operator ()(
 
         // update
         bool brokenIdx=false;
-        auto r=updateSingle(keys,objectIdS,objectKey,model,handler,partition,topic,request,modifyReturnFirst,allocatorFactory,tx,&brokenIdx);
+        auto r=updateSingle(keys,objectIdS,objectKey,model,handler,partition,topic,request,modifyReturnFirst,allocatorFactory,tx,&brokenIdx,key);
         if (r)
         {
             ec=std::move(r.takeError());
             return false;
         }
-        if (brokenIdx)
+        if (brokenIdx || r.value().isNull())
         {
-            HATN_CTX_DEBUG_RECORDS(1,"missing object in rocksdb",
+            // The index entry has no live object behind it (updateSingle() has removed the entry).
+            // It must neither count as an updated object nor stop a single-object search: go on
+            // to the next key.
+            HATN_CTX_WARN_RECORDS("removed dangling index entry",
                                   {"idx_key",lib::toStringView(logKey(*key))},
                                   {"obj_key",lib::toStringView(logKey(objectKey))},
                                   {"obj_id",sliceView(objectIdS)},
                                   {"db_partition",partition->range}
                                   )
+            return true;
         }
 
         // fill return object with first found

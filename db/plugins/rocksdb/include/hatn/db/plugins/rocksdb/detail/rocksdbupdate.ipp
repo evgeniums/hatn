@@ -77,7 +77,8 @@ Result<typename ModelT::SharedPtr> updateSingle(
     db::update::ModifyReturn modifyReturn,
     const AllocatorFactory* factory,
     Transaction* intx,
-    bool* warnBrokenIndex=nullptr
+    bool* warnBrokenIndex=nullptr,
+    const ROCKSDB_NAMESPACE::Slice* danglingIndexKey=nullptr
     )
 {
     using modelType=std::decay_t<ModelT>;
@@ -163,6 +164,19 @@ Result<typename ModelT::SharedPtr> updateSingle(
                 if (warnBrokenIndex!=nullptr)
                 {
                     *warnBrokenIndex=true;
+                }
+            }
+
+            // The index entry the caller reached this object through points to nothing: drop it
+            // in this same transaction so it neither blocks the reuse of its (unique) value nor
+            // makes single-row searches stop on it.
+            if (danglingIndexKey!=nullptr && warnBrokenIndex!=nullptr && *warnBrokenIndex)
+            {
+                auto status=rdbTx->Delete(partition->indexCf.get(),*danglingIndexKey);
+                if (!status.ok())
+                {
+                    HATN_CTX_SCOPE_ERROR("delete-dangling-index")
+                    return makeError(DbError::DELETE_INDEX_FAILED,status);
                 }
             }
 
@@ -273,7 +287,7 @@ Result<typename ModelT::SharedPtr> updateSingle(
                 if (!newKey.exists || newKey.replace)
                 {
                     // save new key
-                    ec=SaveSingleIndex(handler,newKey.keySlices(),newKey.unique && newKey.isSet,indexCf,rdbTx,indexValue,newKey.replace);
+                    ec=SaveSingleIndex(handler,newKey.keySlices(),newKey.unique && newKey.isSet,indexCf,rdbTx,indexValue,partition->dataCf(model.isBlob()),newKey.replace);
                     if (ec)
                     {                        
                         HATN_CTX_SCOPE_PUSH("idx_name",newKey.indexName)

@@ -36,6 +36,7 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT SaveSingleIndex(
         ROCKSDB_NAMESPACE::ColumnFamilyHandle* cf,
         ROCKSDB_NAMESPACE::Transaction* tx,
         const ROCKSDB_NAMESPACE::SliceParts& indexValue,
+        ROCKSDB_NAMESPACE::ColumnFamilyHandle* dataCf,
         bool replace=false
     );
 

@@ -49,9 +49,12 @@ class Indexes
     public:
 
         //! Use additional column family for UTF-8 indexes
-        Indexes(ROCKSDB_NAMESPACE::ColumnFamilyHandle* cf, Keys& keys)
+        //! dataCf is the column family of the indexed objects. If set, saving a unique index entry
+        //! may take over an existing entry whose object is gone (see SaveSingleIndex()).
+        Indexes(ROCKSDB_NAMESPACE::ColumnFamilyHandle* cf, Keys& keys, ROCKSDB_NAMESPACE::ColumnFamilyHandle* dataCf=nullptr)
             : m_cf(cf),
-              m_keys(keys)
+              m_keys(keys),
+              m_dataCf(dataCf)
         {}
 
         template <typename IndexT, typename UnitT>
@@ -75,7 +78,7 @@ class Indexes
 #if 0
                 std::cout<<"Save rocksdb index name=" << idx.name() << " id=" << idx.id() << " key=" << logKey(key[0]) << std::endl;
 #endif
-                    auto ec=SaveSingleIndex(handler,key,idx.unique() && isIndexSet==Keys::IsIndexSet::Yes,m_cf,tx,indexValue,replace);
+                    auto ec=SaveSingleIndex(handler,key,idx.unique() && isIndexSet==Keys::IsIndexSet::Yes,m_cf,tx,indexValue,m_dataCf,replace);
                     if (ec)
                     {                        
                         HATN_CTX_SCOPE_PUSH("idx_name",idx.name());
@@ -171,6 +174,7 @@ class Indexes
 
         ROCKSDB_NAMESPACE::ColumnFamilyHandle* m_cf;
         Keys& m_keys;
+        ROCKSDB_NAMESPACE::ColumnFamilyHandle* m_dataCf;
 };
 
 HATN_ROCKSDB_NAMESPACE_END

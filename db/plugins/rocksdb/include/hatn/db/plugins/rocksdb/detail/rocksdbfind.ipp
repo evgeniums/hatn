@@ -100,6 +100,9 @@ Result<common::pmr::vector<DbObject>> FindT::operator ()(
         return objects;
     }
 
+    // index entries whose object is gone, see the retry of a single-object search below
+    size_t skipped=0;
+
     // fill result
     {
         HATN_CTX_SCOPE("readobjects")
@@ -139,6 +142,7 @@ Result<common::pmr::vector<DbObject>> FindT::operator ()(
                     return makeError(DbError::READ_FAILED,status);
                 }
                 HATN_CTX_WARN("missing object in rocksdb")
+                ++skipped;
                 HATN_CTX_SCOPE_POP()
                 HATN_CTX_SCOPE_POP()
                 if (!key.partition->range.isNull())
@@ -151,6 +155,7 @@ Result<common::pmr::vector<DbObject>> FindT::operator ()(
             {
                 pushLogKey();
                 HATN_CTX_DEBUG(1,"object expired in rocksdb")
+                ++skipped;
                 HATN_CTX_SCOPE_POP()
                 HATN_CTX_SCOPE_POP()
                 if (!key.partition->range.isNull())
@@ -189,6 +194,20 @@ Result<common::pmr::vector<DbObject>> FindT::operator ()(
             ec=addToResult(std::move(sharedUnit));
             HATN_CHECK_EC(ec)
         }
+    }
+
+    // A single-object search reads only the first index key. If that key was dangling (its object
+    // is gone or expired) the result is empty though a live object may follow: search again
+    // without the one-key limit and keep the first live object.
+    if (single && objects.empty() && skipped!=0)
+    {
+        auto all=(*this)(model,handler,idxQuery,false,allocatorFactory);
+        HATN_CHECK_RESULT(all)
+        if (all->size()>1)
+        {
+            all->erase(all->begin()+1,all->end());
+        }
+        return all;
     }
 
     // done

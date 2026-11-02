@@ -25,6 +25,7 @@
 
 #include <hatn/db/plugins/rocksdb/rocksdbschemadef.h>
 #include <hatn/db/plugins/rocksdb/rocksdberror.h>
+#include <hatn/db/plugins/rocksdb/ttlmark.h>
 #include <hatn/db/plugins/rocksdb/savesingleindex.h>
 
 #include <hatn/db/plugins/rocksdb/rocksdbhandler.h>
@@ -39,6 +40,7 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT SaveSingleIndex(
         ROCKSDB_NAMESPACE::ColumnFamilyHandle* cf,
         ROCKSDB_NAMESPACE::Transaction* tx,
         const ROCKSDB_NAMESPACE::SliceParts& indexValue,
+        ROCKSDB_NAMESPACE::ColumnFamilyHandle* dataCf,
         bool replace
     )
 {
@@ -96,6 +98,47 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT SaveSingleIndex(
 
                 if (status.subcode()==ROCKSDB_NAMESPACE::Status::SubCode::kMergeOperatorFailed)
                 {
+                    // The existing entry is a real duplicate only if the object it points to is
+                    // still alive. An entry left behind by a deleted or expired object (a stale
+                    // entry of an old update, see IndexKeyUpdate::deleteKeySlice()) would block
+                    // its value forever, so take it over.
+                    if (dataCf!=nullptr)
+                    {
+                        auto ropt=handler.p()->readOptions;
+                        ROCKSDB_NAMESPACE::PinnableSlice existing;
+                        auto getStatus=tx->GetForUpdate(ropt,cf,k,&existing);
+                        if (getStatus.ok())
+                        {
+                            auto objectKey=Keys::objectKeyFromIndexValue(existing.data(),existing.size());
+                            bool dangling=objectKey.empty();
+                            if (!dangling)
+                            {
+                                ROCKSDB_NAMESPACE::PinnableSlice objectValue;
+                                auto objStatus=tx->Get(ropt,dataCf,objectKey,&objectValue);
+                                if (objStatus.IsNotFound())
+                                {
+                                    dangling=true;
+                                }
+                                else if (objStatus.ok())
+                                {
+                                    TtlMark::refreshCurrentTimepoint();
+                                    dangling=TtlMark::isExpired(objectValue);
+                                }
+                            }
+                            if (dangling)
+                            {
+                                HATN_CTX_WARN_RECORDS("replaced dangling unique index entry",{"dupl_key",logKey(k)})
+                                ROCKSDB_NAMESPACE::SliceParts keySlices{&key[0],static_cast<int>(key.size()-1)};
+                                status=tx->Put(cf,keySlices,indexValue);
+                                if (!status.ok())
+                                {
+                                    return makeError(DbError::SAVE_INDEX_FAILED,status);
+                                }
+                                return Error{OK};
+                            }
+                        }
+                    }
+
                     auto ec=dbError(DbError::DUPLICATE_UNIQUE_KEY);
                     HATN_CTX_ERROR_RECORDS(ec,"",{"dupl_key",logKey(k)})
                     return ec;
@@ -108,7 +151,11 @@ Error HATN_ROCKSDB_SCHEMA_EXPORT SaveSingleIndex(
     }
     if (put)
     {
-        ROCKSDB_NAMESPACE::SliceParts keySlices{&key[0],static_cast<int>(key.size())};
+        // A unique entry lives under slice[0] alone (see IndexKeyUpdate::deleteKeySlice()), also
+        // when it is rewritten with a new TTL mark: writing both slices would leave the real
+        // entry with the old mark and add a stray key that nothing ever deletes.
+        auto slicesCount=(unique && replace)?key.size()-1:key.size();
+        ROCKSDB_NAMESPACE::SliceParts keySlices{&key[0],static_cast<int>(slicesCount)};
 
         std::string bufk;
         ROCKSDB_NAMESPACE::Slice k{keySlices,&bufk};
