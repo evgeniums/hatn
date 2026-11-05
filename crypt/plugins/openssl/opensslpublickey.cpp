@@ -20,6 +20,9 @@
 #include <hatn/crypt/plugins/openssl/opensslutils.h>
 #include <hatn/crypt/plugins/openssl/opensslprivatekey.h>
 
+#include <openssl/ec.h>
+#include <openssl/err.h>
+
 #include <hatn/crypt/plugins/openssl/opensslpublickey.h>
 
 HATN_OPENSSL_NAMESPACE_BEGIN
@@ -164,6 +167,50 @@ Error OpenSslPublicKey::exportToBuf(common::ByteArray &buf, ContainerFormat form
                      buf,
                      format
                      );
+}
+
+//---------------------------------------------------------------
+Error OpenSslPublicKey::validate() const
+{
+    ::ERR_clear_error();
+
+    if (!isValid())
+    {
+        return cryptError(CryptError::INVALID_KEY);
+    }
+    EVP_PKEY* pkey=nativeHandler().handler;
+
+#ifdef OPENSSL_IS_BORINGSSL
+
+    // BoringSSL has no EVP_PKEY_public_check(); EC_KEY_check_key() checks that the point is on the
+    // curve, is not the point at infinity and has the order of the group
+    const EC_KEY* ecKey=::EVP_PKEY_get0_EC_KEY(pkey);
+    if (ecKey==nullptr)
+    {
+        return cryptError(CryptError::INVALID_KEY_TYPE);
+    }
+    if (::EC_KEY_check_key(ecKey)!=1)
+    {
+        return makeLastSslError(CryptError::INVALID_KEY);
+    }
+    return Error();
+
+#else
+
+    EVP_PKEY_CTX* ctx=::EVP_PKEY_CTX_new(pkey,nullptr);
+    if (ctx==nullptr)
+    {
+        return makeLastSslError(CryptError::KEY_INITIALIZATION_FAILED);
+    }
+    int ret=::EVP_PKEY_public_check(ctx);
+    ::EVP_PKEY_CTX_free(ctx);
+    if (ret!=1)
+    {
+        return makeLastSslError(CryptError::INVALID_KEY);
+    }
+    return Error();
+
+#endif
 }
 
 //---------------------------------------------------------------

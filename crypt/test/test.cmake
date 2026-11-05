@@ -33,6 +33,7 @@ SET (TEST_SOURCES
     ${CRYPT_TEST_SRC}/testaead.cpp
     ${CRYPT_TEST_SRC}/testmac.cpp
     ${CRYPT_TEST_SRC}/testsignature.cpp
+    ${CRYPT_TEST_SRC}/testeccurves.cpp
     ${CRYPT_TEST_SRC}/testcryptcontainer.cpp
     ${CRYPT_TEST_SRC}/testcryptfile.cpp
     ${CRYPT_TEST_SRC}/teststreamfile.cpp

@@ -113,6 +113,14 @@ class HATN_OPENSSL_EXPORT OpenSslPublicKey :
          * @return Operation status
          */
         virtual common::Error exportToBuf(common::ByteArray& buf,ContainerFormat format=ContainerFormat::PEM) const override;
+
+        /**
+         * @brief Check that the key is a valid public key of its algorithm
+         * @return Operation status
+         *
+         * Uses EVP_PKEY_public_check() with OpenSSL, EC_KEY_check_key() with BoringSSL.
+         */
+        virtual common::Error validate() const override;
 };
 
 HATN_OPENSSL_NAMESPACE_END

@@ -14,6 +14,10 @@
  */
 /****************************************************************************/
 
+#include <cstring>
+
+#include <openssl/obj_mac.h>
+
 #include <hatn/common/makeshared.h>
 
 #include <hatn/crypt/encrypthmac.h>
@@ -26,6 +30,28 @@
 #include <hatn/crypt/plugins/openssl/opensslec.h>
 
 HATN_OPENSSL_NAMESPACE_BEGIN
+
+namespace {
+
+//! NID of a curve given by its SECG name when OpenSSL knows the curve under another name, 0 otherwise.
+int secgCurveNid(const char* name) noexcept
+{
+    if (name==nullptr)
+    {
+        return 0;
+    }
+    if (::strcmp(name,"secp256r1")==0)
+    {
+        return NID_X9_62_prime256v1;
+    }
+    if (::strcmp(name,"secp192r1")==0)
+    {
+        return NID_X9_62_prime192v1;
+    }
+    return 0;
+}
+
+}
 
 /******************* ECPrivateKey ********************/
 
@@ -146,7 +172,14 @@ void ECAlg::init(const char *curveName) noexcept
         m_curveNid=::EC_curve_nist2nid(curveName);
         if (m_curveNid<=0)
         {
-            return;
+            // SECG names of the curves that OpenSSL knows under their X9.62 names. OpenSSL itself
+            // does not resolve these in the library (the openssl command line tool maps them before
+            // calling it), while they are the names used by most specifications and cipher suites.
+            m_curveNid=secgCurveNid(curveName);
+            if (m_curveNid<=0)
+            {
+                return;
+            }
         }
     }
     setHandler(ECMethod::stub());

@@ -218,6 +218,22 @@ class PublicKey : public KeyContainer<common::ByteArray>
             return common::Error();
         }
 
+        /**
+         * @brief Check that the key is a valid public key of its algorithm.
+         * @return Operation status, an error if the key is not valid.
+         *
+         * For elliptic curve keys this means that the point lies on the curve of the key and is
+         * not the point at infinity. Importing a key does not guarantee this on every backend
+         * and version, so a key that comes from an untrusted source and is used in key agreement
+         * must be checked explicitly before it is used.
+         *
+         * Backends that do not implement the check keep this default, which fails closed.
+         */
+        virtual common::Error validate() const
+        {
+            return cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN);
+        }
+
     private:
 
         common::ConstPointerWithInit<CryptAlgorithm*> m_alg;
