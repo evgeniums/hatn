@@ -273,7 +273,10 @@ class HATN_CLIENTAPP_EXPORT Service
             auto messageType=method->messageType();
             auto messageBuilder=method->messageBuilder();
             if (messageBuilder && !messageType.empty())
-            {                
+            {
+                // remember the method's own builder: the type-keyed map below keeps only the first
+                // builder registered for a type, which is not necessarily this method's one
+                m_methodBuilders[method->name()]=MethodBuilder{messageType,messageBuilder};
                 registerMessageBuilder(std::move(messageType),std::move(messageBuilder));
             }
         }
@@ -303,8 +306,21 @@ class HATN_CLIENTAPP_EXPORT Service
             registerMessageBuilder(std::move(messageType),builder);
         }
 
-        Result<du::UnitWrapper> makeMessage(const std::string& messageType, const std::string& messageJson) const
+        //! Build a message of messageType from JSON. If method names a method of this service whose own
+        //! builder is for the same messageType, that builder is used; this lets methods that share a
+        //! message type (e.g. a list request with a method-specific filter) parse it differently.
+        //! Otherwise the builder registered for messageType is used.
+        Result<du::UnitWrapper> makeMessage(const std::string& messageType, const std::string& messageJson, const std::string& method={}) const
         {
+            if (!method.empty())
+            {
+                auto mit=m_methodBuilders.find(method);
+                if (mit!=m_methodBuilders.end() && mit->second.messageType==messageType)
+                {
+                    return mit->second.builder(messageJson,messageType);
+                }
+            }
+
             auto it=m_messageBuilders.find(messageType);
             if (it==m_messageBuilders.end())
             {
@@ -320,6 +336,13 @@ class HATN_CLIENTAPP_EXPORT Service
         common::FlatMap<std::string,std::shared_ptr<Method>> m_methods;
 
         std::map<std::string,MessageBuilderFn> m_messageBuilders;
+
+        struct MethodBuilder
+        {
+            std::string messageType;
+            MessageBuilderFn builder;
+        };
+        std::map<std::string,MethodBuilder> m_methodBuilders;
 };
 
 template <typename ServiceName, typename ControllerT>
@@ -485,14 +508,14 @@ class HATN_CLIENTAPP_EXPORT Dispatcher
             return common::SharedPtr<app::AppEnv>{};
         }
 
-        Result<du::UnitWrapper> makeMessage(const std::string& service, const std::string& messageType, const std::string& messageJson) const
+        Result<du::UnitWrapper> makeMessage(const std::string& service, const std::string& messageType, const std::string& messageJson, const std::string& method={}) const
         {
             auto it=m_services.find(service);
             if (it==m_services.end())
             {
                 return clientAppError(ClientAppError::UNKNOWN_BRIDGE_SERVICE);
             }
-            return it->second->makeMessage(messageType,messageJson);
+            return it->second->makeMessage(messageType,messageJson,method);
         }
 
         void registerConfirmation(

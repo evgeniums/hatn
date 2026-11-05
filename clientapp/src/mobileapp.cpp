@@ -318,7 +318,7 @@ void MobileApp::exec(
     // make message
     if (req.messageTypeName!="")
     {
-        auto msgR=pimpl->app->bridge().makeMessage(service,req.messageTypeName,request.messageJson);
+        auto msgR=pimpl->app->bridge().makeMessage(service,req.messageTypeName,request.messageJson,method);
         if (msgR)
         {
             HATN_CTX_ERROR_RECORDS(msgR.error(),"failed to make message",{"bridge_srv",service},{"bridge_mthd",method})
