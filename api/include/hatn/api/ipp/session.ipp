@@ -19,6 +19,8 @@
 #ifndef HATNAPICLIENTSESSION_IPP
 #define HATNAPICLIENTSESSION_IPP
 
+#include <hatn/common/apierror.h>
+
 #include <hatn/logcontext/contextlogger.h>
 
 #include <hatn/dataunit/wirebufsolid.h>
@@ -98,9 +100,41 @@ Session<Traits,NoAuthT>::Session(
 //---------------------------------------------------------------
 
 template <typename Traits, typename NoAuthT>
+SessionAuthFailedCb Session<Traits,NoAuthT>::latchAuthFailure(const Error& ec)
+{
+    // only an error the server stated as terminal is latched; network errors, timeouts and
+    // retry/retry-after dispositions keep the normal retry behaviour of the callers
+    const auto* apiError=ec.apiError();
+    if (apiError==nullptr || !apiError->isTerminal())
+    {
+        return SessionAuthFailedCb{};
+    }
+
+    std::lock_guard<std::mutex> l{m_authFailureMutex};
+    if (m_authFailed.load())
+    {
+        return SessionAuthFailedCb{};
+    }
+    m_authFailure=ec;
+    m_authFailed.store(true);
+    return m_authFailedCb;
+}
+
+//---------------------------------------------------------------
+
+template <typename Traits, typename NoAuthT>
 template <typename ContextT, typename ClientT>
 void Session<Traits,NoAuthT>::refresh(common::SharedPtr<ContextT> ctx, RefreshCb callback, ClientT* client, Response resp)
 {
+    // a terminal failure was latched: retrying cannot help, so fail at once without touching the network
+    if (isAuthFailed())
+    {
+        auto ec=authFailure();
+        HATN_CTX_DEBUG(1,"session auth failed permanently, refresh refused")
+        callback(ctx.template staticCast<common::TaskContext>(),ec);
+        return;
+    }
+
     m_callbacks.emplace_back(std::move(callback));
 
     if (isRefreshing())
@@ -122,9 +156,11 @@ void Session<Traits,NoAuthT>::refresh(common::SharedPtr<ContextT> ctx, RefreshCb
 
             setRefreshing(false);
             setValid(!ec);
+            SessionAuthFailedCb authFailedCb;
             if (ec)
             {
                 resetAuthHeader();
+                authFailedCb=latchAuthFailure(ec);
             }
 
             for (auto&& it: m_callbacks)
@@ -132,6 +168,11 @@ void Session<Traits,NoAuthT>::refresh(common::SharedPtr<ContextT> ctx, RefreshCb
                 it(ctx,ec);
             }
             m_callbacks.clear();
+
+            if (authFailedCb)
+            {
+                authFailedCb(ec);
+            }
         },
         client,
         std::move(resp)

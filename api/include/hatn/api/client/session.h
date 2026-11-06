@@ -20,6 +20,7 @@
 #define HATNAPICLIENTSESSION_H
 
 #include <functional>
+#include <mutex>
 
 #include <hatn/common/objecttraits.h>
 #include <hatn/common/sharedptr.h>
@@ -115,6 +116,10 @@ using SessionId=du::ObjectId::String;
 
 using SessionRefreshCb=std::function<void (common::TaskContextShared,const Error&)>;
 
+//! Invoked once, on the client thread, when a session refresh fails with a terminal ApiError and the
+//! session latches that failure (see Session::isAuthFailed()).
+using SessionAuthFailedCb=std::function<void (const Error&)>;
+
 template <typename Traits, typename NoAuthT=hana::false_>
 class Session : public common::WithTraits<Traits>,
                 public common::pmr::WithFactory,
@@ -172,6 +177,44 @@ class Session : public common::WithTraits<Traits>,
             m_refreshing.store(enable);
         }
 
+        /**
+         * @brief Check if a refresh failed with a terminal error that retrying cannot fix.
+         *
+         * A refresh whose error is an ApiError with a Permanent/Unsupported disposition (e.g. the
+         * login was revoked on the server) latches here. While latched, refresh() fails at once
+         * with authFailure() and sends nothing to the network, so no component can start an
+         * endless negotiate loop by issuing requests. Only resetAuthFailure() clears the latch.
+         *
+         * Safe to call from any thread.
+         */
+        bool isAuthFailed() const noexcept
+        {
+            return m_authFailed.load();
+        }
+
+        //! The error that caused the latch, empty if not latched. Safe to call from any thread.
+        Error authFailure() const
+        {
+            std::lock_guard<std::mutex> l{m_authFailureMutex};
+            return m_authFailure;
+        }
+
+        //! Clear the latch so that the next request starts a new auth negotiation. This is meant
+        //! for an explicit user action.
+        void resetAuthFailure()
+        {
+            std::lock_guard<std::mutex> l{m_authFailureMutex};
+            m_authFailure=Error{};
+            m_authFailed.store(false);
+        }
+
+        //! Set callback invoked once per latch. Call before the session is used.
+        void setAuthFailedCb(SessionAuthFailedCb cb)
+        {
+            std::lock_guard<std::mutex> l{m_authFailureMutex};
+            m_authFailedCb=std::move(cb);
+        }
+
         template <typename ContextT, typename ClientT>
         void refresh(common::SharedPtr<ContextT> ctx, RefreshCb callback, ClientT* client, Response resp={});
 
@@ -197,10 +240,18 @@ class Session : public common::WithTraits<Traits>,
 
     private:
 
+        //! Latch the failure if it is terminal. Returns the callback to invoke, if any.
+        SessionAuthFailedCb latchAuthFailure(const Error& ec);
+
         SessionId m_id;
         std::atomic<bool> m_valid;
         std::atomic<bool> m_refreshing;
         std::vector<RefreshCb> m_callbacks;
+
+        std::atomic<bool> m_authFailed{false};
+        mutable std::mutex m_authFailureMutex;
+        Error m_authFailure;
+        SessionAuthFailedCb m_authFailedCb;
 };
 
 /********************** SessionWrapper **************************/
@@ -240,6 +291,26 @@ class SessionWrapperImpl : public SessionWrapperT
         void setRefreshing(bool enable) noexcept
         {
             this->session().setRefreshing(enable);
+        }
+
+        bool isAuthFailed() const noexcept
+        {
+            return this->session().isAuthFailed();
+        }
+
+        Error authFailure() const
+        {
+            return this->session().authFailure();
+        }
+
+        void resetAuthFailure()
+        {
+            this->session().resetAuthFailure();
+        }
+
+        void setAuthFailedCb(SessionAuthFailedCb cb)
+        {
+            this->session().setAuthFailedCb(std::move(cb));
         }
 
         template <typename ContextT, typename CallbackT, typename ClientT>

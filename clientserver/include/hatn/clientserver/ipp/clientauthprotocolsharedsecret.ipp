@@ -108,6 +108,17 @@ void ClientAuthProtocolSharedSecret::invoke(
             return;
         }
 
+        // keep the error stated by the server (e.g. a revoked login), as negotiate does, instead of
+        // losing it in the generic "auth completion failed" later. A 401 carries no error object and
+        // stays on the existing path.
+        if (!response.isSuccess() && response.error())
+        {
+            auto respError=response.error();
+            HATN_CTX_DEBUG_RECORDS(1,"HSS rejected by server",{"errm",respError.message()},{"errc",respError.codeString()})
+            callback(std::move(ctx),respError,api::client::Response{});
+            return;
+        }
+
         callback(std::move(ctx),Error{},std::move(response));
     };
 
