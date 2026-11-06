@@ -371,6 +371,17 @@ void Thread::run()
         {
             std::unique_lock<std::mutex> l(d->mutex);
             d->firstRun.store(false,std::memory_order_release);
+            if (!d->newThread)
+            {
+                /* A loop that runs in the caller's thread (the main thread) can be stopped by another thread at any
+                 * moment, also BEFORE it got here: stop() then set `stopped` and asked the context to stop, but the
+                 * restart() above (and the one in start()) cancelled that request, so the loop runs while `stopped`
+                 * is still true. Every later stop() returns at once on that flag, the timer that is meant to end the
+                 * loop included, and the loop never ends. The loop is running now, so `stopped` must say so; a stop
+                 * that raced before this point is lost, and the next one (a timer, another thread) works.
+                 */
+                d->stopped.store(false);
+            }
             d->running.store(true,std::memory_order_release);
             d->startedCondition.notify_one();
         }

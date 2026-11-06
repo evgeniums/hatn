@@ -1,5 +1,7 @@
 #include <iostream>
 #include <chrono>
+#include <atomic>
+#include <thread>
 
 #include <boost/test/unit_test.hpp>
 
@@ -1163,6 +1165,57 @@ BOOST_FIXTURE_TEST_CASE(TestAsyncWithCallback,MultiThreadFixture)
     originThread->execAsync(async1);
 
     exec(1);
+}
+
+//! A stop() from another thread that lands just before the loop of a main-thread style Thread starts must not disable the
+//! later stop() calls: the loop would never end (the timer meant to end it stops nothing). A watchdog ends a loop that
+//! hangs, so that the failure is reported instead of blocking the test.
+BOOST_AUTO_TEST_CASE(StopRacingWithStartDoesNotDisableLaterStops)
+{
+    size_t hangs=0;
+    for (size_t i=0;i<300;++i)
+    {
+        Thread loop("racing",false);
+        std::atomic<bool> finished{false};
+        std::atomic<bool> watchdogFired{false};
+
+        // like the done() of a task of another thread that finishes at once
+        std::thread racer([&loop]()
+        {
+            loop.stop();
+        });
+
+        // like the one-second timer that is meant to end the loop
+        loop.installTimer(5*1000,[&loop]()
+        {
+            loop.stop();
+            return false;
+        },true);
+
+        std::thread watchdog([&loop,&finished,&watchdogFired]()
+        {
+            for (int j=0;j<300 && !finished.load();++j)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            }
+            if (!finished.load())
+            {
+                watchdogFired.store(true);
+                loop.asioContextRef().stop();
+            }
+        });
+
+        loop.start();
+        finished.store(true);
+
+        racer.join();
+        watchdog.join();
+        if (watchdogFired.load())
+        {
+            ++hangs;
+        }
+    }
+    BOOST_CHECK_EQUAL(hangs,0u);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
