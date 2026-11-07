@@ -779,6 +779,133 @@ BOOST_FIXTURE_TEST_CASE(TestParseError,::hatn::test::MultiThreadFixture)
     BOOST_CHECK_EQUAL(ec.message(),"failed to parse JSON: Terminate parsing due to Handler error. at offset 72, key int_field1: invalid format of JSON field");
 }
 
+//! Keys that the unit does not declare are skipped whatever their value is: a scalar of any kind, null, an object or an
+//! array with anything inside, at the top level and inside a declared subunit, before, between and after declared keys.
+//! (Before, only an object value was tolerated; a scalar value made the whole load fail.)
+BOOST_FIXTURE_TEST_CASE(TestUnknownKeysAreSkipped,::hatn::test::MultiThreadFixture)
+{
+    // the same unit once with unknown keys of every kind and once clean: they must load to the same value
+    const std::string dirty=
+        "{"
+        "\"u_str\":\"some string\","
+        "\"u_esc\":\"quote \\\" slash \\\\ \\u0436 \\n\","
+        "\"u_int\":-12,"
+        "\"u_big\":18446744073709551615,"
+        "\"u_double\":1.5e3,"
+        "\"u_true\":true,\"u_false\":false,\"u_null\":null,"
+        "\"sub1\":{"
+            "\"u_in_sub\":{\"a\":[1,2,{\"b\":null,\"c\":[[],{}]}]},"
+            "\"str_field1\":\"inner\","
+            "\"u_scalar_in_sub\":true,"
+            "\"int_field1\":5,"
+            "\"u_array_in_sub\":[\"x\",7,false]"
+        "},"
+        "\"u_obj\":{\"deep\":{\"deeper\":{\"str_field1\":\"must not leak\",\"sub1\":{\"int_field1\":99}}}},"
+        "\"u_arr\":[1,\"two\",[3,[4]],{\"five\":5},[],{}],"
+        "\"u_empty_obj\":{},\"u_empty_arr\":[],"
+        "\"sub2\":{\"int_field1\":7,\"u_last\":\"x\"},"
+        "\"u_tail\":0"
+        "}";
+    const std::string clean=
+        "{"
+        "\"sub1\":{\"str_field1\":\"inner\",\"int_field1\":5},"
+        "\"sub2\":{\"int_field1\":7}"
+        "}";
+
+    ju2::type fromDirty;
+    BOOST_REQUIRE(fromDirty.loadFromJSON(dirty));
+    ju2::type fromClean;
+    BOOST_REQUIRE(fromClean.loadFromJSON(clean));
+    BOOST_CHECK_EQUAL(fromDirty.toString(PrettyFormat,MaxDecimalPlaces),fromClean.toString(PrettyFormat,MaxDecimalPlaces));
+
+    // and the declared values really are there, not only equal to each other
+    BOOST_REQUIRE(fromDirty.field(ju2::sub1).isSet());
+    BOOST_CHECK_EQUAL(std::string{fromDirty.field(ju2::sub1).value().fieldValue(ju1::str_field1)},"inner");
+    BOOST_CHECK_EQUAL(fromDirty.field(ju2::sub1).value().fieldValue(ju1::int_field1),5);
+    BOOST_REQUIRE(fromDirty.field(ju2::sub2).isSet());
+    BOOST_CHECK_EQUAL(fromDirty.field(ju2::sub2).value().fieldValue(ju1::int_field1),7);
+    BOOST_CHECK(!fromDirty.field(ju2::sub2).value().field(ju1::str_field1).isSet());
+
+    // a declared key inside a skipped value is the skipped value's, never the unit's: sub1 is the declared one, the "sub1"
+    // inside u_obj must not replace or merge into it, and the "str_field1" there must not land in the top-level unit's subunits
+    BOOST_CHECK_EQUAL(std::string{fromDirty.field(ju2::sub1).value().fieldValue(ju1::str_field1)},"inner");
+
+    // the unknown key is the only one, and a unit of only unknown keys is an empty unit
+    ju2::type onlyUnknown;
+    BOOST_REQUIRE(onlyUnknown.loadFromJSON(std::string{"{\"zz\":1}"}));
+    BOOST_CHECK(!onlyUnknown.field(ju2::sub1).isSet());
+    BOOST_CHECK(!onlyUnknown.field(ju2::sub2).isSet());
+    BOOST_REQUIRE(onlyUnknown.loadFromJSON(std::string{"{\"zz\":{\"a\":[]},\"yy\":[{}]}"}));
+    BOOST_CHECK(!onlyUnknown.field(ju2::sub1).isSet());
+
+    // the same unknown key twice, and a value that is the last thing before the end of the object
+    BOOST_REQUIRE(onlyUnknown.loadFromJSON(std::string{"{\"zz\":1,\"zz\":[2],\"sub1\":{\"int_field1\":3},\"zz\":{\"x\":null}}"}));
+    BOOST_REQUIRE(onlyUnknown.field(ju2::sub1).isSet());
+    BOOST_CHECK_EQUAL(onlyUnknown.field(ju2::sub1).value().fieldValue(ju1::int_field1),3);
+}
+
+//! Unknown keys inside the elements of a repeated subunit.
+BOOST_FIXTURE_TEST_CASE(TestUnknownKeysAreSkippedInRepeatedSubunits,::hatn::test::MultiThreadFixture)
+{
+    // every element carries the required field of all_types, otherwise the unit does not serialize to a string at all
+    const std::string dirty=
+        "{\"u_before\":[1,2],"
+        "\"f0\":["
+            "{\"type_int8\":5,\"u_in_elem\":{\"a\":[1,{\"b\":2}]},\"type_int16\":6,\"type_int8_required\":1},"
+            "{\"u_scalar\":null,\"type_int8\":7,\"type_int8_required\":1},"
+            "{\"u_only\":true,\"type_int8_required\":1}"
+        "],"
+        "\"u_after\":\"x\"}";
+    const std::string clean=
+        "{\"f0\":[{\"type_int8\":5,\"type_int16\":6,\"type_int8_required\":1},"
+        "{\"type_int8\":7,\"type_int8_required\":1},{\"type_int8_required\":1}]}";
+
+    wire_unit_repeated::type fromDirty;
+    BOOST_REQUIRE(fromDirty.loadFromJSON(dirty));
+    wire_unit_repeated::type fromClean;
+    BOOST_REQUIRE(fromClean.loadFromJSON(clean));
+
+    const auto& fields=wire_unit_repeated::traits::fields;
+    BOOST_CHECK_EQUAL(fromDirty.field(fields.f0).count(),3u);
+    BOOST_CHECK_EQUAL(fromClean.field(fields.f0).count(),3u);
+    BOOST_CHECK(!fromClean.toString(PrettyFormat,MaxDecimalPlaces).empty());
+    BOOST_CHECK_EQUAL(fromDirty.toString(PrettyFormat,MaxDecimalPlaces),fromClean.toString(PrettyFormat,MaxDecimalPlaces));
+}
+
+//! Skipping unknown keys must not hide real errors: a declared key of the wrong type, malformed JSON inside or after a
+//! skipped value, and a document that is not an object are still refused.
+BOOST_FIXTURE_TEST_CASE(TestSkippingUnknownKeysKeepsTheErrors,::hatn::test::MultiThreadFixture)
+{
+    auto fails=[](const std::string& json, const char* what, const char* inMessage=nullptr)
+    {
+        hatn::Error ec;
+        ju2::type obj;
+        BOOST_CHECK_MESSAGE(!obj.loadFromJSON(json,ec),std::string{"loaded: "}+what);
+        if (inMessage!=nullptr)
+        {
+            BOOST_CHECK_MESSAGE(ec.message().find(inMessage)!=std::string::npos,
+                                std::string{what}+": message is \""+ec.message()+"\"");
+        }
+    };
+
+    // a declared key of the wrong type is an error next to unknown keys, and names the key
+    fails("{\"zz\":1,\"sub1\":{\"str_field1\":100}}","wrong type of a declared key after an unknown key","str_field1");
+    fails("{\"sub1\":{\"zz\":[1],\"int_field1\":\"text\"}}","wrong type of a declared key after an unknown key in a subunit","int_field1");
+
+    // malformed JSON inside a skipped value, or an unterminated one
+    fails("{\"zz\":{\"a\":[1,2}}","containers closed in the wrong order inside a skipped value");
+    fails("{\"zz\":[1,2","unterminated array skipped");
+    fails("{\"zz\":{\"a\":1}","unterminated outer object after a skipped object");
+    fails("{\"zz\":{\"a\":}}","a missing value inside a skipped object");
+    fails("{\"zz\":,\"sub1\":{}}","a missing value of an unknown key");
+    fails("{\"zz\" 1}","a missing colon after an unknown key");
+
+    // the document itself must be an object
+    fails("5","a scalar document");
+    fails("[1,2]","an array document");
+    fails("\"text\"","a string document");
+}
+
 //! @todo Test Object ID, DateTime, Date, Time, DateRange
 
 BOOST_AUTO_TEST_SUITE_END()

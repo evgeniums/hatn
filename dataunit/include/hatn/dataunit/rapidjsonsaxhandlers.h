@@ -95,6 +95,55 @@ struct ReaderBaseHandler : public ReaderBase
     {}
 };
 
+/**
+ * JSON read handler that consumes ONE value of any kind and stops: a scalar, or a whole object or array with everything
+ * in it. UnitReader::Key() puts it in front of its own continuation for a key that the unit does not declare, so that an
+ * unknown key is skipped whatever its value is.
+ *
+ * Every handler of this library handles one parse event and pushes the handler of the next one, so the state is the
+ * number of containers opened inside the skipped value (m_scopes): a scalar at depth 0 is the whole value and nothing
+ * more is pushed; a container raises the depth, and its end lowers it; the skip is over when the depth is back to 0.
+ */
+struct HATN_DATAUNIT_EXPORT SkipReader : public ReaderBaseHandler<SkipReader>, public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,json::SkipReader>
+{
+    Unit* m_unit;
+
+    SkipReader(
+            Unit* topUnit,
+            Unit* currentUnit,
+            int depth,
+            int
+        ) : ReaderBaseHandler<SkipReader>(topUnit,depth),
+            m_unit(currentUnit)
+    {}
+
+    //! Continue with the next event of the skipped value, if there is one
+    void next(int depth)
+    {
+        if (depth>0)
+        {
+            pushHandler<Unit,SkipReader>(this->m_topUnit,m_unit,depth);
+        }
+    }
+
+    bool Null() { next(m_scopes); return true; }
+    bool Bool(bool) { next(m_scopes); return true; }
+    bool Int(int) { next(m_scopes); return true; }
+    bool Uint(unsigned) { next(m_scopes); return true; }
+    bool Int64(int64_t) { next(m_scopes); return true; }
+    bool Uint64(uint64_t) { next(m_scopes); return true; }
+    bool Double(double) { next(m_scopes); return true; }
+    bool RawNumber(const char*, rapidjson::SizeType, bool) { next(m_scopes); return true; }
+    bool String(const char*, rapidjson::SizeType, bool) { next(m_scopes); return true; }
+
+    bool StartObject() { next(m_scopes+1); return true; }
+    bool Key(const char*, rapidjson::SizeType, bool) { next(m_scopes); return true; }
+    bool EndObject(rapidjson::SizeType) { next(m_scopes-1); return true; }
+
+    bool StartArray() { next(m_scopes+1); return true; }
+    bool EndArray(rapidjson::SizeType) { next(m_scopes-1); return true; }
+};
+
 //! JSON read handler for Unit
 struct HATN_DATAUNIT_EXPORT UnitReader : public ReaderBaseHandler<UnitReader>, public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,json::UnitReader>
 {
@@ -134,7 +183,10 @@ struct HATN_DATAUNIT_EXPORT UnitReader : public ReaderBaseHandler<UnitReader>, p
         }
         else
         {
-            // unknown fields are valid, just skip them
+            // Unknown fields are valid: skip the value, whatever it is (a scalar, an object or an array). The skip
+            // handler is pushed after the continuation pushed above, so it reads the value first. Without it the
+            // value would reach Default() below, which refuses it.
+            pushHandler<Unit,SkipReader>(this->m_topUnit,m_unit,0);
         }
         return true;
     }
