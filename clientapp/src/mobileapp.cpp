@@ -543,7 +543,8 @@ int MobileApp::setFileSetting(
         Error& error
     )
 {
-    auto ec=pimpl->app->fileSettings().setJson(key,jsonValue);
+    // the section is the first component of the dotted key, so that a subscriber of a section hears this write
+    auto ec=pimpl->app->fileSettings().setJson(key,jsonValue,HATN_CLIENTAPP_NAMESPACE::ClientAppFileSettings::sectionOfKey(key));
     if (ec)
     {
         fillError(error,ec);
@@ -572,7 +573,8 @@ int doGetFileSetting(HATN_CLIENTAPP_NAMESPACE::ClientAppFileSettings& fs, const 
 template <typename T>
 int doSetFileSetting(HATN_CLIENTAPP_NAMESPACE::ClientAppFileSettings& fs, const std::string& key, T value, Error& error)
 {
-    auto ec=fs.set(key,std::move(value));
+    // the section is the first component of the dotted key, so that a subscriber of a section hears this write
+    auto ec=fs.set(key,std::move(value),HATN_CLIENTAPP_NAMESPACE::ClientAppFileSettings::sectionOfKey(key));
     if (ec)
     {
         fillError(error,ec);

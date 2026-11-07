@@ -282,6 +282,20 @@ class HATN_CLIENTAPP_EXPORT ClientAppFileSettings
         /** @brief Get a subsection as a serialized JSON string, reporting error via out-param. */
         std::string getJson(const HATN_BASE_NAMESPACE::ConfigTreePath& path, common::Error& ec) const;
 
+        /**
+         * @brief The AppSettingsEvent section that a write of a dotted key publishes.
+         *
+         * The first component of the key: "e2e.push_previews" gives "e2e". Used by the mobile setters
+         * (MobileApp::setFileSetting*), which only have the dotted key, so that a subscriber keyed on
+         * a section ({AppSettingsEvent::Category, "e2e"}) hears a mobile write like it hears the
+         * client's own writers, which pass their section explicitly.
+         *
+         * Empty (the event is published with an empty section, as before) when the key has no dot, an
+         * empty first component, or the first component is ClientAppSettings::AppSection ("app"): the
+         * legacy "app" call sites publish with an empty section on purpose and nothing reads "app".
+         */
+        static std::string sectionOfKey(const std::string& key);
+
     private:
 
         /** @brief Serialize and write to file. Must be called with m_mutex held. */

@@ -98,6 +98,25 @@ void ClientAppFileSettings::publishChange(std::string section)
 
 //---------------------------------------------------------------
 
+std::string ClientAppFileSettings::sectionOfKey(const std::string& key)
+{
+    const auto dot = key.find('.');
+    if (dot == std::string::npos || dot == 0)
+    {
+        return std::string{};
+    }
+
+    auto section = key.substr(0, dot);
+    if (section == ClientAppSettings::AppSection)
+    {
+        // legacy: the "app" keys publish with an empty section, see whitemclient filesettingsaccess.h
+        return std::string{};
+    }
+    return section;
+}
+
+//---------------------------------------------------------------
+
 Error ClientAppFileSettings::apply(Mutator mutator, std::string section)
 {
     Error ec;
