@@ -880,7 +880,18 @@ class HATN_DB_EXPORT Client : public common::WithID
 
         Error transaction(const TransactionFn& fn)
         {
-            return doTransaction(fn);
+            HATN_CTX_SCOPE("db::transaction")
+
+            // Must be gated like every other operation: after closeDb() the backend handler is
+            // gone, so a late transaction (e.g. one still queued when the app closes) would
+            // dereference a null handler instead of failing with DB_NOT_OPEN.
+            if (m_open)
+            {
+                return doTransaction(fn);
+            }
+
+            HATN_CTX_SCOPE_LOCK()
+            return dbError(DbError::DB_NOT_OPEN);
         }
 
     protected:

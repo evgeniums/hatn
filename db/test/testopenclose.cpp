@@ -122,6 +122,19 @@ void createOpenCloseDestroy(std::shared_ptr<DbPlugin> plugin)
     ec=client->closeDb();
     BOOST_REQUIRE(!ec);
 
+    // a transaction requested after close must fail cleanly, not touch the released backend
+    // (regression: Client::transaction() used to skip the open check and crashed on a null handler)
+    bool txInvoked=false;
+    ec=client->transaction(
+        [&txInvoked](Transaction*)
+        {
+            txInvoked=true;
+            return Error{};
+        }
+    );
+    BOOST_CHECK(ec.is(DbError::DB_NOT_OPEN));
+    BOOST_CHECK(!txInvoked);
+
     // destroy database
     BOOST_TEST_MESSAGE(fmt::format("destroying database by {} client",plugin->info()->name));
     ec=client->destroyDb(cfg,logRecords);
