@@ -168,6 +168,86 @@ std::vector<std::string> Utf8Proc::tokenizeWithDomains(std::string_view normaliz
     return tokens;
 }
 
+//---------------------------------------------------------------
+
+std::vector<Utf8Token> Utf8Proc::tokenizeWithOffsets(std::string_view input, bool withDomains) const
+{
+    std::vector<Utf8Token> tokens;
+
+    const auto* data=reinterpret_cast<const utf8proc_uint8_t*>(input.data());
+    const auto total=static_cast<utf8proc_ssize_t>(input.size());
+
+    utf8proc_ssize_t pos=0;
+    utf8proc_ssize_t start=-1;
+    utf8proc_category_t prevCat=UTF8PROC_CATEGORY_CN;
+
+    auto flush=[&](utf8proc_ssize_t end)
+    {
+        if (start>=0)
+        {
+            Utf8Token token;
+            token.offset=static_cast<size_t>(start);
+            token.length=static_cast<size_t>(end-start);
+            token.token.assign(input.data()+start,token.length);
+            tokens.push_back(std::move(token));
+            start=-1;
+        }
+        prevCat=UTF8PROC_CATEGORY_CN;
+    };
+
+    while (pos<total)
+    {
+        utf8proc_int32_t cp=0;
+        auto n=utf8proc_iterate(data+pos,total-pos,&cp);
+        if (n<=0)
+        {
+            // invalid byte: a boundary, skip it
+            flush(pos);
+            ++pos;
+            continue;
+        }
+
+        auto cat=utf8proc_category(cp);
+        bool boundary=false;
+
+        if (cat==UTF8PROC_CATEGORY_ZS || cat==UTF8PROC_CATEGORY_ZL ||
+            cat==UTF8PROC_CATEGORY_ZP || cat==UTF8PROC_CATEGORY_CC)
+        {
+            boundary=true;
+        }
+        else if (cat>=UTF8PROC_CATEGORY_PC && cat<=UTF8PROC_CATEGORY_PO)
+        {
+            boundary=true;
+            if (withDomains && (cp=='.' || cp=='-') && start>=0 && is_alnum(prevCat))
+            {
+                utf8proc_int32_t nextCp=0;
+                if (pos+n<total && utf8proc_iterate(data+pos+n,total-pos-n,&nextCp)>0
+                    && is_alnum(utf8proc_category(nextCp)))
+                {
+                    boundary=false;
+                }
+            }
+        }
+
+        if (boundary)
+        {
+            flush(pos);
+        }
+        else
+        {
+            if (start<0)
+            {
+                start=pos;
+            }
+            prevCat=cat;
+        }
+        pos+=n;
+    }
+    flush(pos);
+
+    return tokens;
+}
+
 #endif
 
 //---------------------------------------------------------------

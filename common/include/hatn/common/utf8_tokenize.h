@@ -24,6 +24,16 @@
 
 HATN_COMMON_NAMESPACE_BEGIN
 
+/**
+ * A word of a text together with its place in that text.
+ */
+struct Utf8Token
+{
+    std::string token;      //!< the word exactly as it is written in the input (not normalized)
+    size_t offset=0;        //!< byte offset of the word in the input
+    size_t length=0;        //!< length of the word in bytes
+};
+
 class HATN_COMMON_EXPORT AbstractUtf8Proc
 {
     public:
@@ -40,6 +50,19 @@ class HATN_COMMON_EXPORT AbstractUtf8Proc
         virtual std::vector<std::string> tokenize(lib::string_view normalized) const =0;
 
         virtual std::vector<std::string> tokenizeWithDomains(lib::string_view normalized) const =0;
+
+        /**
+         * Split a text into words and report where each word is.
+         * @param input Text as it is written, NOT normalized: normalization removes diacritics
+         *              (e.g. a Cyrillic "й" becomes "и"), which can make a word unknown to a dictionary,
+         *              so a caller stems the raw word first and normalizes the result.
+         * @param withDomains If true then "." and "-" between letters or digits stay inside a word,
+         *                    as in tokenizeWithDomains(); by default every punctuation mark splits.
+         * @return Words in order of appearance. An invalid UTF-8 byte is a boundary.
+         *
+         * Added after the other virtual methods of this class on purpose.
+         */
+        virtual std::vector<Utf8Token> tokenizeWithOffsets(lib::string_view input, bool withDomains=false) const =0;
 
         std::vector<std::string> tokenizeNormalized(lib::string_view input) const
         {
@@ -63,6 +86,7 @@ class HATN_COMMON_EXPORT Utf8Proc : public AbstractUtf8Proc
         std::string normalize(lib::string_view input) const override;
         std::vector<std::string> tokenize(lib::string_view normalized) const override;
         std::vector<std::string> tokenizeWithDomains(lib::string_view normalized) const override;
+        std::vector<Utf8Token> tokenizeWithOffsets(lib::string_view input, bool withDomains=false) const override;
 };
 
 #endif

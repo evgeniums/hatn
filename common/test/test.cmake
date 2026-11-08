@@ -24,6 +24,7 @@ SET(TEST_SOURCES
     ${COMMON_TEST_SRC}/testtaskcontext.cpp
     ${COMMON_TEST_SRC}/testlru.cpp
     ${COMMON_TEST_SRC}/testsimplequeue.cpp
+    ${COMMON_TEST_SRC}/testutf8tokenize.cpp
 )
 
 IF(ENABLE_TRANSLATIONS)
