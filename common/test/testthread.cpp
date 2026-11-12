@@ -1,3 +1,4 @@
+#include <cerrno>
 #include <iostream>
 #include <chrono>
 #include <atomic>
@@ -1216,6 +1217,31 @@ BOOST_AUTO_TEST_CASE(StopRacingWithStartDoesNotDisableLaterStops)
         }
     }
     BOOST_CHECK_EQUAL(hangs,0u);
+}
+
+//! A stale errno (such as ERANGE left behind by CoreAudio on macOS) must not make the asio context of a Thread throw
+//! std::out_of_range("config out of range"): Boost 1.87 asio checks errno after strtoll() without clearing it first, see
+//! makeAsioContext() in thread.cpp. The scheduler config is read when the context is created, the reactor config when the
+//! first timer of the context is created, and the main-thread style Thread runs its loop in the calling thread.
+BOOST_AUTO_TEST_CASE(StaleErrnoDoesNotBreakAsioContext)
+{
+    auto run=[]()
+    {
+        errno=ERANGE;
+        Thread loop("stale-errno",false);
+
+        errno=ERANGE;
+        loop.installTimer(1000,[&loop]()
+        {
+            loop.stop();
+            return false;
+        },true);
+
+        errno=ERANGE;
+        loop.start();
+    };
+
+    BOOST_CHECK_NO_THROW(run());
 }
 
 BOOST_AUTO_TEST_SUITE_END()

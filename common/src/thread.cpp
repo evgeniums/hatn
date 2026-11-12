@@ -13,6 +13,9 @@
   *
   */
 
+#include <cerrno>
+#include <cstring>
+#include <tuple>
 #include <mutex>
 #include <map>
 #include <future>
@@ -35,6 +38,11 @@
 #include <boost/asio/high_resolution_timer.hpp>
 #include <boost/asio/executor_work_guard.hpp>
 #include <boost/asio/post.hpp>
+#include <boost/asio/io_context.hpp>
+#include <boost/version.hpp>
+#if BOOST_VERSION >= 108700
+#include <boost/asio/config.hpp>
+#endif
 
 #ifdef __GNUC__
 #pragma GCC diagnostic pop
@@ -193,6 +201,89 @@ struct Timer final
 
 }
 
+#if BOOST_VERSION >= 108700 && BOOST_VERSION < 109000
+
+#define HATN_ASIO_ERRNO_WORKAROUND
+
+namespace {
+
+/**
+ * @brief Asio config service that clears errno before Asio parses a config value.
+ *
+ * Boost 1.87 Asio bug: boost/asio/impl/config.hpp config_get() calls strtoll()/strtoull() and then
+ * checks errno==ERANGE without setting errno=0 first. A stale ERANGE left on the calling thread by
+ * any earlier call (seen on macOS: CoreAudio while the microphone permission is still undetermined,
+ * most often with a Bluetooth input such as AirPods) makes io_context construction, or the lazy
+ * creation of its reactor, throw std::out_of_range("config out of range") - an uncaught exception
+ * that aborts the application (first voice message recording).
+ *
+ * config_get() calls get_value() and then strtoll() immediately, so clearing errno here guards every
+ * value read, including the reactor ones that are read later when the first timer or socket of the
+ * context is used. Answers are the same as boost::asio::config_from_concurrency_hint{1} gives, i.e.
+ * the same as io_context(1): not a "special" hint, so locking stays on.
+ *
+ * Fixed upstream in later Boost (checked in 1.90). The headers of the deps are also patched, see
+ * build/deps/desktop/libs/boost_asio_config_errno.patch. Remove this once deps are on a fixed Boost.
+ */
+class ErrnoSafeAsioConfig : public boost::asio::config_service
+{
+    public:
+
+        explicit ErrnoSafeAsioConfig(boost::asio::execution_context& ctx) : boost::asio::config_service(ctx)
+        {}
+
+        const char* get_value(const char* section, const char* key, char* value, std::size_t valueLen) const override
+        {
+            std::ignore=value;
+            std::ignore=valueLen;
+
+            const char* result=nullptr;
+            if (std::strcmp(section,"scheduler")==0)
+            {
+                if (std::strcmp(key,"concurrency_hint")==0 || std::strcmp(key,"locking")==0)
+                {
+                    result="1";
+                }
+            }
+            else if (std::strcmp(section,"reactor")==0)
+            {
+                if (std::strcmp(key,"io_locking")==0 || std::strcmp(key,"registration_locking")==0)
+                {
+                    result="1";
+                }
+            }
+
+            if (result!=nullptr)
+            {
+                errno=0;
+            }
+            return result;
+        }
+};
+
+class ErrnoSafeAsioConfigMaker : public boost::asio::execution_context::service_maker
+{
+    public:
+
+        void make(boost::asio::execution_context& ctx) const override
+        {
+            boost::asio::make_service<ErrnoSafeAsioConfig>(ctx);
+        }
+};
+
+}
+
+#endif
+
+static std::shared_ptr<boost::asio::io_context> makeAsioContext()
+{
+#ifdef HATN_ASIO_ERRNO_WORKAROUND
+    return std::make_shared<boost::asio::io_context>(ErrnoSafeAsioConfigMaker{});
+#else
+    return std::make_shared<boost::asio::io_context>(1);
+#endif
+}
+
 class Thread_p
 {
     public:
@@ -226,7 +317,7 @@ class Thread_p
                 bool newThread
             ) : id(std::move(id)),
                 newThread(newThread),
-                asioContext(std::make_shared<boost::asio::io_context>(1)),
+                asioContext(makeAsioContext()),
                 nativeID(std::this_thread::get_id()),
                 workGuard(boost::asio::make_work_guard(*asioContext)),
                 timerIncId(0)

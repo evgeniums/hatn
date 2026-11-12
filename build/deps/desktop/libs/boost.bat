@@ -17,6 +17,17 @@ if %errorlevel% neq 0 (
   echo "boost patched"
 )
 
+REM Boost 1.87 Asio bug: stale errno makes io_context creation throw "config out of range" (fixed in 1.88).
+REM No-op for versions without the file or already patched.
+IF EXIST boost\asio\impl\config.hpp (
+  findstr /C:"errno = 0;" boost\asio\impl\config.hpp > NUL
+  IF !errorlevel! NEQ 0 (
+    echo "boost asio config must be patched"
+    %PATCH% -p0 -N -l -i %SCRIPTS_ROOT%libs/boost_asio_config_errno.patch
+    echo "boost asio config patched"
+  )
+)
+
 call "bootstrap" %COMPILER%
 IF %errorlevel% NEQ 0 (
     ECHO Failed to build boost

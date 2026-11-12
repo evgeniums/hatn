@@ -1,0 +1,26 @@
+--- boost/asio/impl/config.hpp	2026-11-12 10:14:29.447750651 +0400
++++ boost/asio/impl/config.hpp	2026-11-12 10:14:35.426875380 +0400
+@@ -37,6 +37,7 @@
+     if (const char* str = service.get_value(section, key, buf, sizeof(buf)))
+     {
+       char* end = nullptr;
++      errno = 0;
+       unsigned long long result = std::strtoull(str, &end, 0);
+       if (errno == ERANGE || result > (std::numeric_limits<T>::max)())
+         detail::throw_exception(std::out_of_range("config out of range"));
+@@ -49,6 +50,7 @@
+     if (const char* str = service.get_value(section, key, buf, sizeof(buf)))
+     {
+       char* end = nullptr;
++      errno = 0;
+       long long result = std::strtoll(str, &end, 0);
+       if (errno == ERANGE || result < (std::numeric_limits<T>::min)()
+           || result > (std::numeric_limits<T>::max)())
+@@ -67,6 +69,7 @@
+   if (const char* str = service.get_value(section, key, buf, sizeof(buf)))
+   {
+     char* end = nullptr;
++    errno = 0;
+     unsigned long long result = std::strtoll(str, &end, 0);
+     if (errno == ERANGE || (result != 0 && result != 1))
+       detail::throw_exception(std::out_of_range("config out of range"));

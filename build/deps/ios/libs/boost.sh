@@ -13,6 +13,13 @@ source $scripts_root/../desktop/scripts/downloadandunpack.sh
 
 cd $folder
 
+# Boost 1.87 Asio bug: stale errno makes io_context creation throw "config out of range" (fixed in 1.88).
+# See desktop/libs/boost.sh. No-op for versions without the file or already patched.
+if [ -f boost/asio/impl/config.hpp ] && ! grep -q "errno = 0;" boost/asio/impl/config.hpp
+then
+    patch -p0 -N -l < $scripts_root/../desktop/libs/boost_asio_config_errno.patch
+fi
+
 sdk_path=`xcrun --sdk $target_sdk --show-sdk-path`
 echo "sdk_path=$sdk_path"
 

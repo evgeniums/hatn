@@ -12,6 +12,14 @@ source $scripts_root/scripts/downloadandunpack.sh
 
 cd $folder
 
+# Boost 1.87 Asio bug: config_get() checks errno==ERANGE after strtoll() without clearing errno first,
+# so a stale ERANGE left by any earlier call (e.g. CoreAudio) makes io_context creation throw
+# "config out of range". Fixed upstream in 1.88; no-op for versions without the file or already patched.
+if [ -f boost/asio/impl/config.hpp ] && ! grep -q "errno = 0;" boost/asio/impl/config.hpp
+then
+    patch -p0 -N -l < $scripts_root/libs/boost_asio_config_errno.patch
+fi
+
 ./bootstrap.sh $compiler
 ./b2 toolset=$compiler \
     --with-date_time \
