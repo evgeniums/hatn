@@ -26,6 +26,19 @@
 
 HATN_CLIENT_SERVER_NAMESPACE_BEGIN
 
+/**
+ * Pairing part of an account config carried by the QR code or file of "Add new device"
+ * (multi-device-architecture.md §5.3). The config then has no token: the server route authenticates the
+ * pairing login, and this unit authenticates the opener to the new device.
+ */
+HDU_UNIT(live_pairing_config,
+    HDU_FIELD(version,TYPE_UINT32,1)
+    HDU_FIELD(pairing_id,TYPE_STRING,2)
+    HDU_FIELD(opener_eph_pub,TYPE_BYTES,3)  //!< DER SubjectPublicKeyInfo of the opener's ephemeral ECDH key
+    HDU_FIELD(qr_secret,TYPE_BYTES,4)       //!< 16 random bytes the server never sees
+    HDU_FIELD(expires_at,TYPE_DATETIME,5)
+)
+
 HDU_UNIT(account_config,
     HDU_FIELD(config_id,TYPE_OBJECT_ID,1)
     HDU_FIELD(account_id,TYPE_OBJECT_ID,2)
@@ -51,6 +64,8 @@ HDU_UNIT(account_config,
     // When set, the client publishes the username invitation of a character on its own: after the
     // account is activated and whenever the character's username is set.
     HDU_FIELD(auto_publish_username_invitation,TYPE_BOOL,20)
+    // Set instead of token when the config adds a device by pairing; see live_pairing_config.
+    HDU_FIELD(live_pairing,live_pairing_config::TYPE,21)
 )
 
 HDU_UNIT(account_config_token,

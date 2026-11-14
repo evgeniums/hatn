@@ -119,8 +119,12 @@ AccountConfigInfo classifyAccountConfigT::operator () (
     {
         return info;
     }
+    // an activation config carries a token; a pairing config carries live_pairing instead (the device
+    // is activated later, with the activation config that the channel brings)
     const auto& tokenField=config.field(account_config::token);
-    if (!tokenField.isSet() || config.fieldValue(account_config::token).empty())
+    const bool hasToken=tokenField.isSet() && !config.fieldValue(account_config::token).empty();
+    const bool hasPairing=config.field(account_config::live_pairing).isSet();
+    if (!hasToken && !hasPairing)
     {
         return info;
     }
