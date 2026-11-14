@@ -131,6 +131,19 @@ void checkDigest(std::shared_ptr<CryptPlugin>& plugin, const std::string& digest
             BOOST_CHECK(!ec);
             BOOST_CHECK(checkBin.isEqual(tag2.data()+offset,tag2.size()-offset));
 
+            // the length of the digest is exact: an empty one, a prefix and a longer one are refused
+            for (size_t len=0;len<tag1.size();++len)
+            {
+                auto prefixDigest=plugin->createDigest(alg);
+                HATN_REQUIRE(prefixDigest);
+                ec=prefixDigest->runCheck(SpanBuffer{data},tag1.data(),len);
+                BOOST_CHECK_MESSAGE(ec,fmt::format("a prefix of {} bytes of a {} bytes digest was accepted",len,tag1.size()));
+            }
+            ByteArray longerTag(tag1);
+            longerTag.append("x");
+            ec=digest->runCheck(SpanBuffer{data},longerTag);
+            BOOST_CHECK_MESSAGE(ec,"a digest longer than the right one was accepted");
+
             SpanBuffers buffers=CryptPluginTest::split(data,5);
             ByteArray tag3;
             ec=digest->runFinalize(buffers,tag3);

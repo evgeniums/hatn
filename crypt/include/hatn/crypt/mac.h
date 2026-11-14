@@ -58,6 +58,25 @@ class HATN_CRYPT_EXPORT MAC : public Digest
         }
 
         /**
+         * @brief Set the length of the tag this MAC verifies.
+         * @param size Tag length in bytes; 0 (the default) means the whole MAC.
+         *
+         * The length of a verified tag is decided by the verifier, never by whoever sent the tag: a tag of any
+         * other length is refused (see finalizeAndVerify()). A protocol that truncates its tags, for example
+         * EncryptMAC with an explicit tag size, sets the size it truncates to.
+         */
+        inline void setTagSize(size_t size) noexcept
+        {
+            m_tagSize=size;
+        }
+
+        //! Length of the tag this MAC verifies, 0 for the whole MAC.
+        size_t tagSize() const noexcept
+        {
+            return m_tagSize;
+        }
+
+        /**
          * @brief Finalize hash calculation and verify MAC
          * @param tag MAC tag buffer
          * @param tagSize MAC tag size
@@ -65,6 +84,9 @@ class HATN_CRYPT_EXPORT MAC : public Digest
          *
          * Verification uses safe memory compare operation resistant against timing attacks.
          *
+         * The tag must have exactly the verified length: the whole MAC, or the size set with setTagSize().
+         * A shorter tag, an empty one included, or a longer one is refused: comparing only the common part of the
+         * two would accept every prefix of the right MAC.
          */
         common::Error finalizeAndVerify(const char* tag, size_t tagSize);
 
@@ -168,6 +190,7 @@ class HATN_CRYPT_EXPORT MAC : public Digest
     private:
 
         const SymmetricKey* m_key;
+        size_t m_tagSize=0;
 };
 
 HATN_CRYPT_NAMESPACE_END

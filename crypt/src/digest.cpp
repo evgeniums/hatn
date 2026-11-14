@@ -100,12 +100,13 @@ common::Error Digest::finalizeAndCheck(const char *digest, size_t digestSize)
 {
     common::ByteArray calcTag;
     HATN_CHECK_RETURN(finalize(calcTag));
-    if (digestSize>calcTag.size())
+    // exactly the length of the digest: a shorter one would be accepted as a prefix of the right one, an empty one
+    // included
+    if (digestSize!=calcTag.size() || calcTag.size()==0 || digest==nullptr)
     {
         return cryptError(CryptError::DIGEST_MISMATCH);
     }
-    size_t size=(std::min)(calcTag.size(),digestSize);
-    if (memcmp(calcTag.data(),digest,size)!=0)
+    if (memcmp(calcTag.data(),digest,calcTag.size())!=0)
     {
         return cryptError(CryptError::DIGEST_MISMATCH);
     }
