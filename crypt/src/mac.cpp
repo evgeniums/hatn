@@ -40,8 +40,15 @@ common::Error MAC::finalizeAndVerify(const char *tag, size_t tagSize)
 {
     common::ByteArray calcTag;
     HATN_CHECK_RETURN(finalize(calcTag));
-    size_t size=(std::min)(calcTag.size(),tagSize);
-    if (alg()->engine()->plugin()->constTimeMemCmp(calcTag.data(),tag,size)!=0)
+
+    // The length of the tag is the verifier's to decide, not the sender's. Comparing only min(sizes) bytes would
+    // accept every prefix of the right MAC, an empty tag included, for any message and any key.
+    const size_t expected=m_tagSize!=0 ? m_tagSize : calcTag.size();
+    if (expected==0 || expected>calcTag.size() || tagSize!=expected || tag==nullptr)
+    {
+        return cryptError(CryptError::MAC_FAILED);
+    }
+    if (alg()->engine()->plugin()->constTimeMemCmp(calcTag.data(),tag,expected)!=0)
     {
         return cryptError(CryptError::MAC_FAILED);
     }

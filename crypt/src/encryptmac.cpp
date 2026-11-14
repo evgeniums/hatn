@@ -295,6 +295,13 @@ void EncryptMAC<Encrypt>::updateKey()
         {
             throw common::ErrorException(cryptError(CryptError::NOT_SUPPORTED_BY_PLUGIN));
         }
+
+        // An algorithm configured with a truncated tag ("encryptmac:<cipher>:<mac>:<tagSize>") verifies exactly that
+        // many bytes; otherwise the whole MAC is verified. The length is ours, not the sender's (MAC::setTagSize()).
+        if (this->alg()!=nullptr && this->alg()->tagSize()!=0)
+        {
+            m_mac->setTagSize(this->alg()->tagSize());
+        }
     }
     else
     {

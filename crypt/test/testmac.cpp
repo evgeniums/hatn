@@ -115,6 +115,60 @@ static void testVectors(std::shared_ptr<CryptPlugin>& plugin, const CryptAlgorit
         ec=mac2->runVerify(SpanBuffer{text},SpanBuffer{tag2,10000});
         BOOST_CHECK(ec);
 
+        // The length of the tag is the verifier's: an empty tag, any prefix of the right one, and a longer one are
+        // refused. (A tag compared only over the common length accepts every prefix, for any text and any key.)
+        if (!tag.isEmpty())
+        {
+            for (size_t len=0;len<tag.size();++len)
+            {
+                auto prefixMac=plugin->createMAC(key.get());
+                HATN_REQUIRE(prefixMac);
+                ec=prefixMac->runVerify(SpanBuffer{text},tag.data(),len);
+                BOOST_CHECK_MESSAGE(ec,fmt::format("a prefix of {} bytes of a {} bytes tag was accepted",len,tag.size()));
+                if (len==0)
+                {
+                    ec=prefixMac->runVerify(SpanBuffer{text},SpanBuffer{});
+                    BOOST_CHECK_MESSAGE(ec,"an empty span tag was accepted");
+                    ec=prefixMac->runVerify(SpanBuffer{text},ByteArray{});
+                    BOOST_CHECK_MESSAGE(ec,"an empty container tag was accepted");
+                }
+            }
+            ByteArray longer(tag);
+            longer.append("x");
+            ec=mac2->runVerify(SpanBuffer{text},longer);
+            BOOST_CHECK_MESSAGE(ec,"a tag longer than the MAC was accepted");
+
+            // a verifier that truncates its tags verifies exactly that many bytes, no more and no fewer
+            if (tag.size()>=4)
+            {
+                const size_t truncated=tag.size()/2;
+                auto truncatingMac=plugin->createMAC(key.get());
+                HATN_REQUIRE(truncatingMac);
+                truncatingMac->setTagSize(truncated);
+                ec=truncatingMac->runVerify(SpanBuffer{text},tag.data(),truncated);
+                BOOST_CHECK(!ec);
+                ec=truncatingMac->runVerify(SpanBuffer{text},tag.data(),truncated-1);
+                BOOST_CHECK(ec);
+                ec=truncatingMac->runVerify(SpanBuffer{text},tag.data(),truncated+1);
+                BOOST_CHECK(ec);
+                ec=truncatingMac->runVerify(SpanBuffer{text},tag.data(),tag.size());
+                BOOST_CHECK(ec);
+                ec=truncatingMac->runVerify(SpanBuffer{text},tag.data(),0);
+                BOOST_CHECK(ec);
+
+                // and a wrong byte inside the truncated part is still caught
+                ByteArray changed(tag);
+                changed.data()[truncated-1]^=0x01;
+                ec=truncatingMac->runVerify(SpanBuffer{text},changed.data(),truncated);
+                BOOST_CHECK(ec);
+
+                // the default is the whole MAC again
+                truncatingMac->setTagSize(0);
+                ec=truncatingMac->runVerify(SpanBuffer{text},tag);
+                BOOST_CHECK(!ec);
+            }
+        }
+
         // test vectors
         SpanBuffers buffers;
         if (!text.isEmpty())
