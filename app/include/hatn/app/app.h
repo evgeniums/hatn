@@ -93,7 +93,8 @@ class HATN_APP_EXPORT App
 
         Error loadConfigFile(
             const std::string& fileName,
-            const std::string& format=std::string()
+            const std::string& format=std::string(),
+            bool applyNow=true
         );
 
         /**
@@ -236,6 +237,18 @@ class HATN_APP_EXPORT App
          * resolveAppDataFolder() call in order to take effect.
          */
         void setDataFolderSuffix(std::string suffix);
+
+        /**
+         * @brief Evaluate the app data folder that the given config tree alone resolves to.
+         *
+         * Returns app.data_folder from the tree if set, otherwise the platform default
+         * ($HOME/.<execName>[-<suffix>], or <execName>[-<suffix>] under %APPDATA% on Windows). Unlike
+         * resolveAppDataFolder(), it ignores any folder already set with setAppDataFolder() or
+         * resolved before, so a caller can compare the folder it actually runs with against the
+         * folder a reference config (e.g. the built-in one) would give. The suffix is the one
+         * already set or resolved, falling back to app.data_folder_suffix from the given tree.
+         */
+        std::string evalDefaultAppDataFolder(const HATN_BASE_NAMESPACE::ConfigTree& configTree) const;
 
         //! @brief Resolved data folder suffix, empty when none is configured.
         const std::string& dataFolderSuffix() const noexcept
