@@ -409,7 +409,8 @@ Error App::loadConfigString(
 
 Error App::loadConfigFile(
     const std::string& fileName,
-    const std::string& format
+    const std::string& format,
+    bool applyNow
     )
 {
     // preload config to find out data dir
@@ -425,6 +426,10 @@ Error App::loadConfigFile(
     // load app config tree
     auto ec=m_configTreeLoader->loadFromFile(*m_configTree,fileName,HATN_BASE_NAMESPACE::ConfigTreePath{},format);
     HATN_CHECK_CHAIN_LOG_EC(ec,_TR("failed to load app config from file","app"),HLOG_MODULE(app))
+    if (!applyNow)
+    {
+        return OK;
+    }
 
     // apply config
     return applyConfig();
@@ -1014,10 +1019,20 @@ std::string App::evalDataFolderSuffix(const HATN_BASE_NAMESPACE::ConfigTree& con
 
 std::string App::evalAppDataFolder(const HATN_BASE_NAMESPACE::ConfigTree& configTree) const
 {
-    auto folder=m_appDataFolder;
+    if (!m_appDataFolder.empty())
+    {
+        return m_appDataFolder;
+    }
+    return evalDefaultAppDataFolder(configTree);
+}
 
-    // set app data folder
-    if (folder.empty())
+//---------------------------------------------------------------
+
+std::string App::evalDefaultAppDataFolder(const HATN_BASE_NAMESPACE::ConfigTree& configTree) const
+{
+    std::string folder;
+
+    // app data folder from config
     {
         auto r=configTree.get(base::ConfigTreePath(m_appConfigRoot).copyAppend(AppFolderKey));
         if (!r)
