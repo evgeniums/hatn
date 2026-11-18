@@ -224,6 +224,9 @@ HDU_UNIT(db_config,
     HDU_FIELD(db_folder,TYPE_STRING,7,false,"db")
     HDU_FIELD(db_prefix,TYPE_STRING,8,false,"main")
     HDU_FIELD(main_db_path,TYPE_STRING,9)
+    // true: when thread_count<=1, run db operations on a single dedicated thread that is not the app thread
+    // (and, if possible, not the network thread) instead of on the app thread itself
+    HDU_FIELD(dedicated_thread,TYPE_BOOL,10,false,false)
 )
 
 HDU_UNIT(crypt_config,
@@ -1405,6 +1408,36 @@ std::shared_ptr<common::MappedThreadQWithTaskContext> App_p::makeDbMappedThreads
     if (dbThreadCount>mappableThreads.size()-1)
     {
         dbThreadCount=static_cast<uint8_t>(mappableThreads.size()-1);
+    }
+    if (dbThreadCount<=1 && dbConfig.config().fieldValue(db_config::dedicated_thread))
+    {
+        // single db thread that is neither the app thread nor, preferably, the network thread
+        common::ThreadQWithTaskContext* dbThread=nullptr;
+        for (auto&& it:mappableThreads)
+        {
+            if (it!=app->m_appThread && it!=app->m_networkThread)
+            {
+                dbThread=it;
+                break;
+            }
+        }
+        if (dbThread==nullptr)
+        {
+            for (auto&& it:mappableThreads)
+            {
+                if (it!=app->m_appThread)
+                {
+                    dbThread=it;
+                    break;
+                }
+            }
+        }
+        if (dbThread!=nullptr)
+        {
+            mappedThreads->setThreadMode(common::MappedThreadMode::Mapped);
+            mappedThreads->addMappedThread(dbThread);
+        }
+        return mappedThreads;
     }
     if (dbThreadCount>1)
     {
