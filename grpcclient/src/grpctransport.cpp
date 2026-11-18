@@ -557,8 +557,24 @@ Result<clientapi::Response> detail::GrpcTransport_p::handleResponse(
         if (appStatus.empty())
         {
             // possibly network errors
+
+            // The status message of a call that never got an answer is often just "Deadline Exceeded".
+            // The debug string of the call keeps what the channel knew at that moment (resolver and
+            // connection errors, the last attempted address), so it is appended to make the cause visible.
+            std::string errorMessage=status.error_message();
+            if (context)
+            {
+                const auto debugString=context->debug_error_string();
+                if (!debugString.empty())
+                {
+                    errorMessage+=" [";
+                    errorMessage+=debugString;
+                    errorMessage+="]";
+                }
+            }
+
             auto nativeErr=std::make_shared<common::NativeError>(
-                status.error_message(),
+                std::move(errorMessage),
                 -status.error_code(),
                 &api::ApiLibErrorCategory::getCategory()
                 );
@@ -638,13 +654,25 @@ void GrpcTransport::sendUnaryImpl(
     // create context and register pending request
     auto context=channel->addRequest(reqAddr);
 
-    // setup deadline
-    if (config().fieldValue(grpc_config::unary_deadline_timeout)!=0)
+    // setup deadline and wait-for-ready; the millisecond value, when set, wins over the seconds one
+    const bool waitForReady=config().fieldValue(grpc_config::wait_for_ready);
+    uint64_t timeoutMs=config().fieldValue(grpc_config::unary_deadline_timeout_ms);
+    if (timeoutMs==0)
     {
-        context->set_wait_for_ready(true);
+        timeoutMs=static_cast<uint64_t>(config().fieldValue(grpc_config::unary_deadline_timeout))*1000;
+    }
+    if (timeoutMs!=0)
+    {
+        context->set_wait_for_ready(waitForReady);
         std::chrono::system_clock::time_point deadline =
-            std::chrono::system_clock::now() + std::chrono::seconds(config().fieldValue(grpc_config::unary_deadline_timeout));
+            std::chrono::system_clock::now() + std::chrono::milliseconds(static_cast<int64_t>(timeoutMs));
         context->set_deadline(deadline);
+    }
+    else if (!waitForReady)
+    {
+        // no deadline, but fail fast on a channel that is not connected; an explicit setting here
+        // overrides waitForReady of the service config
+        context->set_wait_for_ready(false);
     }
 
     // add metadata to context

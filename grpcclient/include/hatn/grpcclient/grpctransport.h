@@ -201,6 +201,15 @@ HDU_UNIT(grpc_config,
     HDU_FIELD(error_details_header,TYPE_STRING,27,false,"x-hatn-edetails")
     HDU_FIELD(error_disposition_header,TYPE_STRING,28,false,"x-hatn-edisposition")
     HDU_FIELD(error_retry_after_header,TYPE_STRING,29,false,"x-hatn-eretry-after")
+    // Per-call wait-for-ready of unary calls. true (default): a call waits for the channel to become
+    // connected until its deadline, so a server that is not reachable shows up only as a deadline
+    // expiry. false: the call fails at once with the real connection error (refused, DNS failure,
+    // TLS failure), which is what a connectivity probe needs. Overrides the waitForReady of the
+    // service config (config_json).
+    HDU_FIELD(wait_for_ready,TYPE_BOOL,30,false,true)
+    // Deadline of unary calls in milliseconds. 0 (default): unary_deadline_timeout (seconds) is used.
+    // Non-zero: takes precedence over unary_deadline_timeout, for deadlines that are not whole seconds.
+    HDU_FIELD(unary_deadline_timeout_ms,TYPE_UINT32,31,false,0)
 )
 
 namespace detail {
