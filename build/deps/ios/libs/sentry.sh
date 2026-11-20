@@ -10,9 +10,11 @@ source $scripts_root/../desktop/scripts/clonegit.sh
 cd $lib_build_dir
 
 # Use inproc backend: crashpad is not supported on iOS.
-# SENTRY_TRANSPORT=none because the cross-compile environment has no libcurl;
-# the application is expected to supply a custom transport or use the
-# sentry_sdk wrapper which handles networking.
+# SENTRY_TRANSPORT=none because the cross-compile environment has no libcurl.
+# With this build sentry discards every envelope ("discarding envelope due to
+# invalid transport") unless the application installs its own transport via
+# sentry_options_set_transport(), e.g. a small Boost.Beast + OpenSSL transport,
+# so no libcurl is needed.
 cmake -G "Unix Makefiles" \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_TOOLCHAIN_FILE=$IOS_CMAKE \
