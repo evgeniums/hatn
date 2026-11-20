@@ -223,6 +223,7 @@ class HATN_CLIENTAPP_EXPORT LockingController : public std::enable_shared_from_t
 
         void updateLockingSettings();
         void updatePassphraseSettings();
+        void publishLockEvent();
 };
 
 class LockEvent : public Event

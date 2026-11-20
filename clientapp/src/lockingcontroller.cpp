@@ -167,24 +167,35 @@ void LockingController::close()
 
 bool LockingController::checkLockedByLastActivity()
 {
-    if (isLocked())
+    // Check and state change are done in one critical section so that a timer tick
+    // racing with unlock() can't re-lock using a stale last-activity timestamp.
+    bool doLock=false;
     {
-        return true;
-    }
+        common::MutexScopedLock l(m_mutex);
 
-    if (autoLockMode()==AutoLockMode::WhenInactive)
-    {
-        auto now=common::DateTime::currentUtc();
-        m_mutex.lock();
-        auto expire=m_lastActivity;
-        m_mutex.unlock();
-        expire.addSeconds(autoLockPeriod());
-
-        if (now.after(expire))
+        if (m_locked)
         {
-            lock();
             return true;
         }
+
+        if (m_autoLockMode==AutoLockMode::WhenInactive)
+        {
+            auto now=common::DateTime::currentUtc();
+            auto expire=m_lastActivity;
+            expire.addSeconds(m_autoLockPeriod);
+
+            if (now.after(expire))
+            {
+                m_locked=true;
+                doLock=true;
+            }
+        }
+    }
+
+    if (doLock)
+    {
+        publishLockEvent();
+        return true;
     }
 
     return false;
@@ -198,6 +209,13 @@ void LockingController::lock()
     m_locked=true;
     m_mutex.unlock();
 
+    publishLockEvent();
+}
+
+//---------------------------------------------------------------
+
+void LockingController::publishLockEvent()
+{
     m_app->eventDispatcher().publish(
         m_app->app().env(),
         HATN_LOGCONTEXT_NAMESPACE::makeLogCtx(),
@@ -209,8 +227,12 @@ void LockingController::lock()
 
 void LockingController::unlock()
 {
+    // Restart the inactivity period from the moment of unlock. Activity is not recorded
+    // while locked (see updateLastActivity()), so without this the stale timestamp from
+    // before the auto-lock makes the activity timer re-lock the app within a second.
     m_mutex.lock();
     m_locked=false;
+    m_lastActivity.loadCurrentUtc();
     m_mutex.unlock();
 
     m_app->eventDispatcher().publish(

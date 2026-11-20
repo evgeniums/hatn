@@ -1,5 +1,6 @@
 SET (TEST_SOURCES
     ${GRPCCLIENT_TEST_SRC}/testgrpc.cpp
+    ${GRPCCLIENT_TEST_SRC}/testgrpclog.cpp
 )
 
 SET (TEST_HEADERS
