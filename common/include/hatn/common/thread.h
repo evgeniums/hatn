@@ -126,9 +126,10 @@ class HATN_COMMON_EXPORT Thread : public std::enable_shared_from_this<Thread>
                 size_t timeoutMs=HATN_EXECSYNC_TIMEOUT_MS
             )
         {
+            // Caller that is neither a hatn thread nor the main thread can never be the target
+            // thread, so it just posts and waits.
             auto currentThread=currentThreadOrMain();
-            Assert(currentThread,"Current thread or main must be initialized");
-            if (id()==currentThread->id())
+            if (currentThread!=nullptr && id()==currentThread->id())
             {
                 return handler();
             }

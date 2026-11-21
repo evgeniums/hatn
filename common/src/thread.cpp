@@ -525,9 +525,10 @@ Error Thread::execSync(
         size_t timeoutMs
     )
 {
+    // A caller that is neither a hatn thread nor the main thread (e.g. a Go runtime thread when
+    // hatn is loaded as a plugin) can never be the target thread, so it just posts and waits.
     auto currentThread=currentThreadOrMain();
-    Assert(currentThread,"Current thread or main must be initialized");
-    if (id()==currentThread->id())
+    if (currentThread!=nullptr && id()==currentThread->id())
     {
         handler();
         return OK;
