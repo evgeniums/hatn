@@ -13,6 +13,10 @@
 
 /****************************************************************************/
 
+#include <cstring>
+#include <memory>
+#include <string>
+
 #include <boost/test/unit_test.hpp>
 
 #include <hatn/test/multithreadfixture.h>
@@ -24,6 +28,7 @@
 #include <hatn/dataunit/ipp/syntax.ipp>
 
 #include <hatn/db/object.h>
+#include <hatn/db/topic.h>
 #include <hatn/dataunit/ipp/objectid.ipp>
 
 #include "hatn_test_config.h"
@@ -66,6 +71,103 @@ BOOST_AUTO_TEST_CASE(TestObjectId)
     BOOST_CHECK_EQUAL(id3.rand(),id1.rand());
     BOOST_CHECK_EQUAL(id3.seq(),id1.seq());
     BOOST_CHECK(id3==id1);
+}
+
+BOOST_AUTO_TEST_CASE(TopicOwnsCopy)
+{
+#ifdef HATN_DB_TOPIC_COPY
+
+    const std::string original{"0123456789012345678901234"};
+
+    // from std::string, destroyed after construction
+    {
+        auto src=std::make_unique<std::string>(original);
+        Topic t{*src};
+        *src=std::string(original.size(),'x');
+        src.reset();
+        BOOST_CHECK(t.isWithHolder());
+        BOOST_CHECK(t.topic()==original);
+    }
+
+    // from string_view into a heap buffer that is overwritten and freed
+    {
+        auto buf=std::make_unique<std::string>(original);
+        Topic t{lib::string_view{buf->data(),buf->size()}};
+        buf->assign(original.size(),'y');
+        buf.reset();
+        BOOST_CHECK(t.isWithHolder());
+        BOOST_CHECK(t.topic()==original);
+    }
+
+    // from const char* into a mutable buffer that is overwritten
+    {
+        char chars[32];
+        std::strcpy(chars,original.c_str());
+        Topic t{static_cast<const char*>(chars)};
+        std::memset(chars,'z',sizeof(chars)-1);
+        BOOST_CHECK(t.isWithHolder());
+        BOOST_CHECK(t.topic()==original);
+    }
+
+    // from StringOnStack
+    {
+        auto src=std::make_unique<common::StringOnStack>(original);
+        Topic t{*src};
+        src->assign(original.size(),'w');
+        src.reset();
+        BOOST_CHECK(t.topic()==original);
+    }
+
+    // copy, move and assignment keep the value
+    {
+        auto src=std::make_unique<std::string>(original);
+        Topic t1{*src};
+        Topic t2{t1};
+        Topic t3{std::move(t1)};
+        Topic t4;
+        t4=t2;
+        Topic t5;
+        t5=std::move(t3);
+        *src=std::string(original.size(),'q');
+        src.reset();
+        BOOST_CHECK(t2.topic()==original);
+        BOOST_CHECK(t4.topic()==original);
+        BOOST_CHECK(t5.topic()==original);
+        BOOST_CHECK(t2==t4);
+        BOOST_CHECK(t4==t5);
+    }
+
+    // empty topic stays empty
+    {
+        Topic t{std::string{}};
+        BOOST_CHECK(t.topic().empty());
+    }
+
+#endif
+}
+
+BOOST_AUTO_TEST_CASE(TopicCompare)
+{
+    // equal topics are <= and >= each other
+    BOOST_CHECK(Topic{"a"}<=Topic{"a"});
+    BOOST_CHECK(Topic{"a"}>=Topic{"a"});
+    BOOST_CHECK(Topic{"a"}<=Topic{"b"});
+    BOOST_CHECK(!(Topic{"b"}<=Topic{"a"}));
+    BOOST_CHECK(Topic{"b"}>=Topic{"a"});
+    BOOST_CHECK(!(Topic{"a"}>=Topic{"b"}));
+
+    // strict comparison is unchanged
+    BOOST_CHECK(!(Topic{"a"}<Topic{"a"}));
+    BOOST_CHECK(!(Topic{"a"}>Topic{"a"}));
+    BOOST_CHECK(Topic{"a"}<Topic{"b"});
+    BOOST_CHECK(Topic{"b"}>Topic{"a"});
+
+    // string_view overloads
+    BOOST_CHECK(Topic{"a"}<=lib::string_view{"a"});
+    BOOST_CHECK(Topic{"a"}<=lib::string_view{"b"});
+    BOOST_CHECK(!(Topic{"b"}<=lib::string_view{"a"}));
+    BOOST_CHECK(Topic{"a"}>=lib::string_view{"a"});
+    BOOST_CHECK(!(Topic{"a"}>=lib::string_view{"b"}));
 }
 
 BOOST_AUTO_TEST_CASE(BaseObjectInit)
