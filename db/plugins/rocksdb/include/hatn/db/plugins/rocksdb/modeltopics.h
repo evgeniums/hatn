@@ -67,6 +67,23 @@ class HATN_ROCKSDB_SCHEMA_EXPORT ModelTopics
 
         constexpr static const size_t MaxOperationSize=sizeof(Operator)+TtlMark::Size;
 
+        /**
+         * @brief Several operations folded into one operand by PartialMergeMulti().
+         *
+         * The counter never goes below zero, so a run of operations acts on the counter x as x -> max(x+change, floor).
+         * Such functions compose (max(max(x+a1,b1)+a2,b2)=max(x+a1+a2,max(b1+a2,b2))), and that is what lets RocksDB fold
+         * the operands at a flush or a compaction, long before the value they apply to is at hand, and still get the
+         * same count as applying them one by one. The size differs from both an Operation (1 byte) and a Relation
+         * (MinRelationSize..MaxRelationSize), so the three kinds of operands tell themselves apart by size.
+         */
+        struct Delta
+        {
+            int64_t change=0;
+            uint64_t floor=0;
+        };
+        constexpr static const uint8_t DeltaMarker=0xD2;
+        constexpr static const size_t DeltaSize=sizeof(uint8_t)+sizeof(int64_t)+sizeof(uint64_t);
+
         static Error update(
             const std::string& modelId,
             Topic topic,
@@ -116,6 +133,9 @@ class HATN_ROCKSDB_SCHEMA_EXPORT ModelTopics
         static void serializeRelation(const Relation& rel, std::string* value);
 
         static bool deserializeOperation(const char* data, size_t size, Operation& op);
+
+        static void serializeDelta(const Delta& delta, std::string* value);
+        static bool deserializeDelta(const char* data, size_t size, Delta& delta);
 
         static void fillRelationKey(
             const std::string& modelId,

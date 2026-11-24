@@ -118,12 +118,16 @@ struct DeleteObjectT
             HATN_CHECK_EC(ec)
         }
 
-        // update model-topic relation
-        ec=ModelTopics::update(model.modelIdStr(),topic,handler,partition,ModelTopics::Operator::Del);
-        if (ec)
-        {
-            HATN_CTX_ERROR(ec,"failed to save model-topic relation")
-        }
+        // update model-topic relation when the transaction is committed
+        RocksdbTransaction::deferTopicUpdate(
+            tx,
+            RocksdbTransaction::TopicUpdate{
+                model.modelIdStr(),
+                std::string{topic.data(),topic.size()},
+                partition,
+                ModelTopics::Operator::Del
+            }
+        );
 
         // done
         return OK;

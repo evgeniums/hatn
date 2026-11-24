@@ -110,6 +110,39 @@ void ModelTopics::serializeRelation(const Relation &rel, std::string *value)
 
 //---------------------------------------------------------------
 
+void ModelTopics::serializeDelta(const Delta &delta, std::string *value)
+{
+    value->resize(DeltaSize);
+
+    (*value)[0]=static_cast<char>(DeltaMarker);
+
+    uint64_t change=boost::endian::native_to_little(static_cast<uint64_t>(delta.change));
+    uint64_t floor=boost::endian::native_to_little(delta.floor);
+    memcpy(value->data()+sizeof(uint8_t),&change,sizeof(change));
+    memcpy(value->data()+sizeof(uint8_t)+sizeof(change),&floor,sizeof(floor));
+}
+
+//---------------------------------------------------------------
+
+bool ModelTopics::deserializeDelta(const char *data, size_t size, Delta &delta)
+{
+    if (size!=DeltaSize || static_cast<uint8_t>(data[0])!=DeltaMarker)
+    {
+        return false;
+    }
+
+    uint64_t change=0;
+    uint64_t floor=0;
+    memcpy(&change,data+sizeof(uint8_t),sizeof(change));
+    memcpy(&floor,data+sizeof(uint8_t)+sizeof(change),sizeof(floor));
+    delta.change=static_cast<int64_t>(boost::endian::little_to_native(change));
+    delta.floor=boost::endian::little_to_native(floor);
+
+    return true;
+}
+
+//---------------------------------------------------------------
+
 bool ModelTopics::deserializeRelation(const char *data, size_t size, Relation &rel)
 {
 
@@ -479,20 +512,9 @@ Error ModelTopics::deleteTopic(
 
 //---------------------------------------------------------------
 
-static void mergeRelOp(ModelTopics::Relation &rel, const ModelTopics::Operation& op)
+// A topic whose count is zero is scheduled for removal by the TTL compaction filter, any other is kept.
+static void settleRelationTtl(ModelTopics::Relation &rel)
 {
-    if (op.op==ModelTopics::Operator::Del)
-    {
-        if (rel.count>0)
-        {
-            rel.count--;
-        }
-    }
-    else if (op.op==ModelTopics::Operator::Add)
-    {
-        rel.count++;
-    }
-
     if (rel.count==0)
     {
         // schedule to delete using TTL back in time
@@ -504,6 +526,63 @@ static void mergeRelOp(ModelTopics::Relation &rel, const ModelTopics::Operation&
         // clear TTL
         rel.ttl.clear();
     }
+}
+
+// The change of the counter that one operation makes, see ModelTopics::Delta.
+static void operationToDelta(const ModelTopics::Operation& op, int64_t& change)
+{
+    change=0;
+    if (op.op==ModelTopics::Operator::Del)
+    {
+        change=-1;
+    }
+    else if (op.op==ModelTopics::Operator::Add)
+    {
+        change=1;
+    }
+}
+
+static void mergeRelOp(ModelTopics::Relation &rel, const ModelTopics::Operation& op)
+{
+    int64_t change=0;
+    operationToDelta(op,change);
+    if (change<0)
+    {
+        if (rel.count>0)
+        {
+            rel.count--;
+        }
+    }
+    else if (change>0)
+    {
+        rel.count++;
+    }
+
+    settleRelationTtl(rel);
+}
+
+static void mergeRelDelta(ModelTopics::Relation &rel, const ModelTopics::Delta& delta)
+{
+    int64_t value=static_cast<int64_t>(rel.count)+delta.change;
+    if (value<static_cast<int64_t>(delta.floor))
+    {
+        value=static_cast<int64_t>(delta.floor);
+    }
+    rel.count=static_cast<uint64_t>(value);
+
+    settleRelationTtl(rel);
+}
+
+// delta1 followed by (change,floor): max(max(x+a1,b1)+a2,b2)=max(x+a1+a2,max(b1+a2,b2))
+static void composeDelta(ModelTopics::Delta& delta, int64_t change, uint64_t floor)
+{
+    int64_t newFloor=static_cast<int64_t>(delta.floor)+change;
+    if (newFloor<static_cast<int64_t>(floor))
+    {
+        newFloor=static_cast<int64_t>(floor);
+    }
+    delta.floor=static_cast<uint64_t>(newFloor);
+    delta.change+=change;
 }
 
 bool MergeModelTopic::FullMergeV2(
@@ -536,22 +615,23 @@ bool MergeModelTopic::FullMergeV2(
     for (auto&& it : merge_in.operand_list)
     {
         ModelTopics::Operation op;
-        if (!ModelTopics::deserializeOperation(it.data(),it.size(),op))
-        {
-#if 0
-            std::cout<<"try to deserialize rel size=" << it.size() <<std::endl;
-#endif
-            if (!ModelTopics::deserializeRelation(it.data(),it.size(),rel))
-            {
-#if 0
-                std::cerr<<"failed to deserialize rel-op"<<std::endl;
-#endif
-                return false;
-            }
-        }
-        else
+        ModelTopics::Delta delta;
+        if (ModelTopics::deserializeOperation(it.data(),it.size(),op))
         {
             mergeRelOp(rel,op);
+        }
+        else if (ModelTopics::deserializeDelta(it.data(),it.size(),delta))
+        {
+            mergeRelDelta(rel,delta);
+        }
+        else if (!ModelTopics::deserializeRelation(it.data(),it.size(),rel))
+        {
+            // A Relation as an operand was written by the versions that folded operands into an absolute count. It is
+            // still taken as one (there is nothing better to do with it), no operand is ever written in that form now.
+#if 0
+            std::cerr<<"failed to deserialize rel-op"<<std::endl;
+#endif
+            return false;
         }
     }
 #if 0
@@ -573,30 +653,36 @@ bool MergeModelTopic::PartialMergeMulti(const Slice& /*key*/,
               << " key=" << logKey(key)
               << std::endl;
 #endif
-    ModelTopics::Relation rel;
+    // The operands are folded into one Delta, which gives the same count as applying them one by one to any value, see
+    // ModelTopics::Delta. The result must never be an absolute count: the value it is applied to is not known here.
+    ModelTopics::Delta folded;
 
     for (auto&& it : operand_list)
     {
         ModelTopics::Operation op;
-        if (!ModelTopics::deserializeOperation(it.data(),it.size(),op))
+        ModelTopics::Delta delta;
+        if (ModelTopics::deserializeOperation(it.data(),it.size(),op))
         {
-            if (!ModelTopics::deserializeRelation(it.data(),it.size(),rel))
-            {
-                HATN_CTX_ERROR(dbError(DbError::MODEL_TOPIC_RELATION_DESER),"failed to deserialize rel-op")
-                return false;
-            }
+            int64_t change=0;
+            operationToDelta(op,change);
+            composeDelta(folded,change,0);
+        }
+        else if (ModelTopics::deserializeDelta(it.data(),it.size(),delta))
+        {
+            composeDelta(folded,delta.change,delta.floor);
         }
         else
         {
-            mergeRelOp(rel,op);
+            // an operand of the old absolute form (or an unknown one) cannot be folded: leave all of them to the full merge
+            return false;
         }
     }
 
 #if 0
-    std::cout << "MergeModelTopic::PartialMergeMulti rel.count=" << rel.count
-              << " rel.ttl=" << rel.ttl.timepoint() << std::endl;
+    std::cout << "MergeModelTopic::PartialMergeMulti change=" << folded.change
+              << " floor=" << folded.floor << std::endl;
 #endif
-    ModelTopics::serializeRelation(rel,new_value);
+    ModelTopics::serializeDelta(folded,new_value);
     return true;
 }
 
