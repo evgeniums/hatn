@@ -654,6 +654,101 @@ BOOST_AUTO_TEST_CASE(RolledBackDeleteKeepsTopicCount)
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 }
 
+/**
+ * A topic that is missing from the registry hides its objects from a query without a topic. The registry is rebuilt from the objects:
+ * by reconcileModelTopics(), and by a lookup without a topic that finds nothing.
+ */
+BOOST_AUTO_TEST_CASE(ReconcileRestoresDroppedTopic)
+{
+    init();
+
+    auto s1=initSchema(modelNoP1());
+
+    auto handler=[&s1](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
+    {
+        std::ignore=plugin;
+        setSchemaToClient(client,s1);
+
+        const Topic topic0{"topic0"};
+        const Topic topic1{"topic1"};
+        auto createObjects=[&client](const Topic& topic, uint32_t first, size_t count)
+        {
+            for (size_t i=0;i<count;i++)
+            {
+                auto o=makeInitObject<no_p::type>();
+                o.setFieldValue(base_fields::df2,first+static_cast<uint32_t>(i));
+                auto ec=client->create(topic,modelNoP1(),&o);
+                BOOST_REQUIRE(!ec);
+            }
+        };
+        createObjects(topic0,100,5);
+        createObjects(topic1,200,3);
+
+        auto listedTopics=[&client]()
+        {
+            auto r=client->listModelTopics(modelNoP1());
+            BOOST_REQUIRE(!r);
+            return r.value().size();
+        };
+        auto countAll=[&client]()
+        {
+            auto r=client->count(modelNoP1());
+            BOOST_REQUIRE(!r);
+            return r.value();
+        };
+
+        BOOST_CHECK_EQUAL(listedTopics(),2);
+        BOOST_CHECK_EQUAL(countAll(),8);
+
+        // nothing is put back while the registry is right
+        auto none=client->reconcileModelTopics(modelNoP1());
+        BOOST_REQUIRE(!none);
+        BOOST_CHECK_EQUAL(none.value(),0);
+
+        // the registry entry of topic0 is lost, its objects stay
+        auto ec=client->deleteModelTopicRegistration(modelNoP1(),topic0);
+        BOOST_REQUIRE(!ec);
+        BOOST_CHECK_EQUAL(listedTopics(),1);
+        BOOST_CHECK_EQUAL(countAll(),3);
+
+        // put back from the objects, with the right count
+        auto fixed=client->reconcileModelTopics(modelNoP1());
+        BOOST_REQUIRE(!fixed);
+        BOOST_CHECK_EQUAL(fixed.value(),1);
+        BOOST_CHECK_EQUAL(listedTopics(),2);
+        BOOST_CHECK_EQUAL(countAll(),8);
+        auto c0=client->count(modelNoP1(),topic0);
+        BOOST_REQUIRE(!c0);
+        BOOST_CHECK_EQUAL(c0.value(),5);
+        auto c1=client->count(modelNoP1(),topic1);
+        BOOST_REQUIRE(!c1);
+        BOOST_CHECK_EQUAL(c1.value(),3);
+
+        // and once more it changes nothing
+        auto again=client->reconcileModelTopics(modelNoP1());
+        BOOST_REQUIRE(!again);
+        BOOST_CHECK_EQUAL(again.value(),0);
+        BOOST_CHECK_EQUAL(countAll(),8);
+
+        // a lookup without a topic that finds nothing repairs the registry by itself
+        ec=client->deleteModelTopicRegistration(modelNoP1(),topic0);
+        BOOST_REQUIRE(!ec);
+        BOOST_CHECK_EQUAL(listedTopics(),1);
+        auto q=makeQuery(df2Idx(),query::where(base_fields::df2,query::eq,100u));
+        auto found=client->findOne(modelNoP1(),q);
+        if (found)
+        {
+            BOOST_TEST_MESSAGE(found.error().message());
+        }
+        BOOST_REQUIRE(!found);
+        BOOST_REQUIRE(!found.value().isNull());
+        BOOST_CHECK_EQUAL(found.value()->fieldValue(base_fields::df2),100);
+        BOOST_CHECK_EQUAL(listedTopics(),2);
+        BOOST_CHECK_EQUAL(countAll(),8);
+    };
+    PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
+}
+
 #endif
 
 BOOST_AUTO_TEST_SUITE_END()

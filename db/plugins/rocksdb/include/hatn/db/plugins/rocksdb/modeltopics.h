@@ -100,6 +100,24 @@ class HATN_ROCKSDB_SCHEMA_EXPORT ModelTopics
             const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
         );
 
+        /**
+         * @brief Put back the topics of a model that have objects but are missing from the registry or are zero in it.
+         *
+         * A query without a topic looks in the topics of the registry only, so an object whose topic is not in it is not
+         * found by such a query although the object and its index entries are intact. The registry is derived data: this
+         * rebuilds what is missing from the objects. Only the topics that the registry does not list as non-empty are
+         * counted (one point lookup per topic of the database and one seek, objects of the other topics are not touched),
+         * and the count is merged as a Delta, so an Add or a Del that is made at the same time is not lost.
+         *
+         * @param model Model to reconcile.
+         * @param handler Rocksdb handler.
+         * @return Number of topics that were put back.
+         */
+        static Result<size_t> reconcile(
+            const ModelInfo& model,
+            RocksdbHandler& handler
+        );
+
         static Error deleteTopic(
             Topic topic,
             RocksdbHandler& handler,

@@ -16,6 +16,10 @@
 
 /****************************************************************************/
 
+#include <cstring>
+#include <memory>
+#include <string>
+
 #include <boost/endian/conversion.hpp>
 
 #include <rocksdb/db.h>
@@ -687,5 +691,151 @@ bool MergeModelTopic::PartialMergeMulti(const Slice& /*key*/,
 }
 
 //---------------------------------------------------------------
+
+//---------------------------------------------------------------
+
+Result<size_t> ModelTopics::reconcile(
+        const ModelInfo& model,
+        RocksdbHandler& handler
+    )
+{
+    HATN_CTX_SCOPE("rdb::reconciletopics")
+
+    const std::string& modelId=model.modelIdStr();
+    size_t repaired=0;
+
+    auto eachPartition=[&](RocksdbPartition* partition)->Error
+    {
+        auto* objectsCf=partition->dataCf(model.isBlob());
+        auto* relationsCf=partition->dataCf();
+        if (objectsCf==nullptr || relationsCf==nullptr)
+        {
+            return Error{};
+        }
+
+        const auto& readOpts=handler.p()->readOptions;
+
+        // The key of an object is [version][topic][separator][model id][separator][object id]: the objects of a topic are together,
+        // and the scan jumps from a topic to the next one, so it does not read the objects of the topics that are fine.
+        std::unique_ptr<ROCKSDB_NAMESPACE::Iterator> it{handler.p()->db->NewIterator(readOpts,objectsCf)};
+        std::string seekKey(1,Keys::ObjectIndexVersion);
+        it->Seek(ROCKSDB_NAMESPACE::Slice{seekKey});
+        while (it->Valid())
+        {
+            auto key=it->key();
+            if (key.size()<2 || key[0]!=Keys::ObjectIndexVersion)
+            {
+                // the keys of the objects are over
+                break;
+            }
+            const char* topicBegin=key.data()+1;
+            const char* topicEnd=static_cast<const char*>(memchr(topicBegin,SeparatorCharC,key.size()-1));
+            if (topicEnd==nullptr)
+            {
+                it->Next();
+                continue;
+            }
+            const std::string topic{topicBegin,static_cast<size_t>(topicEnd-topicBegin)};
+
+            // the first key after all keys of this topic
+            std::string nextTopicKey(1,Keys::ObjectIndexVersion);
+            nextTopicKey.append(topic);
+            nextTopicKey.push_back(SeparatorCharPlusC);
+
+            if (!topic.empty())
+            {
+                KeyBuf relKey;
+                fillRelationKey(modelId,Topic{topic},relKey);
+                ROCKSDB_NAMESPACE::Slice relSlice{relKey.data(),relKey.size()};
+
+                bool listed=false;
+                ROCKSDB_NAMESPACE::PinnableSlice relValue;
+                auto status=handler.p()->db->Get(readOpts,relationsCf,relSlice,&relValue);
+                if (status.ok())
+                {
+                    Relation rel;
+                    listed=deserializeRelation(relValue.data(),relValue.size(),rel) && rel.count>0;
+                }
+                else if (status.code()!=ROCKSDB_NAMESPACE::Status::kNotFound)
+                {
+                    return makeError(DbError::MODEL_TOPIC_RELATION_READ,status);
+                }
+
+                if (!listed)
+                {
+                    // the objects of this model in this topic
+                    std::string from(1,Keys::ObjectIndexVersion);
+                    from.append(topic);
+                    from.push_back(SeparatorCharC);
+                    from.append(modelId);
+                    from.push_back(SeparatorCharC);
+                    std::string to=from;
+                    to.back()=SeparatorCharPlusC;
+                    ROCKSDB_NAMESPACE::Slice toSlice{to};
+
+                    auto countOpts=readOpts;
+                    countOpts.iterate_upper_bound=&toSlice;
+                    std::unique_ptr<ROCKSDB_NAMESPACE::Iterator> counter{handler.p()->db->NewIterator(countOpts,objectsCf)};
+                    uint64_t objects=0;
+                    for (counter->Seek(ROCKSDB_NAMESPACE::Slice{from}); counter->Valid(); counter->Next())
+                    {
+                        ++objects;
+                    }
+                    if (!counter->status().ok())
+                    {
+                        return makeError(DbError::MODEL_TOPIC_RELATION_READ,counter->status());
+                    }
+
+                    if (objects>0)
+                    {
+                        Delta delta;
+                        delta.change=static_cast<int64_t>(objects);
+                        delta.floor=0;
+                        std::string operand;
+                        serializeDelta(delta,&operand);
+                        auto mergeStatus=handler.p()->db->Merge(
+                                handler.p()->writeOptions,
+                                relationsCf,
+                                relSlice,
+                                ROCKSDB_NAMESPACE::Slice{operand}
+                            );
+                        if (!mergeStatus.ok())
+                        {
+                            handler.p()->noteWriteStatus(mergeStatus);
+                            return makeError(DbError::MODEL_TOPIC_RELATION_SAVE,mergeStatus);
+                        }
+                        ++repaired;
+
+                        HATN_CTX_WARN_RECORDS("model-topic relation was missing, put back from the objects",
+                            {"model",model.collection()},
+                            {"topic",topic},
+                            {"objects",std::to_string(objects)}
+                        )
+                    }
+                }
+            }
+
+            it->Seek(ROCKSDB_NAMESPACE::Slice{nextTopicKey});
+        }
+        if (!it->status().ok())
+        {
+            return makeError(DbError::MODEL_TOPIC_RELATION_READ,it->status());
+        }
+
+        return Error{};
+    };
+
+    for (auto&& range : handler.partitionRanges())
+    {
+        auto partition=range.isNull() ? handler.defaultPartition() : handler.partition(range);
+        if (partition)
+        {
+            auto ec=eachPartition(partition.get());
+            HATN_CHECK_EC(ec)
+        }
+    }
+
+    return repaired;
+}
 
 HATN_ROCKSDB_NAMESPACE_END

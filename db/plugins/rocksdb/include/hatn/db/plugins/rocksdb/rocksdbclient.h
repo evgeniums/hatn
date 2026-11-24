@@ -208,6 +208,12 @@ class HATN_ROCKSDB_EXPORT RocksdbClient : public Client
             bool onlyDefaultPartition
             ) override;
 
+        //! Put back the topics of a model that are missing from the registry, see ModelTopics::reconcile().
+        Result<size_t> doReconcileModelTopics(const ModelInfo& model) override;
+
+        //! Delete the registry entry of a topic of a model in the default partition, the objects stay.
+        Error doDeleteModelTopicRegistration(const ModelInfo& model, Topic topic) override;
+
     private:
 
         std::unique_ptr<RocksdbClient_p> d;

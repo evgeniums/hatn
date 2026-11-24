@@ -16,6 +16,9 @@
 /****************************************************************************/
 
 #include <chrono>
+#include <map>
+#include <mutex>
+#include <string>
 
 #include <boost/algorithm/string.hpp>
 
@@ -133,10 +136,46 @@ class RocksdbClient_p
 
         bool blobEnabled;
 
+        std::mutex topicRepairMutex;
+        std::map<std::string,std::chrono::steady_clock::time_point> topicRepairs;
+
         RocksdbClient_p()
             : ttlCompactionFilter(std::make_unique<TtlCompactionFilter>()),
               blobEnabled(false)
         {}
+
+        /**
+         * @brief A lookup without a topic found nothing: put back the topics of the model that are missing from the registry.
+         *
+         * A query without a topic looks in the topics of the registry only (ModelTopics), and a topic that is lost from it
+         * hides its objects from such a query. The lookup that found nothing may be that case, so the registry is reconciled
+         * with the objects, at most once in ten minutes for a model: a plain miss (the object is not there) is common,
+         * and the reconciliation reads a key of every topic of the database.
+         *
+         * @return True if a topic was put back, i.e. the lookup is worth repeating.
+         */
+        bool repairTopicsOnMiss(const ModelInfo& model)
+        {
+            constexpr auto MinInterval=std::chrono::minutes(10);
+            {
+                std::lock_guard<std::mutex> l{topicRepairMutex};
+                auto now=std::chrono::steady_clock::now();
+                auto it=topicRepairs.find(model.modelIdStr());
+                if (it!=topicRepairs.end() && (now-it->second)<MinInterval)
+                {
+                    return false;
+                }
+                topicRepairs[model.modelIdStr()]=now;
+            }
+
+            auto r=ModelTopics::reconcile(model,*handler);
+            if (r)
+            {
+                HATN_CTX_ERROR(r.error(),"failed to reconcile the topics of the model")
+                return false;
+            }
+            return r.value()>0;
+        }
 };
 
 //---------------------------------------------------------------
@@ -1254,6 +1293,12 @@ RocksdbClient::doFindOne(
 
     auto r=rdbModel->find(*d->handler,query,true);
     HATN_CHECK_RESULT(r)
+    if (r->empty() && query.query.topics().empty() && d->repairTopicsOnMiss(model))
+    {
+        // the topics of the registry did not include the topic of the object, see ModelTopics::reconcile()
+        r=rdbModel->find(*d->handler,query,true);
+        HATN_CHECK_RESULT(r)
+    }
     if (r->empty())
     {
         return Result<DbObject>{DbObject{}};
@@ -1294,6 +1339,12 @@ RocksdbClient::doFindOneForUpdate(
 
     auto ec=rdbModel->findCb(*d->handler,query,cb,tx,true);
     HATN_CHECK_EC(ec)
+    if (obj.isNull() && query.query.topics().empty() && d->repairTopicsOnMiss(model))
+    {
+        // the topics of the registry did not include the topic of the object, see ModelTopics::reconcile()
+        ec=rdbModel->findCb(*d->handler,query,cb,tx,true);
+        HATN_CHECK_EC(ec)
+    }
     if (obj.isNull() && query.query.notFoundIsError())
     {
         return dbError(DbError::NOT_FOUND);
@@ -1367,6 +1418,49 @@ Result<std::pmr::set<Topic>> RocksdbClient::doListModelTopics(
     }
 
     return ModelTopics::modelTopics(model.modelIdStr(),*d->handler,partition.get(),onlyDefaultPartition,rdbModel->factory());
+}
+
+//---------------------------------------------------------------
+
+Result<size_t> RocksdbClient::doReconcileModelTopics(const ModelInfo& model)
+{
+    HATN_CTX_SCOPE("rdb::reconcilemodeltopics")
+
+    if (!d->handler)
+    {
+        return dbError(DbError::DB_NOT_OPEN);
+    }
+    return ModelTopics::reconcile(model,*d->handler);
+}
+
+//---------------------------------------------------------------
+
+Error RocksdbClient::doDeleteModelTopicRegistration(const ModelInfo& model, Topic topic)
+{
+    HATN_CTX_SCOPE("rdb::deletemodeltopicregistration")
+
+    if (!d->handler)
+    {
+        return dbError(DbError::DB_NOT_OPEN);
+    }
+    auto partition=d->handler->defaultPartition();
+    if (!partition)
+    {
+        return OK;
+    }
+
+    KeyBuf key;
+    ModelTopics::fillRelationKey(model.modelIdStr(),topic,key);
+    auto status=d->handler->p()->db->Delete(
+            d->handler->p()->writeOptions,
+            partition->dataCf(),
+            ROCKSDB_NAMESPACE::Slice{key.data(),key.size()}
+        );
+    if (!status.ok())
+    {
+        return makeError(DbError::MODEL_TOPIC_RELATION_DEL,status);
+    }
+    return OK;
 }
 
 //---------------------------------------------------------------
