@@ -611,4 +611,222 @@ BOOST_AUTO_TEST_CASE(UpdateBytes)
     run(du::path(FieldBytes),FieldBytes);
 }
 
+#ifdef HATN_DB_VALUE_COPY
+
+// update requests must not refer to the data they were built from
+BOOST_AUTO_TEST_CASE(UpdateRequestOwnsValues)
+{
+    const auto path=du::path(FieldBytes);
+
+    // values are longer than SSO limit to make sure that they are allocated on the heap
+    const std::vector<std::string> setValues{
+        "set-value-0-longer-than-the-small-string-limit",
+        "set-value-1-longer-than-the-small-string-limit",
+        "set-value-2-longer-than-the-small-string-limit"
+    };
+    const std::string pushLvalue{"push-lvalue-longer-than-the-small-string-limit"};
+    const std::string pushRvalue{"push-rvalue-longer-than-the-small-string-limit"};
+    const std::string pushView{"push-view-longer-than-the-small-string-limit"};
+    const std::string pushBytes{"push-bytes-longer-than-the-small-string-limit"};
+    const std::vector<std::string> resetValues{
+        "reset-value-0-longer-than-the-small-string-limit",
+        "reset-value-1-longer-than-the-small-string-limit"
+    };
+
+    // sources are overwritten and freed before the requests are returned
+    auto build=[&]()
+    {
+        std::vector<common::SharedPtr<update::Request>> requests;
+
+        auto setSrc=std::make_unique<std::vector<std::string>>(setValues);
+        requests.push_back(update::sharedRequest(
+            update::field(update::path(path),update::set,*setSrc)
+        ));
+
+        auto pushSrc=std::make_unique<std::string>(pushLvalue);
+        requests.push_back(update::sharedRequest(
+            update::field(update::path(path),update::push,*pushSrc)
+        ));
+
+        // temporary string
+        requests.push_back(update::sharedRequest(
+            update::field(update::path(path),update::push,std::string{pushRvalue})
+        ));
+
+        auto viewSrc=std::make_unique<std::string>(pushView);
+        requests.push_back(update::sharedRequest(
+            update::field(update::path(path),update::push,lib::string_view{viewSrc->data(),viewSrc->size()})
+        ));
+
+        auto bytesSrc=std::make_unique<std::vector<char>>(pushBytes.begin(),pushBytes.end());
+        requests.push_back(update::sharedRequest(
+            update::field(update::path(path),update::push,*bytesSrc)
+        ));
+
+        // temporary vector
+        requests.push_back(update::sharedRequest(
+            update::field(update::path(path),update::set,std::vector<std::string>{resetValues})
+        ));
+
+        for (auto& it: *setSrc)
+        {
+            it.assign(it.size(),'#');
+        }
+        pushSrc->assign(pushSrc->size(),'#');
+        viewSrc->assign(viewSrc->size(),'#');
+        bytesSrc->assign(bytesSrc->size(),'#');
+
+        return requests;
+    };
+    auto requests=build();
+    BOOST_REQUIRE_EQUAL(requests.size(),6);
+
+    auto o=makeInitObject<rep::type>();
+
+    // set vector
+    auto ec=update::apply(&o,*requests[0]);
+    BOOST_REQUIRE(!ec);
+    BOOST_REQUIRE_EQUAL(o.fieldAtPath(path).count(),setValues.size());
+    for (size_t i=0;i<setValues.size();i++)
+    {
+        BOOST_CHECK_EQUAL(o.fieldAtPath(path).at(i).c_str(),setValues[i]);
+    }
+
+    // push lvalue string, temporary string, string_view and bytes
+    const std::vector<std::string> pushed{pushLvalue,pushRvalue,pushView,pushBytes};
+    for (size_t i=0;i<pushed.size();i++)
+    {
+        ec=update::apply(&o,*requests[i+1]);
+        BOOST_REQUIRE(!ec);
+        BOOST_REQUIRE_EQUAL(o.fieldAtPath(path).count(),setValues.size()+i+1);
+        const auto& item=o.fieldAtPath(path).at(setValues.size()+i);
+        auto res=lib::string_view{item.dataPtr(),item.dataSize()};
+        auto check=lib::string_view{pushed[i]};
+        BOOST_CHECK(res==check);
+    }
+    for (size_t i=0;i<setValues.size();i++)
+    {
+        BOOST_CHECK_EQUAL(o.fieldAtPath(path).at(i).c_str(),setValues[i]);
+    }
+
+    // set temporary vector
+    ec=update::apply(&o,*requests[5]);
+    BOOST_REQUIRE(!ec);
+    BOOST_REQUIRE_EQUAL(o.fieldAtPath(path).count(),resetValues.size());
+    for (size_t i=0;i<resetValues.size();i++)
+    {
+        BOOST_CHECK_EQUAL(o.fieldAtPath(path).at(i).c_str(),resetValues[i]);
+    }
+}
+
+// queries must not refer to the data they were built from
+BOOST_AUTO_TEST_CASE(QueryOwnsValues)
+{
+    const std::string topic{"query-owns-values-topic"};
+    const std::vector<std::string> inValues{
+        "in-value-0-longer-than-the-small-string-limit",
+        "in-value-1-longer-than-the-small-string-limit",
+        "in-value-2-longer-than-the-small-string-limit"
+    };
+    const std::string eqValue{"eq-value-longer-than-the-small-string-limit"};
+
+    auto collect=[](const auto& query)
+    {
+        std::vector<std::string> items;
+        auto ec=query.field(0).value.eachVectorItem(
+            [&items](const auto& item)
+            {
+                // the visitor is instantiated for all vector types, only strings are expected here
+                if constexpr (std::is_same<std::decay_t<decltype(item)>,std::string>::value)
+                {
+                    items.emplace_back(item.data(),item.size());
+                }
+                return Error{};
+            }
+        );
+        BOOST_REQUIRE(!ec);
+        return items;
+    };
+
+    // lvalue vector
+    {
+        auto buildIn=[&]()
+        {
+            auto src=std::make_unique<std::vector<std::string>>(inValues);
+            auto q=makeQuery(rep_f10_idx(),query::where(rep::f10,query::Operator::in,*src),topic);
+            for (auto& it: *src)
+            {
+                it.assign(it.size(),'#');
+            }
+            return q;
+        };
+        auto q=buildIn();
+        BOOST_REQUIRE_EQUAL(q.fields().size(),1);
+        BOOST_CHECK(collect(q)==inValues);
+    }
+
+    // temporary vector
+    {
+        auto q=makeQuery(rep_f10_idx(),query::where(rep::f10,query::Operator::in,std::vector<std::string>{inValues}),topic);
+        BOOST_REQUIRE_EQUAL(q.fields().size(),1);
+        BOOST_CHECK(collect(q)==inValues);
+    }
+
+    // lvalue string
+    {
+        auto buildEq=[&]()
+        {
+            auto src=std::make_unique<std::string>(eqValue);
+            auto q=makeQuery(rep_f10_idx(),query::where(rep::f10,query::Operator::eq,*src),topic);
+            src->assign(src->size(),'#');
+            return q;
+        };
+        auto q=buildEq();
+        BOOST_REQUIRE_EQUAL(q.fields().size(),1);
+        const auto& val=q.field(0).value.as<query::String>();
+        BOOST_CHECK(val==lib::string_view{eqValue});
+    }
+
+    // temporary string
+    {
+        auto q=makeQuery(rep_f10_idx(),query::where(rep::f10,query::Operator::eq,std::string{eqValue}),topic);
+        BOOST_REQUIRE_EQUAL(q.fields().size(),1);
+        const auto& val=q.field(0).value.as<query::String>();
+        BOOST_CHECK(val==lib::string_view{eqValue});
+    }
+
+    // string_view
+    {
+        auto buildView=[&]()
+        {
+            auto src=std::make_unique<std::string>(eqValue);
+            auto q=makeQuery(rep_f10_idx(),query::where(rep::f10,query::Operator::eq,lib::string_view{src->data(),src->size()}),topic);
+            src->assign(src->size(),'#');
+            return q;
+        };
+        auto q=buildView();
+        BOOST_REQUIRE_EQUAL(q.fields().size(),1);
+        const auto& val=q.field(0).value.as<query::String>();
+        BOOST_CHECK(val==lib::string_view{eqValue});
+    }
+
+    // where object that is stored and used later
+    {
+        auto buildWhere=[&]()
+        {
+            auto src=std::make_unique<std::string>(eqValue);
+            auto w=query::where(rep::f10,query::Operator::eq,*src);
+            src->assign(src->size(),'#');
+            return w;
+        };
+        auto w=buildWhere();
+        auto q=makeQuery(rep_f10_idx(),w,topic);
+        BOOST_REQUIRE_EQUAL(q.fields().size(),1);
+        const auto& val=q.field(0).value.as<query::String>();
+        BOOST_CHECK(val==lib::string_view{eqValue});
+    }
+}
+
+#endif
+
 BOOST_AUTO_TEST_SUITE_END()

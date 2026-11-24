@@ -19,6 +19,10 @@
 #ifndef HATNDBQUERY_H
 #define HATNDBQUERY_H
 
+#include <memory>
+#include <string>
+#include <vector>
+
 #include <boost/hana.hpp>
 
 #include <hatn/validator/utils/reference_wrapper.hpp>
@@ -31,6 +35,14 @@
 #include <hatn/db/db.h>
 #include <hatn/db/index.h>
 #include <hatn/db/model.h>
+
+// By default strings and vectors passed to where() and update::field() are copied into the query
+// or update request, so it never outlives the data it was built from and can be built from
+// temporaries. Strings of type lib::string_view are copied as well.
+// Define HATN_DB_VALUE_NO_COPY to keep the old non-owning views.
+#ifndef HATN_DB_VALUE_NO_COPY
+#define HATN_DB_VALUE_COPY
+#endif
 
 HATN_DB_NAMESPACE_BEGIN
 
@@ -808,6 +820,38 @@ enum class ValueType : uint8_t
     HATN_DB_QUERY_VALUE_TYPE_IDS(HATN_DB_QUERY_VALUE_TYPE_ID)
 };
 
+//! Tag to make ValueT own a copy of the string bytes.
+struct OwnStringT{};
+constexpr OwnStringT ownString{};
+
+//! Tag to make ValueT own a copy of the vector.
+struct OwnVectorT{};
+constexpr OwnVectorT ownVector{};
+
+template <typename T>
+struct IsVectorOnStackChar : public std::false_type
+{
+};
+
+template <size_t PreallocatedSize, typename FallbackAllocatorT>
+struct IsVectorOnStackChar<common::VectorOnStackT<char,PreallocatedSize,FallbackAllocatorT>> : public std::true_type
+{
+};
+
+//! Containers of bytes that are used as strings, i.e. not as vectors of values.
+template <typename T>
+struct IsBytesContainer : public std::integral_constant<bool,
+                                                         std::is_same<std::decay_t<T>,std::vector<char>>::value
+                                                         ||
+                                                         std::is_same<std::decay_t<T>,common::pmr::vector<char>>::value
+                                                         ||
+                                                         std::is_same<std::decay_t<T>,common::ByteArray>::value
+                                                         ||
+                                                         IsVectorOnStackChar<std::decay_t<T>>::value
+                                                         >
+{
+};
+
 template <typename VariantT, typename EnumT>
 class ValueT
 {
@@ -820,6 +864,52 @@ class ValueT
 
         ValueT(bool val) : m_value(BoolValue(val))
         {}
+
+#ifdef HATN_DB_VALUE_COPY
+
+        //! Construct string value that owns a copy of the bytes.
+        ValueT(OwnStringT, lib::string_view value)
+        {
+            auto held=std::make_shared<std::string>();
+            if (value.size()!=0)
+            {
+                // data() of an empty view can be null
+                held->assign(value.data(),value.size());
+            }
+            m_value=String{held->data(),held->size()};
+            m_holder=std::move(held);
+        }
+
+        //! Construct vector value that owns a copy of the vector.
+        /**
+         * Copies of this value share the held vector. Elements of string_view type are
+         * converted to std::string so that the bytes are owned as well.
+         */
+        template <typename ContainerT>
+        ValueT(OwnVectorT, const ContainerT& vec)
+        {
+            using itemT=typename ContainerT::value_type;
+            if constexpr (std::is_same<itemT,lib::string_view>::value)
+            {
+                auto held=std::make_shared<std::vector<std::string>>();
+                held->reserve(vec.size());
+                for (const auto& it: vec)
+                {
+                    held->emplace_back(it.empty() ? "" : it.data(),it.size());
+                }
+                m_value=Vector<std::string>{std::cref(static_cast<const std::vector<std::string>&>(*held))};
+                m_holder=std::move(held);
+            }
+            else
+            {
+                // the held vector is not const, it can be sorted in place by the db plugin
+                auto held=std::make_shared<ContainerT>(vec);
+                m_value=Vector<itemT>{std::cref(static_cast<const ContainerT&>(*held))};
+                m_holder=std::move(held);
+            }
+        }
+
+#endif
 
         template <typename T>
         ValueT(const std::reference_wrapper<const std::vector<T>>& v) : m_value(Vector<T>{v})
@@ -1060,6 +1150,11 @@ class ValueT
     private:
 
         type m_value;
+
+#ifdef HATN_DB_VALUE_COPY
+        // keeps alive the string or vector that m_value refers to
+        std::shared_ptr<const void> m_holder;
+#endif
 };
 
 using ValueVariant=lib::variant<
@@ -1305,6 +1400,37 @@ struct IsVector<T,hana::when_valid<typename std::decay_t<T>::value_type>>
 template <typename FieldT, typename ValueT>
 auto condition(const FieldT& field, Operator op, ValueT&& value, Order order=Order::Asc)
 {
+    using isVecT=IsVector<ValueT>;
+
+#ifdef HATN_DB_VALUE_COPY
+
+    // strings and vectors are copied into the operand, so the condition and the query
+    // built from it never refer to the data of the caller
+    if constexpr (std::is_convertible<ValueT,String>::value)
+    {
+        return hana::make_tuple(std::cref(field),op,Operand{ownString,String(value)},order);
+    }
+    else
+    {
+        if constexpr (IsBytesContainer<ValueT>::value)
+        {
+            return hana::make_tuple(std::cref(field),op,Operand{ownString,String(value.data(),value.size())},order);
+        }
+        else
+        {
+            if constexpr (isVecT::value)
+            {
+                return hana::make_tuple(std::cref(field),op,Operand{ownVector,value},order);
+            }
+            else
+            {
+                return hana::make_tuple(std::cref(field),op,std::forward<ValueT>(value),order);
+            }
+        }
+    }
+
+#else
+
     static const auto isLval=std::is_lvalue_reference<ValueT>{};
     static const auto isStrView=
         hana::bool_c<
@@ -1312,7 +1438,6 @@ auto condition(const FieldT& field, Operator op, ValueT&& value, Order order=Ord
             ||
             std::is_same<const char*,ValueT>::value
             >;
-    using isVecT=IsVector<ValueT>;
 
     static_assert(
         decltype(isLval)::value || decltype(isStrView)::value || !isVecT::value,
@@ -1334,6 +1459,8 @@ auto condition(const FieldT& field, Operator op, ValueT&& value, Order order=Ord
             return hana::make_tuple(std::cref(field),op,std::forward<ValueT>(value),order);
         }
     }
+
+#endif
 }
 
 template <typename Ts, typename PartitionT=hana::false_>
@@ -1391,8 +1518,9 @@ struct whereT
     PartitionT _partitions;
 };
 
-//! @note Vectors and strings must be used only by references except for string_view strings.
-//! @note Vectors must be sorted, otherwise they will be sorted internally despite const lvalue reference.
+//! @note Strings and vectors are copied into the query unless HATN_DB_VALUE_NO_COPY is defined,
+//!       then they must be used only by lvalue references except for string_view strings.
+//! @note The db plugin sorts vectors internally, with copying it sorts the copy and not the vector of the caller.
 template <typename FieldT, typename ValueT>
 auto where(const FieldT& field, Operator op, ValueT&& value, Order order=Order::Asc)
 {

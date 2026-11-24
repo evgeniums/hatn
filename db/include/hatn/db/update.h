@@ -214,6 +214,38 @@ struct fieldT
         using type=std::decay_t<T>;
         using isVecT=query::IsVector<T>;
 
+#ifdef HATN_DB_VALUE_COPY
+
+        // strings and vectors are copied into the operand, so the update request
+        // never refers to the data of the caller
+        if constexpr (std::is_convertible<T,String>::value)
+        {
+            return Operand{query::ownString,String(val)};
+        }
+        else
+        {
+            if constexpr (query::IsBytesContainer<T>::value)
+            {
+                return Operand{query::ownString,String(val.data(),val.size())};
+            }
+            else
+            {
+                if constexpr (isVecT::value
+                              &&
+                              !hana::is_a<common::VectorOnStackTag,type>
+                              )
+                {
+                    return Operand{query::ownVector,val};
+                }
+                else
+                {
+                    return hana::id(std::forward<T>(val));
+                }
+            }
+        }
+
+#else
+
         static const auto isLval=std::is_lvalue_reference<T>{};
         static const auto isStrView=
             hana::bool_c<
@@ -251,6 +283,8 @@ struct fieldT
                 return hana::id(std::forward<T>(val));
             }
         }
+
+#endif
     }
 
     template <typename T1, typename T2>
