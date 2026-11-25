@@ -6,6 +6,7 @@
 
 */
 
+#include <mutex>
 #include <string_view>
 
 #include <hatn/common/errorcategory.h>
@@ -23,11 +24,24 @@ namespace fileencryptor {
 
 //---------------------------------------------------------------
 
+namespace {
+
+// Thread::setMainThread()/releaseMainThread() are not thread-safe, and encryptor and decryptor
+// contexts can be created/destroyed concurrently by a host that loads this library as a plugin.
+std::mutex& mainThreadMutex()
+{
+    static std::mutex m;
+    return m;
+}
+
+}
+
 FileCryptBase::~FileCryptBase()
 {
     app.reset();
     if (mainThreadSet)
     {
+        std::lock_guard<std::mutex> l{mainThreadMutex()};
         common::Thread::releaseMainThread();
     }
 }
@@ -70,11 +84,14 @@ common::Error FileCryptBase::init(std::string_view configFilePath,
         return jsonResult.takeError();
     }
 
-    if (!common::Thread::mainThread())
     {
-        common::Thread::setMainThread(
-            std::make_shared<common::Thread>("main", false));
-        mainThreadSet = true;
+        std::lock_guard<std::mutex> l{mainThreadMutex()};
+        if (!common::Thread::mainThread())
+        {
+            common::Thread::setMainThread(
+                std::make_shared<common::Thread>("main", false));
+            mainThreadSet = true;
+        }
     }
 
     app = std::make_unique<app::App>(app::AppName{"fileencryptor", "hatn File Encryptor"});

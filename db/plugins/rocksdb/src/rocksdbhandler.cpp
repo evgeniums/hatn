@@ -176,6 +176,18 @@ Error RocksdbHandler::transaction(const TransactionFn& fn, Transaction* tx, bool
             d->noteWriteStatus(status);
             copyRocksdbError(ec,DbError::TX_COMMIT_FAILED,status);
         }
+        else
+        {
+            // the registry of topics follows only what was really committed
+            for (const auto& update : rocksdbTx.m_topicUpdates)
+            {
+                auto updateEc=ModelTopics::update(update.modelId,Topic{update.topic},*this,update.partition,update.action);
+                if (updateEc)
+                {
+                    HATN_CTX_ERROR(updateEc,"failed to save model-topic relation")
+                }
+            }
+        }
     }
     return ec;
 }

@@ -878,6 +878,47 @@ class HATN_DB_EXPORT Client : public common::WithID
             return dbError(DbError::DB_NOT_OPEN);
         }
 
+        /**
+         * @brief Put back the topics of a model that have objects but are missing from the registry of topics of the model.
+         *
+         * A query without a topic looks in the topics of the registry only, so a topic that is lost from it hides its objects from
+         * such a query. The registry is derived from the objects and is rebuilt from them. A lookup without a topic that finds nothing
+         * does it by itself (at most once in ten minutes for a model), so a caller needs this only to repair a database at a moment
+         * of its own choice. A driver that has no such registry puts back nothing.
+         *
+         * @return Number of topics that were put back.
+         */
+        template <typename ModelT>
+        Result<size_t> reconcileModelTopics(const std::shared_ptr<ModelT>& model)
+        {
+            HATN_CTX_SCOPE("reconcilemodeltopics")
+            if (m_open)
+            {
+                return doReconcileModelTopics(*model->info);
+            }
+
+            HATN_CTX_SCOPE_LOCK()
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
+        /**
+         * @brief Delete the registry entry of a topic of a model, the objects of the topic stay.
+         *
+         * Makes the state that reconcileModelTopics() repairs. For tests of that repair, not for application code.
+         */
+        template <typename ModelT>
+        Error deleteModelTopicRegistration(const std::shared_ptr<ModelT>& model, Topic topic)
+        {
+            HATN_CTX_SCOPE("deletemodeltopicregistration")
+            if (m_open)
+            {
+                return doDeleteModelTopicRegistration(*model->info,topic);
+            }
+
+            HATN_CTX_SCOPE_LOCK()
+            return dbError(DbError::DB_NOT_OPEN);
+        }
+
         Error transaction(const TransactionFn& fn)
         {
             HATN_CTX_SCOPE("db::transaction")
@@ -1065,6 +1106,16 @@ class HATN_DB_EXPORT Client : public common::WithID
             const common::DateRange& partitionDateRange,
             bool onlyDefaultPartition
         )=0;
+
+        virtual Result<size_t> doReconcileModelTopics(const ModelInfo& /*model*/)
+        {
+            return size_t(0);
+        }
+
+        virtual Error doDeleteModelTopicRegistration(const ModelInfo& /*model*/, Topic /*topic*/)
+        {
+            return Error{};
+        }
 
         void setClosed() noexcept
         {

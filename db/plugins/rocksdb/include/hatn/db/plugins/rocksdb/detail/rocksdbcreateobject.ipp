@@ -139,10 +139,26 @@ Error CreateObjectT::operator ()(
     HATN_CHECK_EC(ec)
 
     // save model-topic relation
-    ec=ModelTopics::update(model.modelIdStr(),topic,handler,partition.get(),ModelTopics::Operator::Add);
-    if (ec)
+    if (tx!=nullptr)
     {
-        HATN_CTX_ERROR(ec,"failed to save model-topic relation")
+        // the transaction of the caller is not committed yet, and may be rolled back
+        RocksdbTransaction::deferTopicUpdate(
+            tx,
+            RocksdbTransaction::TopicUpdate{
+                model.modelIdStr(),
+                std::string{topic.topic().data(),topic.topic().size()},
+                partition.get(),
+                ModelTopics::Operator::Add
+            }
+        );
+    }
+    else
+    {
+        ec=ModelTopics::update(model.modelIdStr(),topic,handler,partition.get(),ModelTopics::Operator::Add);
+        if (ec)
+        {
+            HATN_CTX_ERROR(ec,"failed to save model-topic relation")
+        }
     }
 
     // done

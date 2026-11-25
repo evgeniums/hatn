@@ -29,6 +29,12 @@
 
 #include <hatn/db/db.h>
 
+// By default Topic keeps its own copy of the string it is built from, so a Topic never
+// outlives its characters. Define HATN_DB_TOPIC_NO_COPY to get the old non-owning view.
+#ifndef HATN_DB_TOPIC_NO_COPY
+#define HATN_DB_TOPIC_COPY
+#endif
+
 HATN_DB_NAMESPACE_BEGIN
 
 using TopicHolder=std::shared_ptr<HATN_DATAUNIT_NAMESPACE::ObjectId::String>;
@@ -103,6 +109,32 @@ class Topic
               m_topic(m_holder->data(),m_holder->size())
         {}
 
+#ifdef HATN_DB_TOPIC_COPY
+
+        Topic(const char* topic)
+        {
+            lib::string_view view{topic};
+            load(view.data(),view.size());
+        }
+
+        Topic(lib::string_view topic)
+        {
+            load(topic.data(),topic.size());
+        }
+
+        Topic(const std::string& topic)
+        {
+            load(topic.data(),topic.size());
+        }
+
+        template <size_t PreallocatedSize, typename FallbackAllocatorT>
+        Topic(const HATN_COMMON_NAMESPACE::StringOnStackT<PreallocatedSize,FallbackAllocatorT>& topic)
+        {
+            load(topic.data(),topic.size());
+        }
+
+#else
+
         Topic(const char* topic)
             : m_topic(topic)
         {}
@@ -119,6 +151,8 @@ class Topic
         Topic(const HATN_COMMON_NAMESPACE::StringOnStackT<PreallocatedSize,FallbackAllocatorT>& topic)
             : m_topic(topic)
         {}
+
+#endif
 
         const lib::string_view& topic() const noexcept
         {
@@ -187,12 +221,12 @@ class Topic
 
         bool operator <= (const Topic& other) const noexcept
         {
-            return m_topic<other.m_topic;
+            return m_topic<=other.m_topic;
         }
 
         bool operator <= (const lib::string_view& other) const noexcept
         {
-            return m_topic<other;
+            return m_topic<=other;
         }
 
         void load(lib::string_view topic)

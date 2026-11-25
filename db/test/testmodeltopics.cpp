@@ -15,10 +15,14 @@
 
 #include <cmath>
 #include <cstdlib>
+#include <deque>
+#include <tuple>
+#include <vector>
 
 #include <boost/test/unit_test.hpp>
 
 #include <hatn/common/datetime.h>
+#include <hatn/common/format.h>
 
 #include <hatn/logcontext/contextlogger.h>
 #include <hatn/logcontext/streamlogger.h>
@@ -37,6 +41,7 @@
 #include "preparedb.h"
 
 #ifdef HATN_ENABLE_PLUGIN_ROCKSDB
+#include <hatn/db/plugins/rocksdb/modeltopics.h>
 #include <hatn/db/plugins/rocksdb/ipp/fieldvaluetobuf.ipp>
 #include <hatn/db/plugins/rocksdb/ipp/rocksdbmodels.ipp>
 #endif
@@ -426,5 +431,324 @@ BOOST_AUTO_TEST_CASE(Partitions)
     };
     PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
 }
+
+#ifdef HATN_ENABLE_PLUGIN_ROCKSDB
+
+namespace {
+
+using MergeOp=ROCKSDB_NAMESPACE::MergeOperator;
+
+std::string topicOperation(rdb::ModelTopics::Operator op)
+{
+    return std::string(1,static_cast<char>(op));
+}
+
+std::string topicRelation(uint64_t count)
+{
+    rdb::ModelTopics::Relation rel;
+    rel.count=count;
+    if (count==0)
+    {
+        // the same marker mergeRelOp() puts on a relation that dropped to zero
+        rel.ttl.fillExpireAt(0x1000);
+    }
+    std::string value;
+    rdb::ModelTopics::serializeRelation(rel,&value);
+    return value;
+}
+
+// What RocksDB does when it reads the key: the base value (if any) and the pending operands are folded by FullMergeV2.
+bool fullMergeTopic(const std::string* base, const std::vector<std::string>& operands, rdb::ModelTopics::Relation& result)
+{
+    rdb::MergeModelTopic merge;
+
+    std::vector<ROCKSDB_NAMESPACE::Slice> slices;
+    for (const auto& op : operands)
+    {
+        slices.emplace_back(op);
+    }
+    ROCKSDB_NAMESPACE::Slice key{"topic-relation-key"};
+    ROCKSDB_NAMESPACE::Slice baseSlice;
+    if (base!=nullptr)
+    {
+        baseSlice=ROCKSDB_NAMESPACE::Slice{*base};
+    }
+    MergeOp::MergeOperationInput in{key,base!=nullptr ? &baseSlice : nullptr,slices,nullptr};
+    std::string out;
+    ROCKSDB_NAMESPACE::Slice existing;
+    MergeOp::MergeOperationOutput outp{out,existing};
+    if (!merge.FullMergeV2(in,&outp))
+    {
+        return false;
+    }
+    if (!outp.existing_operand.empty())
+    {
+        out=outp.existing_operand.ToString();
+    }
+    return rdb::ModelTopics::deserializeRelation(out.data(),out.size(),result);
+}
+
+// What RocksDB does at a flush or compaction that has no base value at hand: the operands are folded into one operand.
+bool partialMergeTopic(const std::vector<std::string>& operands, std::string& folded)
+{
+    rdb::MergeModelTopic merge;
+    std::deque<ROCKSDB_NAMESPACE::Slice> slices;
+    for (const auto& op : operands)
+    {
+        slices.emplace_back(op);
+    }
+    ROCKSDB_NAMESPACE::Slice key{"topic-relation-key"};
+    return merge.PartialMergeMulti(key,slices,&folded,nullptr);
+}
+
+}
+
+/**
+ * The registry of topics of a model counts its objects per topic with RocksDB Merge operands, and a topic whose count reaches
+ * zero is dropped (an expired relation is removed by the TTL compaction filter): a query without a topic then no longer
+ * finds the objects of that topic, although they are all in the database. A merge operator must give the same result when
+ * RocksDB folds some of the operands first (PartialMergeMulti) and applies the folded one to the base later (FullMergeV2):
+ * that happens at every flush and compaction.
+ */
+BOOST_AUTO_TEST_CASE(MergeOperatorFoldsLikeSingleOperands)
+{
+    using Op=rdb::ModelTopics::Operator;
+    const std::vector<Op> alphabet{Op::Add,Op::Del};
+    const std::vector<int64_t> bases{-1,0,1,3};
+
+    std::vector<std::string> failures;
+    size_t checked=0;
+
+    std::vector<std::vector<Op>> sequences;
+    sequences.push_back({});
+    for (size_t len=1;len<=5;len++)
+    {
+        const auto prev=sequences;
+        for (const auto& s : prev)
+        {
+            if (s.size()+1==len)
+            {
+                for (auto op : alphabet)
+                {
+                    auto next=s;
+                    next.push_back(op);
+                    sequences.push_back(std::move(next));
+                }
+            }
+        }
+    }
+
+    for (const auto& sequence : sequences)
+    {
+        if (sequence.size()<2)
+        {
+            continue;
+        }
+        std::vector<std::string> operands;
+        std::string text;
+        for (auto op : sequence)
+        {
+            operands.push_back(topicOperation(op));
+            text+=(op==Op::Add?"A":"D");
+        }
+
+        for (auto base : bases)
+        {
+            std::string baseValue;
+            if (base>=0)
+            {
+                baseValue=topicRelation(static_cast<uint64_t>(base));
+            }
+            const std::string* basePtr=base>=0 ? &baseValue : nullptr;
+
+            rdb::ModelTopics::Relation direct;
+            BOOST_REQUIRE(fullMergeTopic(basePtr,operands,direct));
+
+            // fold the first k operands, apply the folded one and the rest to the base
+            for (size_t k=2;k<=operands.size();k++)
+            {
+                std::vector<std::string> head(operands.begin(),operands.begin()+k);
+                std::string folded;
+                BOOST_REQUIRE(partialMergeTopic(head,folded));
+
+                std::vector<std::string> mixed;
+                mixed.push_back(folded);
+                mixed.insert(mixed.end(),operands.begin()+k,operands.end());
+
+                rdb::ModelTopics::Relation viaPartial;
+                BOOST_REQUIRE(fullMergeTopic(basePtr,mixed,viaPartial));
+
+                checked++;
+                if (direct.count!=viaPartial.count || direct.ttl.isNull()!=viaPartial.ttl.isNull())
+                {
+                    failures.push_back(fmt::format("base={} ops={} folded_first={}: one by one count={} expired={}, folded count={} expired={}",
+                                                   base,text,k,direct.count,!direct.ttl.isNull(),viaPartial.count,!viaPartial.ttl.isNull()));
+                }
+            }
+        }
+    }
+
+    std::string report;
+    for (size_t i=0;i<failures.size() && i<10;i++)
+    {
+        report+="\n  "+failures[i];
+    }
+    BOOST_CHECK_MESSAGE(failures.empty(),
+                        fmt::format("{} of {} merge folds changed the count of the topic relation, first ones:{}",failures.size(),checked,report));
+}
+
+/**
+ * Del is merged into the registry at once, inside the transaction, so a transaction that is rolled back after a delete leaves
+ * the registry one object short. A topic whose objects are all deleted in rolled-back transactions would be dropped.
+ */
+BOOST_AUTO_TEST_CASE(RolledBackDeleteKeepsTopicCount)
+{
+    init();
+
+    auto s1=initSchema(modelNoP1());
+
+    auto handler=[&s1](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
+    {
+        std::ignore=plugin;
+        setSchemaToClient(client,s1);
+
+        Topic topic{"topic0"};
+        std::vector<ObjectId> oids;
+        for (size_t i=0;i<2;i++)
+        {
+            auto o=makeInitObject<no_p::type>();
+            o.setFieldValue(base_fields::df2,i);
+            auto ec=client->create(topic,modelNoP1(),&o);
+            BOOST_REQUIRE(!ec);
+            oids.push_back(o.fieldValue(Oid));
+        }
+        auto r=client->count(modelNoP1(),topic);
+        BOOST_REQUIRE(!r);
+        BOOST_CHECK_EQUAL(r.value(),2);
+
+        // delete in a transaction that fails afterwards
+        auto failing=[&](Transaction* tx)->Error
+        {
+            auto ec=client->deleteObject(topic,modelNoP1(),oids[0],tx);
+            if (ec)
+            {
+                return ec;
+            }
+            return commonError(CommonError::GENERIC_ERROR);
+        };
+        auto ec=client->transaction(failing);
+        BOOST_CHECK(ec);
+
+        // the object is still there ...
+        auto rRead=client->read(topic,modelNoP1(),oids[0]);
+        BOOST_CHECK(!rRead);
+
+        // ... and so is the topic registration of it
+        r=client->count(modelNoP1(),topic);
+        BOOST_REQUIRE(!r);
+        BOOST_CHECK_EQUAL(r.value(),2);
+        r=client->count(modelNoP1());
+        BOOST_REQUIRE(!r);
+        BOOST_CHECK_EQUAL(r.value(),2);
+    };
+    PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
+}
+
+/**
+ * A topic that is missing from the registry hides its objects from a query without a topic. The registry is rebuilt from the objects:
+ * by reconcileModelTopics(), and by a lookup without a topic that finds nothing.
+ */
+BOOST_AUTO_TEST_CASE(ReconcileRestoresDroppedTopic)
+{
+    init();
+
+    auto s1=initSchema(modelNoP1());
+
+    auto handler=[&s1](std::shared_ptr<DbPlugin> plugin, std::shared_ptr<Client> client)
+    {
+        std::ignore=plugin;
+        setSchemaToClient(client,s1);
+
+        const Topic topic0{"topic0"};
+        const Topic topic1{"topic1"};
+        auto createObjects=[&client](const Topic& topic, uint32_t first, size_t count)
+        {
+            for (size_t i=0;i<count;i++)
+            {
+                auto o=makeInitObject<no_p::type>();
+                o.setFieldValue(base_fields::df2,first+static_cast<uint32_t>(i));
+                auto ec=client->create(topic,modelNoP1(),&o);
+                BOOST_REQUIRE(!ec);
+            }
+        };
+        createObjects(topic0,100,5);
+        createObjects(topic1,200,3);
+
+        auto listedTopics=[&client]()
+        {
+            auto r=client->listModelTopics(modelNoP1());
+            BOOST_REQUIRE(!r);
+            return r.value().size();
+        };
+        auto countAll=[&client]()
+        {
+            auto r=client->count(modelNoP1());
+            BOOST_REQUIRE(!r);
+            return r.value();
+        };
+
+        BOOST_CHECK_EQUAL(listedTopics(),2);
+        BOOST_CHECK_EQUAL(countAll(),8);
+
+        // nothing is put back while the registry is right
+        auto none=client->reconcileModelTopics(modelNoP1());
+        BOOST_REQUIRE(!none);
+        BOOST_CHECK_EQUAL(none.value(),0);
+
+        // the registry entry of topic0 is lost, its objects stay
+        auto ec=client->deleteModelTopicRegistration(modelNoP1(),topic0);
+        BOOST_REQUIRE(!ec);
+        BOOST_CHECK_EQUAL(listedTopics(),1);
+        BOOST_CHECK_EQUAL(countAll(),3);
+
+        // put back from the objects, with the right count
+        auto fixed=client->reconcileModelTopics(modelNoP1());
+        BOOST_REQUIRE(!fixed);
+        BOOST_CHECK_EQUAL(fixed.value(),1);
+        BOOST_CHECK_EQUAL(listedTopics(),2);
+        BOOST_CHECK_EQUAL(countAll(),8);
+        auto c0=client->count(modelNoP1(),topic0);
+        BOOST_REQUIRE(!c0);
+        BOOST_CHECK_EQUAL(c0.value(),5);
+        auto c1=client->count(modelNoP1(),topic1);
+        BOOST_REQUIRE(!c1);
+        BOOST_CHECK_EQUAL(c1.value(),3);
+
+        // and once more it changes nothing
+        auto again=client->reconcileModelTopics(modelNoP1());
+        BOOST_REQUIRE(!again);
+        BOOST_CHECK_EQUAL(again.value(),0);
+        BOOST_CHECK_EQUAL(countAll(),8);
+
+        // a lookup without a topic that finds nothing repairs the registry by itself
+        ec=client->deleteModelTopicRegistration(modelNoP1(),topic0);
+        BOOST_REQUIRE(!ec);
+        BOOST_CHECK_EQUAL(listedTopics(),1);
+        auto q=makeQuery(df2Idx(),query::where(base_fields::df2,query::eq,100u));
+        auto found=client->findOne(modelNoP1(),q);
+        if (found)
+        {
+            BOOST_TEST_MESSAGE(found.error().message());
+        }
+        BOOST_REQUIRE(!found);
+        BOOST_REQUIRE(!found.value().isNull());
+        BOOST_CHECK_EQUAL(found.value()->fieldValue(base_fields::df2),100);
+        BOOST_CHECK_EQUAL(listedTopics(),2);
+        BOOST_CHECK_EQUAL(countAll(),8);
+    };
+    PrepareDbAndRun::eachPlugin(handler,"simple1.jsonc");
+}
+
+#endif
 
 BOOST_AUTO_TEST_SUITE_END()

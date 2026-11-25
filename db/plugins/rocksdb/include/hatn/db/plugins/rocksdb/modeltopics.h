@@ -67,6 +67,23 @@ class HATN_ROCKSDB_SCHEMA_EXPORT ModelTopics
 
         constexpr static const size_t MaxOperationSize=sizeof(Operator)+TtlMark::Size;
 
+        /**
+         * @brief Several operations folded into one operand by PartialMergeMulti().
+         *
+         * The counter never goes below zero, so a run of operations acts on the counter x as x -> max(x+change, floor).
+         * Such functions compose (max(max(x+a1,b1)+a2,b2)=max(x+a1+a2,max(b1+a2,b2))), and that is what lets RocksDB fold
+         * the operands at a flush or a compaction, long before the value they apply to is at hand, and still get the
+         * same count as applying them one by one. The size differs from both an Operation (1 byte) and a Relation
+         * (MinRelationSize..MaxRelationSize), so the three kinds of operands tell themselves apart by size.
+         */
+        struct Delta
+        {
+            int64_t change=0;
+            uint64_t floor=0;
+        };
+        constexpr static const uint8_t DeltaMarker=0xD2;
+        constexpr static const size_t DeltaSize=sizeof(uint8_t)+sizeof(int64_t)+sizeof(uint64_t);
+
         static Error update(
             const std::string& modelId,
             Topic topic,
@@ -81,6 +98,24 @@ class HATN_ROCKSDB_SCHEMA_EXPORT ModelTopics
             RocksdbPartition* partition=nullptr,
             bool onlyDefaultPartition=false,
             const common::pmr::AllocatorFactory* factory=common::pmr::AllocatorFactory::getDefault()
+        );
+
+        /**
+         * @brief Put back the topics of a model that have objects but are missing from the registry or are zero in it.
+         *
+         * A query without a topic looks in the topics of the registry only, so an object whose topic is not in it is not
+         * found by such a query although the object and its index entries are intact. The registry is derived data: this
+         * rebuilds what is missing from the objects. Only the topics that the registry does not list as non-empty are
+         * counted (one point lookup per topic of the database and one seek, objects of the other topics are not touched),
+         * and the count is merged as a Delta, so an Add or a Del that is made at the same time is not lost.
+         *
+         * @param model Model to reconcile.
+         * @param handler Rocksdb handler.
+         * @return Number of topics that were put back.
+         */
+        static Result<size_t> reconcile(
+            const ModelInfo& model,
+            RocksdbHandler& handler
         );
 
         static Error deleteTopic(
@@ -116,6 +151,9 @@ class HATN_ROCKSDB_SCHEMA_EXPORT ModelTopics
         static void serializeRelation(const Relation& rel, std::string* value);
 
         static bool deserializeOperation(const char* data, size_t size, Operation& op);
+
+        static void serializeDelta(const Delta& delta, std::string* value);
+        static bool deserializeDelta(const char* data, size_t size, Delta& delta);
 
         static void fillRelationKey(
             const std::string& modelId,
